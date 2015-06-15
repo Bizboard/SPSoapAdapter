@@ -2,15 +2,41 @@
  * Created by mysim1 on 13/06/15.
  */
 import EventEmitter     from 'eventemitter3';
-import worker           from 'worker.js!text';
+import worker           from 'worker.js!base64';
+
+function b64toBlob(b64Data, contentType, sliceSize) {
+    contentType = contentType || '';
+    sliceSize = sliceSize || 512;
+
+    var byteCharacters = atob(b64Data);
+    var byteArrays = [];
+
+    for (var offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+        var slice = byteCharacters.slice(offset, offset + sliceSize);
+
+        var byteNumbers = new Array(slice.length);
+        for (var i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+
+        var byteArray = new Uint8Array(byteNumbers);
+
+        byteArrays.push(byteArray);
+    }
+
+    var blob = new Blob(byteArrays, {type: contentType});
+    return blob;
+}
+
+var sourcecodeBlob = b64toBlob(worker);
 
 export class SharePoint extends EventEmitter {
 
     constructor(options = {}) {
         super();
 
-        //let url = window.URL.createObjectURL(new Blob([worker]));
-        this.worker = new Worker('worker.js');
+        let url = window.URL.createObjectURL(sourcecodeBlob);
+        this.worker = new Worker(url);
 
         this.worker.onmessage = (msg) => {
             this.emit(msg.data.event, msg.data.result);

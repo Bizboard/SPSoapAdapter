@@ -9,3 +9,4 @@ var spWorker = new SharePoint({ endPoint: 'https://bizboardapps.sharepoint.com/s
 spWorker.on('child_added', function(data) {
     console.log(data);
 });
+

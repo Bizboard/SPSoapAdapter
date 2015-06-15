@@ -32,6 +32,7 @@ export class SoapClient {
         ObjectHelper.hidePropertyFromObject(Object.getPrototypeOf(this), 'length');
     }
 
+
     _applySoapTemplate(properties) {
         return _.template('<?xml version="1.0" encoding="utf-8"?>' +
             '<soap:Envelope ' +
