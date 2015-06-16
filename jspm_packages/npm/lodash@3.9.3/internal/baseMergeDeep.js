@@ -12,7 +12,7 @@ function baseMergeDeep(object, source, key, mergeFunc, customizer, stackA, stack
   while (length--) {
     if (stackA[length] == srcValue) {
       object[key] = stackB[length];
-      return ;
+      return;
     }
   }
   var value = object[key],

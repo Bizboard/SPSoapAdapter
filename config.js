@@ -1,21 +1,26 @@
 System.config({
   "baseURL": "/",
+  "defaultJSExtensions": true,
   "transpiler": "traceur",
+  "traceurOptions": {
+    "annotations": true,
+    "asyncFunctions": true
+  },
   "paths": {
-    "*": "*.js",
-    "github:*": "jspm_packages/github/*.js",
-    "npm:*": "jspm_packages/npm/*.js"
+    "github:*": "jspm_packages/github/*",
+    "npm:*": "jspm_packages/npm/*"
   }
 });
 
 System.config({
   "map": {
     "arva-utils": "github:Bizboard/arva-utils@master",
+    "base64": "base64.js",
     "eventemitter3": "npm:eventemitter3@1.1.0",
     "json-query": "npm:json-query@1.5.0",
     "lodash": "npm:lodash@3.9.3",
-    "traceur": "github:jmcriffey/bower-traceur@0.0.88",
-    "traceur-runtime": "github:jmcriffey/bower-traceur-runtime@0.0.88",
+    "traceur": "github:jmcriffey/bower-traceur@0.0.90",
+    "traceur-runtime": "github:jmcriffey/bower-traceur-runtime@0.0.90",
     "xml2js": "npm:xml2js@0.4.9",
     "github:Bizboard/arva-utils@master": {
       "fs": "github:jspm/nodelibs-fs@0.1.2",
@@ -90,10 +95,8 @@ System.config({
       "inherits": "npm:inherits@2.0.1",
       "isarray": "npm:isarray@0.0.1",
       "process": "github:jspm/nodelibs-process@0.1.1",
-      "stream": "github:jspm/nodelibs-stream@0.1.0",
       "stream-browserify": "npm:stream-browserify@1.0.0",
-      "string_decoder": "npm:string_decoder@0.10.31",
-      "util": "github:jspm/nodelibs-util@0.1.0"
+      "string_decoder": "npm:string_decoder@0.10.31"
     },
     "npm:sax@0.6.1": {
       "buffer": "github:jspm/nodelibs-buffer@0.1.0",

@@ -953,7 +953,7 @@
       }
       function baseGet(object, path, pathKey) {
         if (object == null) {
-          return ;
+          return;
         }
         if (pathKey !== undefined && pathKey in toObject(object)) {
           path = [pathKey];
@@ -1139,7 +1139,7 @@
         while (length--) {
           if (stackA[length] == srcValue) {
             object[key] = stackB[length];
-            return ;
+            return;
           }
         }
         var value = object[key],
@@ -4203,7 +4203,7 @@
       baseForOwn(LazyWrapper.prototype, function(func, methodName) {
         var lodashFunc = lodash[methodName];
         if (!lodashFunc) {
-          return ;
+          return;
         }
         var checkIteratee = /^(?:filter|map|reject)|While$/.test(methodName),
             retUnwrapped = /^(?:first|last)$/.test(methodName);

@@ -704,14 +704,14 @@
         strictFail(parser, "Weird empty close tag.");
         parser.textNode += "</>";
         parser.state = S.TEXT;
-        return ;
+        return;
       }
       if (parser.script) {
         if (parser.tagName !== "script") {
           parser.script += "</" + parser.tagName + ">";
           parser.tagName = "";
           parser.state = S.SCRIPT;
-          return ;
+          return;
         }
         emitNode(parser, "onscript", parser.script);
         parser.script = "";
@@ -732,7 +732,7 @@
         strictFail(parser, "Unmatched closing tag: " + parser.tagName);
         parser.textNode += "</" + parser.tagName + ">";
         parser.state = S.TEXT;
-        return ;
+        return;
       }
       parser.tagName = tagName;
       var s = parser.tags.length;

@@ -18,7 +18,7 @@ fs.readFile(xmlFile, function(er, d) {
       if (tagName === "product") {
         products.push(product);
         currentTag = product = null;
-        return ;
+        return;
       }
       if (currentTag && currentTag.parent) {
         var p = currentTag.parent;
@@ -28,7 +28,7 @@ fs.readFile(xmlFile, function(er, d) {
     };
     parser.onopentag = function(tag) {
       if (tag.name !== "product" && !product)
-        return ;
+        return;
       if (tag.name === "product") {
         product = tag;
       }

@@ -62,83 +62,6 @@ export class SoapClient {
     }
 
 
-    _handleSuccess(data) {
-        var nodes, node, rootnode, name,
-            NODE_ELEMENT = 1,
-            attributes, attribute,
-            results = [], result,
-            root = '',
-            i, j;
-
-
-        if (typeof(data.selectSingleNode) != "undefined")
-            rootnode = data.selectSingleNode("//rs:data");
-        else
-            rootnode = data.querySelector("data");
-
-
-        // handle like GetListItems
-        if (rootnode) {
-            nodes = rootnode.childNodes;
-        } else {
-            if (typeof(data.selectSingleNode) != "undefined") {
-                rootnode = data.selectSingleNode("//Result");
-                nodes = rootnode.selectNodes("//row");
-            }
-            else {
-                rootnode = data.querySelector("Result");
-                nodes = rootnode.querySelectorAll("row");
-            }
-        }
-
-
-        for (i = 0; i < nodes.length; i += 1) {
-            node = nodes[i];
-
-            // skip text nodes
-            if (node.nodeType === NODE_ELEMENT) {
-                attributes = node.attributes;
-                result = {};
-                for (j = 0; j < attributes.length; j += 1) {
-
-                    attribute = attributes[j];
-                    name = attribute.name.replace('ows_', '');
-                    if (name=="ID"){
-                        name="id";
-                        result[name] = attribute.value;
-                    }
-
-                    /*
-                     if (attribute.value.indexOf(";#")>-1) {
-                     var keys = attribute.value.split(";#");
-                     var pairs = keys.length/2;
-                     var assignable = pairs.length>1?[]:{};
-                     for(var pair=0;pair<pairs;pair++){
-                     if (pairs>1) assignable.push({ id: keys[pair], value: keys[pair+1]});
-                     else assignable = {id: keys[pair], value: keys[pair+1]};
-                     }
-                     result[name] = { id: 0, value: ""};
-                     }*/
-
-                    // map a number when that number is detected
-                    else if (!isNaN(attribute.value))
-                        result[name] = parseFloat(attribute.value);
-                    // default map 1-1
-                    else
-                        result[name] = attribute.value;
-                }
-                // only use the result if it is not hidden
-                if ((result.Hidden || '').toUpperCase() !== "TRUE") {
-                    results.push(result);
-                }
-
-            }
-        }
-
-        return results;
-    }
-
-
     call(config) {
 
         var request;
@@ -158,11 +81,10 @@ export class SoapClient {
         return new Promise(function(resolve, reject) {
 
             PostRequest(request)
-                .then(function(response){
+                .then(function(soapresult){
 
                     var parseString = xmljs.parseString;
-                    parseString(response, function (err, result) {
-
+                    parseString(soapresult.response, function (err, result) {
                         let results = result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse[0].GetListItemsResult[0].listitems[0]["rs:data"][0];
                         let arrayOfObjects = [];
                         if (results.$.ItemCount !== '0') {
@@ -171,13 +93,8 @@ export class SoapClient {
                             }
                         }
 
-                        resolve(arrayOfObjects);
+                        resolve({ data: arrayOfObjects, timestamp: soapresult.timestamp });
                     });
-
-
-                    //var xmlDocument = ParseStringToXml(response);
-                    //resolve(context._handleSuccess(xmlDocument));
-                    // process data
 
                 }, function(error){
                     reject(context._handleError(error));

@@ -8,37 +8,40 @@ import _                from 'lodash';
 // setup the soapClient.
 var soapClient = new SoapClient();
 var cache = [];
+var retriever = null;
 var window = this;
 var global = this;
+var interval = 3000;
+
 
 this.onmessage = function(event) {
 
     var operation = event.data[0];
     var args = event.data[1];
 
+
     if (operation === 'init') {
         // initialize with SharePoint configuration
-        this._retriever = _GetListItemsDefaultConfiguration();
+        retriever = _GetListItemsDefaultConfiguration();
 
-        this._retriever.url = _ParsePath(args.endPoint, _GetListService());
-        this._retriever.params = {
+        retriever.url = _ParsePath(args.endPoint, _GetListService());
+        retriever.params = {
             'listName': args.listName,
-            //'viewName': '',
-            //'viewFields': {
-            //    'ViewFields': viewFieldsData
-            //},
+            'viewFields': {
+                'ViewFields': ''
+            },
             'query': {
                 'Query': {
                     'Where': {
-                        'Geq': {
-                            'FieldRef': [{
-                                '_Name': 'Modified',
+                        'Gt': {
+                            'FieldRef': {
+                                '_Name': 'Modified'
+                            },
+                            'Value': {
+                                '_Type': 'DateTime',
                                 '_IncludeTimeValue': 'TRUE',
-                                'Value': {
-                                    '_Type': '_DateTime',
-                                    '_value': '2020-08-10T10:00:00Z'
-                                }
-                            }]
+                                '__text': new Date(0).toISOString()
+                            }
                         }
                     }
                 }
@@ -52,35 +55,52 @@ this.onmessage = function(event) {
                 }
             }
         };
+
+        _refresh();
+        console.log('not blocking');
     }
 
-    if (operation === 'value') {
+    function _refresh() {
+        soapClient.call(retriever)
+            .then((result)=> {
 
-        soapClient.call(this._retriever)
-        .then((data)=> {
-                this.postMessage({ event: 'value', result: data });
+
+                _setLastUpdated(result.timestamp);
+
+                for (let record in result.data) {
+
+                    let isCached = _.findIndex(cache, function(item) {
+                        return  result.data[record]['ows_ID'] == item['ows_ID'];
+                    });
+
+                    if (isCached == -1) {
+                        cache.push(result.data[record]);
+                        postMessage({ event: 'child_added', result: result.data[record] });
+                    }
+                    else {
+                        if (!_.isEqual(result.data[record], cache[isCached])) {
+                            cache.splice(isCached, 1, result.data[record]);
+                            postMessage({event: 'child_changed', result: result.data[record]});
+                        }
+                    }
+                }
+
+                postMessage({ event: 'value', result: cache });
+
+                setTimeout(_refresh, interval);
+            }).catch(function(err){
+
+                setTimeout(_refresh, interval);
             });
     }
 
-    else if (operation === 'child_added') {
-        setInterval(() => {
-            soapClient.call(this._retriever)
-                .then((data)=> {
-
-                    for (let record in data) {
-
-                        let isCached = _.findIndex(cache, function(item) {
-                            return  data[record]['ows_ID'] == item['ows_ID'];
-                        });
-
-                        if (isCached == -1) {
-                            cache.push(data[record]);
-                            this.postMessage({ event: 'child_added', result: data[record] });
-                        }
-
-                    }
-                });
-        }, 3000);
+    function _setLastUpdated(newDate) {
+        if (newDate) {
+            let dateObject = new Date(newDate);
+            let offset = dateObject.getTimezoneOffset();
+            dateObject.setTime(dateObject.getTime() + (offset*-1)*60*1000);
+            retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
+        }
     }
 };
 

@@ -1,7 +1,7 @@
 /* */ 
 var test = require("tape");
 require("es5-shim");
-var jsonQuery = require("../index");
+var jsonQuery = require("../../json-query@1.5.0");
 var forceParent = require("../force-parent");
 test('test force parent', function(t) {
   var data = {};

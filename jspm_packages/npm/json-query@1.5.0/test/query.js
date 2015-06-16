@@ -1,7 +1,7 @@
 /* */ 
 require("es5-shim");
 var test = require("tape");
-var jsonQuery = require("../index");
+var jsonQuery = require("../../json-query@1.5.0");
 var filters = {uppercase: function(input, meta) {
     if (input.toUpperCase) {
       return input.toUpperCase();

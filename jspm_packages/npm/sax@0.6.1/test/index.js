@@ -21,7 +21,7 @@
           });
         }
         if (e >= expect.length && (ev === "end" || ev === "ready"))
-          return ;
+          return;
         assert.ok(e < expect.length, "expectation #" + e + " " + util.inspect(expect[e]) + "\n" + "Unexpected event: " + ev + " " + (n ? util.inspect(n) : ""));
         var inspected = n instanceof Error ? "\n" + n.message : util.inspect(n);
         assert.equal(ev, expect[e][0], "expectation #" + e + "\n" + "Didn't get expected event\n" + "expect: " + expect[e][0] + " " + util.inspect(expect[e][1]) + "\n" + "actual: " + ev + " " + inspected + "\n");

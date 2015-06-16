@@ -1,13 +1,11 @@
-/* */
+(function(){ var curSystem = typeof System != 'undefined' ? System : undefined;
+/* */ 
 "format global";
 "exports $traceurRuntime";
-
-global =  this;
-
 (function(global) {
   'use strict';
   if (global.$traceurRuntime) {
-    return ;
+    return;
   }
   var $Object = Object;
   var $TypeError = TypeError;
@@ -278,7 +276,7 @@ global =  this;
         var names = $getOwnPropertyNames(arguments[i]);
         for (var j = 0; j < names.length; j++) {
           var name = names[j];
-          if (name === '__esModule' || isSymbolString(name))
+          if (name === '__esModule' || name === 'default' || isSymbolString(name))
             continue;
           (function(mod, name) {
             $defineProperty(object, name, {
@@ -306,10 +304,14 @@ global =  this;
       }
       return argument;
     }
+    var hasNativeSymbol;
     function polyfillSymbol(global, Symbol) {
       if (!global.Symbol) {
         global.Symbol = Symbol;
         Object.getOwnPropertySymbols = getOwnPropertySymbols;
+        hasNativeSymbol = false;
+      } else {
+        hasNativeSymbol = true;
       }
       if (!global.Symbol.iterator) {
         global.Symbol.iterator = Symbol('Symbol.iterator');
@@ -317,6 +319,9 @@ global =  this;
       if (!global.Symbol.observer) {
         global.Symbol.observer = Symbol('Symbol.observer');
       }
+    }
+    function hasNativeSymbolFunc() {
+      return hasNativeSymbol;
     }
     function setupGlobals(global) {
       polyfillSymbol(global, Symbol);
@@ -337,6 +342,7 @@ global =  this;
       getOwnHashObject: getOwnHashObject,
       getOwnPropertyDescriptor: $getOwnPropertyDescriptor,
       getOwnPropertyNames: $getOwnPropertyNames,
+      hasNativeSymbol: hasNativeSymbolFunc,
       initTailRecursiveFunction: initTailRecursiveFunction,
       isObject: isObject,
       isPrivateName: isPrivateName,
@@ -511,11 +517,11 @@ global =  this;
   };
   ModuleEvaluationError.prototype.stripStack = function(causeStack) {
     var stack = [];
-    causeStack.split('\n').some((function(frame) {
+    causeStack.split('\n').some(function(frame) {
       if (/UncoatedModuleInstantiator/.test(frame))
         return true;
       stack.push(frame);
-    }));
+    });
     stack[0] = this.stripError(stack[0]);
     return stack.join('\n');
   };
@@ -569,7 +575,7 @@ global =  this;
       if (ex.stack) {
         var lines = this.func.toString().split('\n');
         var evaled = [];
-        ex.stack.split('\n').some((function(frame, index) {
+        ex.stack.split('\n').some(function(frame, index) {
           if (frame.indexOf('UncoatedModuleInstantiator.getUncoatedModule') > 0)
             return true;
           var m = /(at\s[^\s]*\s).*>:(\d*):(\d*)\)/.exec(frame);
@@ -586,7 +592,7 @@ global =  this;
           } else {
             evaled.push(frame);
           }
-        }));
+        });
         ex.stack = evaled.join('\n');
       }
       throw new ModuleEvaluationError(this.url, ex);
@@ -594,7 +600,7 @@ global =  this;
   };
   function getUncoatedModuleInstantiator(name) {
     if (!name)
-      return ;
+      return;
     var url = ModuleStore.normalize(name);
     return moduleInstantiators[url];
   }
@@ -604,7 +610,7 @@ global =  this;
   function Module(uncoatedModule) {
     var isLive = arguments[1];
     var coatedModule = Object.create(null);
-    Object.getOwnPropertyNames(uncoatedModule).forEach((function(name) {
+    Object.getOwnPropertyNames(uncoatedModule).forEach(function(name) {
       var getter,
           value;
       if (isLive === liveModuleSentinel) {
@@ -622,7 +628,7 @@ global =  this;
         get: getter,
         enumerable: true
       });
-    }));
+    });
     Object.preventExtensions(coatedModule);
     return coatedModule;
   }
@@ -651,9 +657,9 @@ global =  this;
     },
     set: function(normalizedName, module) {
       normalizedName = String(normalizedName);
-      moduleInstantiators[normalizedName] = new UncoatedModuleInstantiator(normalizedName, (function() {
+      moduleInstantiators[normalizedName] = new UncoatedModuleInstantiator(normalizedName, function() {
         return module;
-      }));
+      });
       moduleInstances[normalizedName] = module;
     },
     get baseURL() {
@@ -678,9 +684,9 @@ global =  this;
           execute: function() {
             var $__0 = arguments;
             var depMap = {};
-            deps.forEach((function(dep, index) {
+            deps.forEach(function(dep, index) {
               return depMap[dep] = $__0[index];
-            }));
+            });
             var registryEntry = func.call(this, depMap);
             registryEntry.execute.call(this);
             return registryEntry.exports;
@@ -690,19 +696,6 @@ global =  this;
     },
     getAnonymousModule: function(func) {
       return new Module(func.call(global), liveModuleSentinel);
-    },
-    getForTesting: function(name) {
-      var $__0 = this;
-      if (!this.testingPrefix_) {
-        Object.keys(moduleInstances).some((function(key) {
-          var m = /(traceur@[^\/]*\/)/.exec(key);
-          if (m) {
-            $__0.testingPrefix_ = m[1];
-            return true;
-          }
-        }));
-      }
-      return this.get(this.testingPrefix_ + name);
     }
   };
   var moduleStoreModule = new Module({ModuleStore: ModuleStore});
@@ -720,9 +713,9 @@ global =  this;
     normalize: ModuleStore.normalize
   };
 })(typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : this);
-System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/async.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/async.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/async.js";
   if (typeof $traceurRuntime !== 'object') {
     throw new Error('traceur runtime not found.');
   }
@@ -738,12 +731,12 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
   AsyncGeneratorFunction.prototype = AsyncGeneratorFunctionPrototype;
   AsyncGeneratorFunctionPrototype.constructor = AsyncGeneratorFunction;
   $defineProperty(AsyncGeneratorFunctionPrototype, 'constructor', {enumerable: false});
-  var AsyncGeneratorContext = (function() {
+  var AsyncGeneratorContext = function() {
     function AsyncGeneratorContext(observer) {
       var $__0 = this;
-      this.decoratedObserver = $traceurRuntime.createDecoratedGenerator(observer, (function() {
+      this.decoratedObserver = $traceurRuntime.createDecoratedGenerator(observer, function() {
         $__0.done = true;
-      }));
+      });
       this.done = false;
       this.inReturn = false;
     }
@@ -766,7 +759,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
           throw e;
         }
         if (result === undefined) {
-          return ;
+          return;
         }
         if (result.done) {
           this.done = true;
@@ -780,7 +773,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
         return $traceurRuntime.observeForEach(observable[$traceurRuntime.toProperty(Symbol.observer)].bind(observable), function(value) {
           if (ctx.done) {
             this.return();
-            return ;
+            return;
           }
           var result;
           try {
@@ -790,7 +783,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
             throw e;
           }
           if (result === undefined) {
-            return ;
+            return;
           }
           if (result.done) {
             ctx.done = true;
@@ -799,21 +792,21 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
         });
       }
     }, {});
-  }());
+  }();
   AsyncGeneratorFunctionPrototype.prototype[Symbol.observer] = function(observer) {
     var observe = this[observeName];
     var ctx = new AsyncGeneratorContext(observer);
-    $traceurRuntime.schedule((function() {
+    $traceurRuntime.schedule(function() {
       return observe(ctx);
-    })).then((function(value) {
+    }).then(function(value) {
       if (!ctx.done) {
         ctx.decoratedObserver.return(value);
       }
-    })).catch((function(error) {
+    }).catch(function(error) {
       if (!ctx.done) {
         ctx.decoratedObserver.throw(error);
       }
-    }));
+    });
     return ctx.decoratedObserver;
   };
   $defineProperty(AsyncGeneratorFunctionPrototype.prototype, Symbol.observer, {enumerable: false});
@@ -824,8 +817,8 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
   }
   function createAsyncGeneratorInstance(observe, functionObject) {
     for (var args = [],
-        $__2 = 2; $__2 < arguments.length; $__2++)
-      args[$__2 - 2] = arguments[$__2];
+        $__9 = 2; $__9 < arguments.length; $__9++)
+      args[$__9 - 2] = arguments[$__9];
     var object = $create(functionObject.prototype);
     object[thisName] = this;
     object[argsName] = args;
@@ -833,7 +826,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
     return object;
   }
   function observeForEach(observe, next) {
-    return new Promise((function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
       var generator = observe({
         next: function(value) {
           return next.call(generator, value);
@@ -845,14 +838,14 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
           resolve(value);
         }
       });
-    }));
+    });
   }
   function schedule(asyncF) {
     return Promise.resolve().then(asyncF);
   }
   var generator = Symbol();
   var onDone = Symbol();
-  var DecoratedGenerator = (function() {
+  var DecoratedGenerator = function() {
     function DecoratedGenerator(_generator, _onDone) {
       this[generator] = _generator;
       this[onDone] = _onDone;
@@ -874,10 +867,47 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
         return this[generator].return(value);
       }
     }, {});
-  }());
+  }();
   function createDecoratedGenerator(generator, onDone) {
     return new DecoratedGenerator(generator, onDone);
   }
+  Array.prototype[$traceurRuntime.toProperty(Symbol.observer)] = function(observer) {
+    var done = false;
+    var decoratedObserver = createDecoratedGenerator(observer, function() {
+      return done = true;
+    });
+    var $__5 = true;
+    var $__6 = false;
+    var $__7 = undefined;
+    try {
+      for (var $__3 = void 0,
+          $__2 = (this)[$traceurRuntime.toProperty(Symbol.iterator)](); !($__5 = ($__3 = $__2.next()).done); $__5 = true) {
+        var value = $__3.value;
+        {
+          decoratedObserver.next(value);
+          if (done) {
+            return;
+          }
+        }
+      }
+    } catch ($__8) {
+      $__6 = true;
+      $__7 = $__8;
+    } finally {
+      try {
+        if (!$__5 && $__2.return != null) {
+          $__2.return();
+        }
+      } finally {
+        if ($__6) {
+          throw $__7;
+        }
+      }
+    }
+    decoratedObserver.return();
+    return decoratedObserver;
+  };
+  $defineProperty(Array.prototype, $traceurRuntime.toProperty(Symbol.observer), {enumerable: false});
   $traceurRuntime.initAsyncGeneratorFunction = initAsyncGeneratorFunction;
   $traceurRuntime.createAsyncGeneratorInstance = createAsyncGeneratorInstance;
   $traceurRuntime.observeForEach = observeForEach;
@@ -885,9 +915,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/async.js", [], functio
   $traceurRuntime.createDecoratedGenerator = createDecoratedGenerator;
   return {};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/classes.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/classes.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/classes.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/classes.js";
   var $Object = Object;
   var $TypeError = TypeError;
   var $create = $Object.create;
@@ -915,8 +945,11 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/classes.js", [], funct
   function superGet(self, homeObject, name) {
     var descriptor = superDescriptor(homeObject, name);
     if (descriptor) {
+      var value = descriptor.value;
+      if (value)
+        return value;
       if (!descriptor.get)
-        return descriptor.value;
+        return value;
       return descriptor.get.call(self);
     }
     return undefined;
@@ -935,17 +968,17 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/classes.js", [], funct
   }
   function getDescriptors(object) {
     var descriptors = {};
-    forEachPropertyKey(object, (function(key) {
+    forEachPropertyKey(object, function(key) {
       descriptors[key] = $getOwnPropertyDescriptor(object, key);
       descriptors[key].enumerable = false;
-    }));
+    });
     return descriptors;
   }
   var nonEnum = {enumerable: false};
   function makePropertiesNonEnumerable(object) {
-    forEachPropertyKey(object, (function(key) {
+    forEachPropertyKey(object, function(key) {
       $defineProperty(object, key, nonEnum);
-    }));
+    });
   }
   function createClass(ctor, object, staticObject, superClass) {
     $defineProperty(object, 'constructor', {
@@ -985,9 +1018,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/classes.js", [], funct
   $traceurRuntime.superSet = superSet;
   return {};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/destructuring.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/destructuring.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/destructuring.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/destructuring.js";
   function iteratorToArray(iter) {
     var rv = [];
     var i = 0;
@@ -1000,9 +1033,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/destructuring.js", [],
   $traceurRuntime.iteratorToArray = iteratorToArray;
   return {};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/generators.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/generators.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/generators.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/generators.js";
   if (typeof $traceurRuntime !== 'object') {
     throw new Error('traceur runtime not found.');
   }
@@ -1282,7 +1315,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/generators.js", [], fu
     var last = ctx.tryStack_[ctx.tryStack_.length - 1];
     if (!last) {
       ctx.handleException(ex);
-      return ;
+      return;
     }
     ctx.state = last.catch !== undefined ? last.catch : last.finally;
     if (last.finallyFallThrough !== undefined)
@@ -1293,9 +1326,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/generators.js", [], fu
   $traceurRuntime.createGeneratorInstance = createGeneratorInstance;
   return {};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/relativeRequire.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/relativeRequire.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/relativeRequire.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/relativeRequire.js";
   var path;
   function relativeRequire(callerPath, requiredPath) {
     path = path || typeof require !== 'undefined' && require('path');
@@ -1309,15 +1342,15 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/relativeRequire.js", [
       return path[0] === '.';
     }
     if (isDirectory(requiredPath) || isAbsolute(requiredPath))
-      return ;
+      return;
     return isRelative(requiredPath) ? require(path.resolve(path.dirname(callerPath), requiredPath)) : require(requiredPath);
   }
   $traceurRuntime.require = relativeRequire;
   return {};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/spread.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/spread.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/spread.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/spread.js";
   function spread() {
     var rv = [],
         j = 0,
@@ -1337,9 +1370,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/spread.js", [], functi
   $traceurRuntime.spread = spread;
   return {};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/template.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/template.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/template.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/template.js";
   var $__0 = Object,
       defineProperty = $__0.defineProperty,
       freeze = $__0.freeze;
@@ -1359,9 +1392,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/template.js", [], func
   $traceurRuntime.getTemplateObject = getTemplateObject;
   return {};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/type-assertions.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/type-assertions.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/type-assertions.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/type-assertions.js";
   var types = {
     any: {name: 'any'},
     boolean: {name: 'boolean'},
@@ -1370,13 +1403,13 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/type-assertions.js", [
     symbol: {name: 'symbol'},
     void: {name: 'void'}
   };
-  var GenericType = (function() {
+  var GenericType = function() {
     function GenericType(type, argumentTypes) {
       this.type = type;
       this.argumentTypes = argumentTypes;
     }
     return ($traceurRuntime.createClass)(GenericType, {}, {});
-  }());
+  }();
   var typeRegister = Object.create(null);
   function genericType(type) {
     for (var argumentTypes = [],
@@ -1407,23 +1440,23 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/type-assertions.js", [
   $traceurRuntime.type = types;
   return {};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/runtime-modules.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/runtime-modules.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/runtime-modules.js";
-  System.get("traceur-runtime@0.0.88/src/runtime/relativeRequire.js");
-  System.get("traceur-runtime@0.0.88/src/runtime/spread.js");
-  System.get("traceur-runtime@0.0.88/src/runtime/destructuring.js");
-  System.get("traceur-runtime@0.0.88/src/runtime/classes.js");
-  System.get("traceur-runtime@0.0.88/src/runtime/async.js");
-  System.get("traceur-runtime@0.0.88/src/runtime/generators.js");
-  System.get("traceur-runtime@0.0.88/src/runtime/template.js");
-  System.get("traceur-runtime@0.0.88/src/runtime/type-assertions.js");
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/runtime-modules.js";
+  System.get("traceur-runtime@0.0.90/src/runtime/relativeRequire.js");
+  System.get("traceur-runtime@0.0.90/src/runtime/spread.js");
+  System.get("traceur-runtime@0.0.90/src/runtime/destructuring.js");
+  System.get("traceur-runtime@0.0.90/src/runtime/classes.js");
+  System.get("traceur-runtime@0.0.90/src/runtime/async.js");
+  System.get("traceur-runtime@0.0.90/src/runtime/generators.js");
+  System.get("traceur-runtime@0.0.90/src/runtime/template.js");
+  System.get("traceur-runtime@0.0.90/src/runtime/type-assertions.js");
   return {};
 });
-System.get("traceur-runtime@0.0.88/src/runtime/runtime-modules.js" + '');
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/runtime-modules.js" + '');
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/utils.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/utils.js";
   var $ceil = Math.ceil;
   var $floor = Math.floor;
   var $isFinite = isFinite;
@@ -1505,7 +1538,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js", [
   }
   function maybeAddIterator(object, func, Symbol) {
     if (!Symbol || !Symbol.iterator || object[Symbol.iterator])
-      return ;
+      return;
     if (object['@@iterator'])
       func = object['@@iterator'];
     Object.defineProperty(object, Symbol.iterator, {
@@ -1520,9 +1553,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js", [
     polyfills.push(func);
   }
   function polyfillAll(global) {
-    polyfills.forEach((function(f) {
+    polyfills.forEach(function(f) {
       return f(global);
-    }));
+    });
   }
   return {
     get toObject() {
@@ -1581,14 +1614,15 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js", [
     }
   };
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/Map.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/Map.js";
-  var $__0 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/Map.js";
+  var $__0 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       isObject = $__0.isObject,
-      maybeAddIterator = $__0.maybeAddIterator,
       registerPolyfill = $__0.registerPolyfill;
-  var getOwnHashObject = $traceurRuntime.getOwnHashObject;
+  var $__9 = $traceurRuntime,
+      getOwnHashObject = $__9.getOwnHashObject,
+      hasNativeSymbol = $__9.hasNativeSymbol;
   var $hasOwnProperty = Object.prototype.hasOwnProperty;
   var deletedSentinel = {};
   function lookupIndex(map, key) {
@@ -1607,10 +1641,10 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js", [],
     map.primitiveIndex_ = Object.create(null);
     map.deletedCount_ = 0;
   }
-  var Map = (function() {
+  var Map = function() {
     function Map() {
-      var $__10,
-          $__11;
+      var $__11,
+          $__12;
       var iterable = arguments[0];
       if (!isObject(this))
         throw new TypeError('Map called on incompatible type');
@@ -1625,9 +1659,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js", [],
         try {
           for (var $__3 = void 0,
               $__2 = (iterable)[$traceurRuntime.toProperty(Symbol.iterator)](); !($__5 = ($__3 = $__2.next()).done); $__5 = true) {
-            var $__9 = $__3.value,
-                key = ($__10 = $__9[$traceurRuntime.toProperty(Symbol.iterator)](), ($__11 = $__10.next()).done ? void 0 : $__11.value),
-                value = ($__11 = $__10.next()).done ? void 0 : $__11.value;
+            var $__10 = $__3.value,
+                key = ($__11 = $__10[$traceurRuntime.toProperty(Symbol.iterator)](), ($__12 = $__11.next()).done ? void 0 : $__12.value),
+                value = ($__12 = $__11.next()).done ? void 0 : $__12.value;
             {
               this.set(key, value);
             }
@@ -1721,7 +1755,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js", [],
           callbackFn.call(thisArg, value, key, this);
         }
       },
-      entries: $traceurRuntime.initGeneratorFunction(function $__12() {
+      entries: $traceurRuntime.initGeneratorFunction(function $__13() {
         var i,
             key,
             value;
@@ -1757,9 +1791,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js", [],
               default:
                 return $ctx.end();
             }
-        }, $__12, this);
+        }, $__13, this);
       }),
-      keys: $traceurRuntime.initGeneratorFunction(function $__13() {
+      keys: $traceurRuntime.initGeneratorFunction(function $__14() {
         var i,
             key,
             value;
@@ -1795,9 +1829,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js", [],
               default:
                 return $ctx.end();
             }
-        }, $__13, this);
+        }, $__14, this);
       }),
-      values: $traceurRuntime.initGeneratorFunction(function $__14() {
+      values: $traceurRuntime.initGeneratorFunction(function $__15() {
         var i,
             key,
             value;
@@ -1833,29 +1867,31 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js", [],
               default:
                 return $ctx.end();
             }
-        }, $__14, this);
+        }, $__15, this);
       })
     }, {});
-  }());
+  }();
   Object.defineProperty(Map.prototype, Symbol.iterator, {
     configurable: true,
     writable: true,
     value: Map.prototype.entries
   });
+  function needsPolyfill(global) {
+    var $__10 = global,
+        Map = $__10.Map,
+        Symbol = $__10.Symbol;
+    if (!Map || !$traceurRuntime.hasNativeSymbol() || !Map.prototype[Symbol.iterator] || !Map.prototype.entries) {
+      return true;
+    }
+    try {
+      return new Map([[]]).size !== 1;
+    } catch (e) {
+      return false;
+    }
+  }
   function polyfillMap(global) {
-    var $__9 = global,
-        Object = $__9.Object,
-        Symbol = $__9.Symbol;
-    if (!global.Map)
+    if (needsPolyfill(global)) {
       global.Map = Map;
-    var mapPrototype = global.Map.prototype;
-    if (mapPrototype.entries === undefined)
-      global.Map = Map;
-    if (mapPrototype.entries) {
-      maybeAddIterator(mapPrototype, mapPrototype.entries, Symbol);
-      maybeAddIterator(Object.getPrototypeOf(new global.Map().entries()), function() {
-        return this;
-      }, Symbol);
     }
   }
   registerPolyfill(polyfillMap);
@@ -1868,21 +1904,20 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js", [],
     }
   };
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js" + '');
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Set.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/Map.js" + '');
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/Set.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/Set.js";
-  var $__0 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/Set.js";
+  var $__0 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       isObject = $__0.isObject,
-      maybeAddIterator = $__0.maybeAddIterator,
       registerPolyfill = $__0.registerPolyfill;
-  var Map = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/Map.js").Map;
+  var Map = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/Map.js").Map;
   var getOwnHashObject = $traceurRuntime.getOwnHashObject;
   var $hasOwnProperty = Object.prototype.hasOwnProperty;
   function initSet(set) {
     set.map_ = new Map();
   }
-  var Set = (function() {
+  var Set = function() {
     function Set() {
       var iterable = arguments[0];
       if (!isObject(this))
@@ -1939,9 +1974,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Set.js", [],
       forEach: function(callbackFn) {
         var thisArg = arguments[1];
         var $__2 = this;
-        return this.map_.forEach((function(value, key) {
+        return this.map_.forEach(function(value, key) {
           callbackFn.call(thisArg, key, key, $__2);
-        }));
+        });
       },
       values: $traceurRuntime.initGeneratorFunction(function $__12() {
         var $__13,
@@ -2006,7 +2041,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Set.js", [],
         }, $__15, this);
       })
     }, {});
-  }());
+  }();
   Object.defineProperty(Set.prototype, Symbol.iterator, {
     configurable: true,
     writable: true,
@@ -2017,18 +2052,22 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Set.js", [],
     writable: true,
     value: Set.prototype.values
   });
-  function polyfillSet(global) {
+  function needsPolyfill(global) {
     var $__11 = global,
-        Object = $__11.Object,
+        Set = $__11.Set,
         Symbol = $__11.Symbol;
-    if (!global.Set)
+    if (!Set || !$traceurRuntime.hasNativeSymbol() || !Set.prototype[Symbol.iterator] || !Set.prototype.values) {
+      return true;
+    }
+    try {
+      return new Set([1]).size !== 1;
+    } catch (e) {
+      return false;
+    }
+  }
+  function polyfillSet(global) {
+    if (needsPolyfill(global)) {
       global.Set = Set;
-    var setPrototype = global.Set.prototype;
-    if (setPrototype.values) {
-      maybeAddIterator(setPrototype, setPrototype.values, Symbol);
-      maybeAddIterator(Object.getPrototypeOf(new global.Set().values()), function() {
-        return this;
-      }, Symbol);
     }
   }
   registerPolyfill(polyfillSet);
@@ -2041,10 +2080,10 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Set.js", [],
     }
   };
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/Set.js" + '');
-System.registerModule("traceur-runtime@0.0.88/node_modules/rsvp/lib/rsvp/asap.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/Set.js" + '');
+System.registerModule("traceur-runtime@0.0.90/node_modules/rsvp/lib/rsvp/asap.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/node_modules/rsvp/lib/rsvp/asap.js";
+  var __moduleName = "traceur-runtime@0.0.90/node_modules/rsvp/lib/rsvp/asap.js";
   var len = 0;
   function asap(callback, arg) {
     queue[len] = callback;
@@ -2109,11 +2148,11 @@ System.registerModule("traceur-runtime@0.0.88/node_modules/rsvp/lib/rsvp/asap.js
       return $__default;
     }};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/Promise.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js";
-  var async = System.get("traceur-runtime@0.0.88/node_modules/rsvp/lib/rsvp/asap.js").default;
-  var registerPolyfill = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js").registerPolyfill;
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/Promise.js";
+  var async = System.get("traceur-runtime@0.0.90/node_modules/rsvp/lib/rsvp/asap.js").default;
+  var registerPolyfill = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js").registerPolyfill;
   var promiseRaw = {};
   function isPromise(x) {
     return x && typeof x === 'object' && x.status_ !== undefined;
@@ -2149,19 +2188,19 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
       var promise = promiseInit(new $Promise(promiseRaw));
       return {
         promise: promise,
-        resolve: (function(x) {
+        resolve: function(x) {
           promiseResolve(promise, x);
-        }),
-        reject: (function(r) {
+        },
+        reject: function(r) {
           promiseReject(promise, r);
-        })
+        }
       };
     } else {
       var result = {};
-      result.promise = new C((function(resolve, reject) {
+      result.promise = new C(function(resolve, reject) {
         result.resolve = resolve;
         result.reject = reject;
-      }));
+      });
       return result;
     }
   }
@@ -2175,19 +2214,19 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
   function promiseInit(promise) {
     return promiseSet(promise, 0, undefined, [], []);
   }
-  var Promise = (function() {
+  var Promise = function() {
     function Promise(resolver) {
       if (resolver === promiseRaw)
-        return ;
+        return;
       if (typeof resolver !== 'function')
         throw new TypeError;
       var promise = promiseInit(this);
       try {
-        resolver((function(x) {
+        resolver(function(x) {
           promiseResolve(promise, x);
-        }), (function(r) {
+        }, function(r) {
           promiseReject(promise, r);
-        }));
+        });
       } catch (e) {
         promiseReject(promise, e);
       }
@@ -2225,9 +2264,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
         if (this === $Promise) {
           return promiseSet(new $Promise(promiseRaw), -1, r);
         } else {
-          return new this((function(resolve, reject) {
+          return new this(function(resolve, reject) {
             reject(r);
-          }));
+          });
         }
       },
       all: function(values) {
@@ -2235,11 +2274,11 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
         var resolutions = [];
         try {
           var makeCountdownFunction = function(i) {
-            return (function(x) {
+            return function(x) {
               resolutions[i] = x;
               if (--count === 0)
                 deferred.resolve(resolutions);
-            });
+            };
           };
           var count = 0;
           var i = 0;
@@ -2252,9 +2291,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
               var value = $__4.value;
               {
                 var countdownFunction = makeCountdownFunction(i);
-                this.resolve(value).then(countdownFunction, (function(r) {
+                this.resolve(value).then(countdownFunction, function(r) {
                   deferred.reject(r);
-                }));
+                });
                 ++i;
                 ++count;
               }
@@ -2285,11 +2324,11 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
         var deferred = getDeferred(this);
         try {
           for (var i = 0; i < values.length; i++) {
-            this.resolve(values[i]).then((function(x) {
+            this.resolve(values[i]).then(function(x) {
               deferred.resolve(x);
-            }), (function(r) {
+            }, function(r) {
               deferred.reject(r);
-            }));
+            });
           }
         } catch (e) {
           deferred.reject(e);
@@ -2297,7 +2336,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
         return deferred.promise;
       }
     });
-  }());
+  }();
   var $Promise = Promise;
   var $PromiseReject = $Promise.reject;
   function promiseResolve(promise, x) {
@@ -2308,16 +2347,16 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
   }
   function promiseDone(promise, status, value, reactions) {
     if (promise.status_ !== 0)
-      return ;
+      return;
     promiseEnqueue(value, reactions);
     promiseSet(promise, status, value);
   }
   function promiseEnqueue(value, tasks) {
-    async((function() {
+    async(function() {
       for (var i = 0; i < tasks.length; i += 2) {
         promiseHandle(value, tasks[i], tasks[i + 1]);
       }
-    }));
+    });
   }
   function promiseHandle(value, handler, deferred) {
     try {
@@ -2380,18 +2419,18 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js",
     }
   };
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/Promise.js" + '');
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/StringIterator.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/Promise.js" + '');
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/StringIterator.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/StringIterator.js";
-  var $__0 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/StringIterator.js";
+  var $__0 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       createIteratorResultObject = $__0.createIteratorResultObject,
       isObject = $__0.isObject;
   var toProperty = $traceurRuntime.toProperty;
   var hasOwnProperty = Object.prototype.hasOwnProperty;
   var iteratedString = Symbol('iteratedString');
   var stringIteratorNextIndex = Symbol('stringIteratorNextIndex');
-  var StringIterator = (function() {
+  var StringIterator = function() {
     var $__2;
     function StringIterator() {}
     return ($traceurRuntime.createClass)(StringIterator, ($__2 = {}, Object.defineProperty($__2, "next", {
@@ -2436,7 +2475,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/StringIterat
       enumerable: true,
       writable: true
     }), $__2), {});
-  }());
+  }();
   function createStringIterator(string) {
     var s = String(string);
     var iterator = Object.create(StringIterator.prototype);
@@ -2448,11 +2487,11 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/StringIterat
       return createStringIterator;
     }};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/String.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/String.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/String.js";
-  var createStringIterator = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/StringIterator.js").createStringIterator;
-  var $__1 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/String.js";
+  var createStringIterator = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/StringIterator.js").createStringIterator;
+  var $__1 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       maybeAddFunctions = $__1.maybeAddFunctions,
       maybeAddIterator = $__1.maybeAddIterator,
       registerPolyfill = $__1.registerPolyfill;
@@ -2648,18 +2687,18 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/String.js", 
     }
   };
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/String.js" + '');
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/ArrayIterator.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/String.js" + '');
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/ArrayIterator.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/ArrayIterator.js";
-  var $__0 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/ArrayIterator.js";
+  var $__0 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       toObject = $__0.toObject,
       toUint32 = $__0.toUint32,
       createIteratorResultObject = $__0.createIteratorResultObject;
   var ARRAY_ITERATOR_KIND_KEYS = 1;
   var ARRAY_ITERATOR_KIND_VALUES = 2;
   var ARRAY_ITERATOR_KIND_ENTRIES = 3;
-  var ArrayIterator = (function() {
+  var ArrayIterator = function() {
     var $__2;
     function ArrayIterator() {}
     return ($traceurRuntime.createClass)(ArrayIterator, ($__2 = {}, Object.defineProperty($__2, "next", {
@@ -2694,7 +2733,7 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/ArrayIterato
       enumerable: true,
       writable: true
     }), $__2), {});
-  }());
+  }();
   function createArrayIterator(array, kind) {
     var object = toObject(array);
     var iterator = new ArrayIterator;
@@ -2724,14 +2763,14 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/ArrayIterato
     }
   };
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Array.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/Array.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/Array.js";
-  var $__0 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/ArrayIterator.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/Array.js";
+  var $__0 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/ArrayIterator.js"),
       entries = $__0.entries,
       keys = $__0.keys,
       jsValues = $__0.values;
-  var $__1 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var $__1 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       checkIterable = $__1.checkIterable,
       isCallable = $__1.isCallable,
       isConstructor = $__1.isConstructor,
@@ -2890,11 +2929,11 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Array.js", [
     }
   };
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/Array.js" + '');
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Object.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/Array.js" + '');
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/Object.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/Object.js";
-  var $__0 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/Object.js";
+  var $__0 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       maybeAddFunctions = $__0.maybeAddFunctions,
       registerPolyfill = $__0.registerPolyfill;
   var $__1 = $traceurRuntime,
@@ -2957,11 +2996,11 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Object.js", 
     }
   };
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/Object.js" + '');
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Number.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/Object.js" + '');
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/Number.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/Number.js";
-  var $__0 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/Number.js";
+  var $__0 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       isNumber = $__0.isNumber,
       maybeAddConsts = $__0.maybeAddConsts,
       maybeAddFunctions = $__0.maybeAddFunctions,
@@ -3023,10 +3062,10 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Number.js", 
     }
   };
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/Number.js" + '');
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/fround.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/Number.js" + '');
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/fround.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/fround.js";
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/fround.js";
   var $isFinite = isFinite;
   var $isNaN = isNaN;
   var $__0 = Math,
@@ -3157,11 +3196,11 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/fround.js", 
       return fround;
     }};
 });
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Math.js", [], function() {
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/Math.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/Math.js";
-  var jsFround = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/fround.js").fround;
-  var $__1 = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js"),
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/Math.js";
+  var jsFround = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/fround.js").fround;
+  var $__1 = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js"),
       maybeAddFunctions = $__1.maybeAddFunctions,
       registerPolyfill = $__1.registerPolyfill,
       toUint32 = $__1.toUint32;
@@ -3451,11 +3490,11 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/Math.js", []
     }
   };
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/Math.js" + '');
-System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js", [], function() {
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/Math.js" + '');
+System.registerModule("traceur-runtime@0.0.90/src/runtime/polyfills/polyfills.js", [], function() {
   "use strict";
-  var __moduleName = "traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js";
-  var polyfillAll = System.get("traceur-runtime@0.0.88/src/runtime/polyfills/utils.js").polyfillAll;
+  var __moduleName = "traceur-runtime@0.0.90/src/runtime/polyfills/polyfills.js";
+  var polyfillAll = System.get("traceur-runtime@0.0.90/src/runtime/polyfills/utils.js").polyfillAll;
   polyfillAll(Reflect.global);
   var setupGlobals = $traceurRuntime.setupGlobals;
   $traceurRuntime.setupGlobals = function(global) {
@@ -3464,8 +3503,9 @@ System.registerModule("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js
   };
   return {};
 });
-System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
+System.get("traceur-runtime@0.0.90/src/runtime/polyfills/polyfills.js" + '');
 
+System = curSystem; })();
 (function(global) {
 
   var defined = {};
@@ -3486,35 +3526,31 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
     return newDeps;
   }
 
-  function register(name, deps, declare, execute) {
-    if (typeof name != 'string')
-      throw "System.register provided no module name";
+  function register(name, deps, declare) {
+    if (arguments.length === 4)
+      return registerDynamic.apply(this, arguments);
+    doRegister(name, {
+      declarative: true,
+      deps: deps,
+      declare: declare
+    });
+  }
 
-    var entry;
+  function registerDynamic(name, deps, executingRequire, execute) {
+    doRegister(name, {
+      declarative: false,
+      deps: deps,
+      executingRequire: executingRequire,
+      execute: execute
+    });
+  }
 
-    // dynamic
-    if (typeof declare == 'boolean') {
-      entry = {
-        declarative: false,
-        deps: deps,
-        execute: execute,
-        executingRequire: declare
-      };
-    }
-    else {
-      // ES6 declarative
-      entry = {
-        declarative: true,
-        deps: deps,
-        declare: declare
-      };
-    }
-
+  function doRegister(name, entry) {
     entry.name = name;
 
     // we never overwrite an existing define
     if (!(name in defined))
-      defined[name] = entry;
+      defined[name] = entry; 
 
     entry.deps = dedupe(entry.deps);
 
@@ -3523,6 +3559,7 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
     // entry.normalizedDeps = entry.deps.map(normalize);
     entry.normalizedDeps = entry.deps;
   }
+
 
   function buildGroups(entry, groups) {
     groups[entry.groupIndex] = groups[entry.groupIndex] || [];
@@ -3583,7 +3620,7 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
         else
           linkDynamicModule(entry);
       }
-      curGroupDeclarative = !curGroupDeclarative;
+      curGroupDeclarative = !curGroupDeclarative; 
     }
   }
 
@@ -3625,9 +3662,6 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
     module.setters = declaration.setters;
     module.execute = declaration.execute;
 
-    if (!module.setters || !module.execute)
-      throw new TypeError("Invalid System.register form for " + entry.name);
-
     // now link all the module dependencies
     for (var i = 0, l = entry.normalizedDeps.length; i < l; i++) {
       var depName = entry.normalizedDeps[i];
@@ -3641,10 +3675,7 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
         depExports = depModule.exports;
       }
       else if (depEntry && !depEntry.declarative) {
-        if (depEntry.module.exports && depEntry.module.exports.__esModule)
-          depExports = depEntry.module.exports;
-        else
-          depExports = { 'default': depEntry.module.exports, __useDefault: true };
+        depExports = depEntry.esModule;
       }
       // in the module registry
       else if (!depEntry) {
@@ -3729,6 +3760,23 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
 
     if (output)
       module.exports = output;
+
+    // create the esModule object, which allows ES6 named imports of dynamics
+    exports = module.exports;
+ 
+    if (exports && exports.__esModule) {
+      entry.esModule = exports;
+    }
+    else {
+      var hasOwnProperty = exports && exports.hasOwnProperty;
+      entry.esModule = {};
+      for (var p in exports) {
+        if (!hasOwnProperty || exports.hasOwnProperty(p))
+          entry.esModule[p] = exports[p];
+      }
+      entry.esModule['default'] = exports;
+      entry.esModule.__useDefault = true;
+    }
   }
 
   /*
@@ -3737,7 +3785,7 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
    *  (unless one is a circular dependency already in the list of seen
    *  modules, in which case we execute it)
    *
-   * Then we evaluate the module itself depth-first left to right
+   * Then we evaluate the module itself depth-first left to right 
    * execution to match ES6 modules
    */
   function ensureEvaluated(moduleName, seen) {
@@ -3780,7 +3828,7 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
     if (!entry)
       throw "Module " + name + " not present.";
 
-    // recursively ensure that the module and all its
+    // recursively ensure that the module and all its 
     // dependencies are linked (with dependency group handling)
     link(name);
 
@@ -3790,47 +3838,283 @@ System.get("traceur-runtime@0.0.88/src/runtime/polyfills/polyfills.js" + '');
     // remove from the registry
     defined[name] = undefined;
 
-    var module = entry.module.exports;
-
-    if (!module || !entry.declarative && module.__esModule !== true)
-      module = { 'default': module, __useDefault: true };
-
     // return the defined module object
-    return modules[name] = module;
+    return modules[name] = entry.declarative ? entry.module.exports : entry.esModule;
   };
 
   return function(mains, declare) {
+    return function(formatDetect) {
+      formatDetect(function() {
+        var System = {
+          register: register,
+          registerDynamic: registerDynamic,
+          get: load, 
+          set: function(name, module) {
+            modules[name] = module; 
+          },
+          newModule: function(module) {
+            return module;
+          },
+          'import': function() {
+            throw new TypeError('Dynamic System.import calls are not supported for SFX bundles.');
+          }
+        };
+        System.set('@empty', {});
 
-    var System;
-    var System = {
-      register: register,
-      get: load,
-      set: function(name, module) {
-        modules[name] = module;
-      },
-      newModule: function(module) {
-        return module;
-      },
-      global: global
+        declare(System);
+
+        var firstLoad = load(mains[0]);
+        if (mains.length > 1)
+          for (var i = 1; i < mains.length; i++)
+            load(mains[i]);
+
+        return firstLoad;
+      });
     };
-    System.set('@empty', {});
+  };
 
-    declare(System);
-
-    for (var i = 0; i < mains.length; i++)
-      load(mains[i]);
-  }
-
-})(typeof window != 'undefined' ? window : global)
+})(typeof self != 'undefined' ? self : global)
 /* (['mainModule'], function(System) {
   System.register(...);
-}); */
+})
+(function(factory) {
+  if (typeof define && define.amd)
+    define(factory);
+  // etc UMD / module pattern
+})*/
 
-(['Operations'], function(System) {
+(['Operations.js'], function(System) {
 
+(function(__global) {
+  var loader = System;
+  var indexOf = Array.prototype.indexOf || function(item) {
+    for (var i = 0, l = this.length; i < l; i++)
+      if (this[i] === item)
+        return i;
+    return -1;
+  }
+
+  var commentRegEx = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg;
+  var cjsRequirePre = "(?:^|[^$_a-zA-Z\\xA0-\\uFFFF.])";
+  var cjsRequirePost = "\\s*\\(\\s*(\"([^\"]+)\"|'([^']+)')\\s*\\)";
+  var fnBracketRegEx = /\(([^\)]*)\)/;
+  var wsRegEx = /^\s+|\s+$/g;
+  
+  var requireRegExs = {};
+
+  function getCJSDeps(source, requireIndex) {
+
+    // remove comments
+    source = source.replace(commentRegEx, '');
+
+    // determine the require alias
+    var params = source.match(fnBracketRegEx);
+    var requireAlias = (params[1].split(',')[requireIndex] || 'require').replace(wsRegEx, '');
+
+    // find or generate the regex for this requireAlias
+    var requireRegEx = requireRegExs[requireAlias] || (requireRegExs[requireAlias] = new RegExp(cjsRequirePre + requireAlias + cjsRequirePost, 'g'));
+
+    requireRegEx.lastIndex = 0;
+
+    var deps = [];
+
+    var match;
+    while (match = requireRegEx.exec(source))
+      deps.push(match[2] || match[3]);
+
+    return deps;
+  }
+
+  /*
+    AMD-compatible require
+    To copy RequireJS, set window.require = window.requirejs = loader.amdRequire
+  */
+  function require(names, callback, errback, referer) {
+    // in amd, first arg can be a config object... we just ignore
+    if (typeof names == 'object' && !(names instanceof Array))
+      return require.apply(null, Array.prototype.splice.call(arguments, 1, arguments.length - 1));
+
+    // amd require
+    if (typeof names == 'string' && typeof callback == 'function')
+      names = [names];
+    if (names instanceof Array) {
+      var dynamicRequires = [];
+      for (var i = 0; i < names.length; i++)
+        dynamicRequires.push(loader['import'](names[i], referer));
+      Promise.all(dynamicRequires).then(function(modules) {
+        if (callback)
+          callback.apply(null, modules);
+      }, errback);
+    }
+
+    // commonjs require
+    else if (typeof names == 'string') {
+      var module = loader.get(names);
+      return module.__useDefault ? module['default'] : module;
+    }
+
+    else
+      throw new TypeError('Invalid require');
+  };
+
+  function define(name, deps, factory) {
+    if (typeof name != 'string') {
+      factory = deps;
+      deps = name;
+      name = null;
+    }
+    if (!(deps instanceof Array)) {
+      factory = deps;
+      deps = ['require', 'exports', 'module'].splice(0, factory.length);
+    }
+
+    if (typeof factory != 'function')
+      factory = (function(factory) {
+        return function() { return factory; }
+      })(factory);
+
+    // in IE8, a trailing comma becomes a trailing undefined entry
+    if (deps[deps.length - 1] === undefined)
+      deps.pop();
+
+    // remove system dependencies
+    var requireIndex, exportsIndex, moduleIndex;
+    
+    if ((requireIndex = indexOf.call(deps, 'require')) != -1) {
+      
+      deps.splice(requireIndex, 1);
+
+      // only trace cjs requires for non-named
+      // named defines assume the trace has already been done
+      if (!name)
+        deps = deps.concat(getCJSDeps(factory.toString(), requireIndex));
+    }
+
+    if ((exportsIndex = indexOf.call(deps, 'exports')) != -1)
+      deps.splice(exportsIndex, 1);
+    
+    if ((moduleIndex = indexOf.call(deps, 'module')) != -1)
+      deps.splice(moduleIndex, 1);
+
+    var define = {
+      name: name,
+      deps: deps,
+      execute: function(req, exports, module) {
+
+        var depValues = [];
+        for (var i = 0; i < deps.length; i++)
+          depValues.push(req(deps[i]));
+
+        module.uri = loader.baseURL + (module.id[0] == '/' ? module.id : '/' + module.id);
+
+        module.config = function() {};
+
+        // add back in system dependencies
+        if (moduleIndex != -1)
+          depValues.splice(moduleIndex, 0, module);
+        
+        if (exportsIndex != -1)
+          depValues.splice(exportsIndex, 0, exports);
+        
+        if (requireIndex != -1) 
+          depValues.splice(requireIndex, 0, function(names, callback, errback) {
+            if (typeof names == 'string' && typeof callback != 'function')
+              return req(names);
+            return require.call(loader, names, callback, errback, module.id);
+          });
+
+        // set global require to AMD require
+        var curRequire = __global.require;
+        __global.require = require;
+
+        var output = factory.apply(exportsIndex == -1 ? __global : exports, depValues);
+
+        __global.require = curRequire;
+
+        if (typeof output == 'undefined' && module)
+          output = module.exports;
+
+        if (typeof output != 'undefined')
+          return output;
+      }
+    };
+
+    // anonymous define
+    if (!name) {
+      // already defined anonymously -> throw
+      if (lastModule.anonDefine)
+        throw new TypeError('Multiple defines for anonymous module');
+      lastModule.anonDefine = define;
+    }
+    // named define
+    else {
+      // if it has no dependencies and we don't have any other
+      // defines, then let this be an anonymous define
+      // this is just to support single modules of the form:
+      // define('jquery')
+      // still loading anonymously
+      // because it is done widely enough to be useful
+      if (deps.length == 0 && !lastModule.anonDefine && !lastModule.isBundle) {
+        lastModule.anonDefine = define;
+      }
+      // otherwise its a bundle only
+      else {
+        // if there is an anonDefine already (we thought it could have had a single named define)
+        // then we define it now
+        // this is to avoid defining named defines when they are actually anonymous
+        if (lastModule.anonDefine && lastModule.anonDefine.name)
+          loader.registerDynamic(lastModule.anonDefine.name, lastModule.anonDefine.deps, false, lastModule.anonDefine.execute);
+
+        lastModule.anonDefine = null;
+      }
+
+      // note this is now a bundle
+      lastModule.isBundle = true;
+
+      // define the module through the register registry
+      loader.registerDynamic(name, define.deps, false, define.execute);
+    }
+  }
+  define.amd = {};
+
+  // adds define as a global (potentially just temporarily)
+  function createDefine(loader) {
+    lastModule.anonDefine = null;
+    lastModule.isBundle = false;
+
+    // ensure no NodeJS environment detection
+    var oldModule = __global.module;
+    var oldExports = __global.exports;
+    var oldDefine = __global.define;
+
+    __global.module = undefined;
+    __global.exports = undefined;
+    __global.define = define;
+
+    return function() {
+      __global.define = oldDefine;
+      __global.module = oldModule;
+      __global.exports = oldExports;
+    };
+  }
+
+  var lastModule = {
+    isBundle: false,
+    anonDefine: null
+  };
+
+  loader.set('@@amd-helpers', loader.newModule({
+    createDefine: createDefine,
+    require: require,
+    define: define,
+    lastModule: lastModule
+  }));
+  loader.amdDefine = define;
+  loader.amdRequire = require;
+})(typeof self != 'undefined' ? self : global);
 (function() {
-function define(){};  define.amd = {};
-System.register("xmljs", [], false, function(require) {
+var _removeDefine = System.get("@@amd-helpers").createDefine();
+define("xmljs.js", ["require"], function(require) {
   return function(config) {
     'use strict';
     var VERSION = "1.1.6";
@@ -4260,9 +4544,11 @@ System.register("xmljs", [], false, function(require) {
     };
   };
 });
+
+_removeDefine();
 })();
-System.register("npm:events@1.0.2/events", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:events@1.0.2/events.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function EventEmitter() {
@@ -4482,8 +4768,8 @@ System.register("npm:events@1.0.2/events", [], true, function(require, exports, 
   return module.exports;
 });
 
-System.register("npm:inherits@2.0.1/inherits_browser", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:inherits@2.0.1/inherits_browser.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   if (typeof Object.create === 'function') {
@@ -4509,8 +4795,8 @@ System.register("npm:inherits@2.0.1/inherits_browser", [], true, function(requir
   return module.exports;
 });
 
-System.register("npm:isarray@0.0.1/index", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:isarray@0.0.1/index.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   module.exports = Array.isArray || function(arr) {
@@ -4520,8 +4806,8 @@ System.register("npm:isarray@0.0.1/index", [], true, function(require, exports, 
   return module.exports;
 });
 
-System.register("npm:base64-js@0.0.8/lib/b64", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:base64-js@0.0.8/lib/b64.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -4625,8 +4911,8 @@ System.register("npm:base64-js@0.0.8/lib/b64", [], true, function(require, expor
   return module.exports;
 });
 
-System.register("npm:ieee754@1.1.6/index", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:ieee754@1.1.6/index.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   exports.read = function(buffer, offset, isLE, mLen, nBytes) {
@@ -4709,8 +4995,8 @@ System.register("npm:ieee754@1.1.6/index", [], true, function(require, exports, 
   return module.exports;
 });
 
-System.register("npm:is-array@1.0.1/index", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:is-array@1.0.1/index.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   var isArray = Array.isArray;
@@ -4722,8 +5008,8 @@ System.register("npm:is-array@1.0.1/index", [], true, function(require, exports,
   return module.exports;
 });
 
-System.register("npm:core-util-is@1.0.1/lib/util", ["github:jspm/nodelibs-buffer@0.1.0"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:core-util-is@1.0.1/lib/util.js", ["github:jspm/nodelibs-buffer@0.1.0.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(Buffer) {
@@ -4790,13 +5076,13 @@ System.register("npm:core-util-is@1.0.1/lib/util", ["github:jspm/nodelibs-buffer
     function objectToString(o) {
       return Object.prototype.toString.call(o);
     }
-  })(require("github:jspm/nodelibs-buffer@0.1.0").Buffer);
+  })(require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer);
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:process@0.10.1/browser", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:process@0.10.1/browser.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   var process = module.exports = {};
@@ -4804,7 +5090,7 @@ System.register("npm:process@0.10.1/browser", [], true, function(require, export
   var draining = false;
   function drainQueue() {
     if (draining) {
-      return ;
+      return;
     }
     draining = true;
     var currentQueue;
@@ -4856,12 +5142,12 @@ System.register("npm:process@0.10.1/browser", [], true, function(require, export
   return module.exports;
 });
 
-System.register("npm:string_decoder@0.10.31/index", ["github:jspm/nodelibs-buffer@0.1.0", "github:jspm/nodelibs-buffer@0.1.0"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:string_decoder@0.10.31/index.js", ["github:jspm/nodelibs-buffer@0.1.0.js", "github:jspm/nodelibs-buffer@0.1.0.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(Buffer) {
-    var Buffer = require("github:jspm/nodelibs-buffer@0.1.0").Buffer;
+    var Buffer = require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer;
     var isBufferEncoding = Buffer.isEncoding || function(encoding) {
       switch (encoding && encoding.toLowerCase()) {
         case 'hex':
@@ -4903,7 +5189,7 @@ System.register("npm:string_decoder@0.10.31/index", ["github:jspm/nodelibs-buffe
           break;
         default:
           this.write = passThroughWrite;
-          return ;
+          return;
       }
       this.charBuffer = new Buffer(6);
       this.charReceived = 0;
@@ -4993,20 +5279,20 @@ System.register("npm:string_decoder@0.10.31/index", ["github:jspm/nodelibs-buffe
       this.charReceived = buffer.length % 3;
       this.charLength = this.charReceived ? 3 : 0;
     }
-  })(require("github:jspm/nodelibs-buffer@0.1.0").Buffer);
+  })(require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer);
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/lib/_stream_transform", ["npm:readable-stream@1.1.13/lib/_stream_duplex", "npm:core-util-is@1.0.1", "npm:inherits@2.0.1", "github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_transform.js", ["npm:readable-stream@1.1.13/lib/_stream_duplex.js", "npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(process) {
     module.exports = Transform;
-    var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex");
-    var util = require("npm:core-util-is@1.0.1");
-    util.inherits = require("npm:inherits@2.0.1");
+    var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
+    var util = require("npm:core-util-is@1.0.1.js");
+    util.inherits = require("npm:inherits@2.0.1.js");
     util.inherits(Transform, Duplex);
     function TransformState(options, stream) {
       this.afterTransform = function(er, data) {
@@ -5090,19 +5376,19 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_transform", ["npm:readab
         throw new Error('calling transform done when still transforming');
       return stream.push(null);
     }
-  })(require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/lib/_stream_passthrough", ["npm:readable-stream@1.1.13/lib/_stream_transform", "npm:core-util-is@1.0.1", "npm:inherits@2.0.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_passthrough.js", ["npm:readable-stream@1.1.13/lib/_stream_transform.js", "npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   module.exports = PassThrough;
-  var Transform = require("npm:readable-stream@1.1.13/lib/_stream_transform");
-  var util = require("npm:core-util-is@1.0.1");
-  util.inherits = require("npm:inherits@2.0.1");
+  var Transform = require("npm:readable-stream@1.1.13/lib/_stream_transform.js");
+  var util = require("npm:core-util-is@1.0.1.js");
+  util.inherits = require("npm:inherits@2.0.1.js");
   util.inherits(PassThrough, Transform);
   function PassThrough(options) {
     if (!(this instanceof PassThrough))
@@ -5116,53 +5402,53 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_passthrough", ["npm:read
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/writable", ["npm:readable-stream@1.1.13/lib/_stream_writable"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/writable.js", ["npm:readable-stream@1.1.13/lib/_stream_writable.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:readable-stream@1.1.13/lib/_stream_writable");
+  module.exports = require("npm:readable-stream@1.1.13/lib/_stream_writable.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/duplex", ["npm:readable-stream@1.1.13/lib/_stream_duplex"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/duplex.js", ["npm:readable-stream@1.1.13/lib/_stream_duplex.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:readable-stream@1.1.13/lib/_stream_duplex");
+  module.exports = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/transform", ["npm:readable-stream@1.1.13/lib/_stream_transform"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/transform.js", ["npm:readable-stream@1.1.13/lib/_stream_transform.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:readable-stream@1.1.13/lib/_stream_transform");
+  module.exports = require("npm:readable-stream@1.1.13/lib/_stream_transform.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/passthrough", ["npm:readable-stream@1.1.13/lib/_stream_passthrough"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/passthrough.js", ["npm:readable-stream@1.1.13/lib/_stream_passthrough.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:readable-stream@1.1.13/lib/_stream_passthrough");
+  module.exports = require("npm:readable-stream@1.1.13/lib/_stream_passthrough.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-string_decoder@0.1.0/index", ["npm:string_decoder@0.10.31"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-string_decoder@0.1.0/index.js", ["npm:string_decoder@0.10.31.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = System._nodeRequire ? System._nodeRequire('string_decoder') : require("npm:string_decoder@0.10.31");
+  module.exports = System._nodeRequire ? System._nodeRequire('string_decoder') : require("npm:string_decoder@0.10.31.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseToString", ["github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseToString.js", ["github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(process) {
@@ -5173,13 +5459,13 @@ System.register("npm:lodash@3.9.3/internal/baseToString", ["github:jspm/nodelibs
       return value == null ? '' : (value + '');
     }
     module.exports = baseToString;
-  })(require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/isObjectLike", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/isObjectLike.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function isObjectLike(value) {
@@ -5190,8 +5476,8 @@ System.register("npm:lodash@3.9.3/internal/isObjectLike", [], true, function(req
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseProperty", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseProperty.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function baseProperty(key) {
@@ -5204,8 +5490,8 @@ System.register("npm:lodash@3.9.3/internal/baseProperty", [], true, function(req
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/isLength", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/isLength.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   var MAX_SAFE_INTEGER = 9007199254740991;
@@ -5217,8 +5503,8 @@ System.register("npm:lodash@3.9.3/internal/isLength", [], true, function(require
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/lang/isObject", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/lang/isObject.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function isObject(value) {
@@ -5230,12 +5516,12 @@ System.register("npm:lodash@3.9.3/lang/isObject", [], true, function(require, ex
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/lang/isArguments", ["npm:lodash@3.9.3/internal/isArrayLike", "npm:lodash@3.9.3/internal/isObjectLike"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/lang/isArguments.js", ["npm:lodash@3.9.3/internal/isArrayLike.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike");
+  var isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
   var argsTag = '[object Arguments]';
   var objectProto = Object.prototype;
   var objToString = objectProto.toString;
@@ -5247,13 +5533,13 @@ System.register("npm:lodash@3.9.3/lang/isArguments", ["npm:lodash@3.9.3/internal
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/lang/isArray", ["npm:lodash@3.9.3/internal/getNative", "npm:lodash@3.9.3/internal/isLength", "npm:lodash@3.9.3/internal/isObjectLike"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/lang/isArray.js", ["npm:lodash@3.9.3/internal/getNative.js", "npm:lodash@3.9.3/internal/isLength.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var getNative = require("npm:lodash@3.9.3/internal/getNative"),
-      isLength = require("npm:lodash@3.9.3/internal/isLength"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike");
+  var getNative = require("npm:lodash@3.9.3/internal/getNative.js"),
+      isLength = require("npm:lodash@3.9.3/internal/isLength.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
   var arrayTag = '[object Array]';
   var objectProto = Object.prototype;
   var objToString = objectProto.toString;
@@ -5266,8 +5552,8 @@ System.register("npm:lodash@3.9.3/lang/isArray", ["npm:lodash@3.9.3/internal/get
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/isIndex", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/isIndex.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   var reIsUint = /^\d+$/;
@@ -5282,15 +5568,15 @@ System.register("npm:lodash@3.9.3/internal/isIndex", [], true, function(require,
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/object/keysIn", ["npm:lodash@3.9.3/lang/isArguments", "npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/internal/isIndex", "npm:lodash@3.9.3/internal/isLength", "npm:lodash@3.9.3/lang/isObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/object/keysIn.js", ["npm:lodash@3.9.3/lang/isArguments.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isIndex.js", "npm:lodash@3.9.3/internal/isLength.js", "npm:lodash@3.9.3/lang/isObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isArguments = require("npm:lodash@3.9.3/lang/isArguments"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray"),
-      isIndex = require("npm:lodash@3.9.3/internal/isIndex"),
-      isLength = require("npm:lodash@3.9.3/internal/isLength"),
-      isObject = require("npm:lodash@3.9.3/lang/isObject");
+  var isArguments = require("npm:lodash@3.9.3/lang/isArguments.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isIndex = require("npm:lodash@3.9.3/internal/isIndex.js"),
+      isLength = require("npm:lodash@3.9.3/internal/isLength.js"),
+      isObject = require("npm:lodash@3.9.3/lang/isObject.js");
   var objectProto = Object.prototype;
   var hasOwnProperty = objectProto.hasOwnProperty;
   function keysIn(object) {
@@ -5322,8 +5608,8 @@ System.register("npm:lodash@3.9.3/object/keysIn", ["npm:lodash@3.9.3/lang/isArgu
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseCopy", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseCopy.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function baseCopy(source, props, object) {
@@ -5341,8 +5627,8 @@ System.register("npm:lodash@3.9.3/internal/baseCopy", [], true, function(require
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/utility/identity", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/utility/identity.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function identity(value) {
@@ -5353,13 +5639,13 @@ System.register("npm:lodash@3.9.3/utility/identity", [], true, function(require,
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/isIterateeCall", ["npm:lodash@3.9.3/internal/isArrayLike", "npm:lodash@3.9.3/internal/isIndex", "npm:lodash@3.9.3/lang/isObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/isIterateeCall.js", ["npm:lodash@3.9.3/internal/isArrayLike.js", "npm:lodash@3.9.3/internal/isIndex.js", "npm:lodash@3.9.3/lang/isObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike"),
-      isIndex = require("npm:lodash@3.9.3/internal/isIndex"),
-      isObject = require("npm:lodash@3.9.3/lang/isObject");
+  var isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike.js"),
+      isIndex = require("npm:lodash@3.9.3/internal/isIndex.js"),
+      isObject = require("npm:lodash@3.9.3/lang/isObject.js");
   function isIterateeCall(value, index, object) {
     if (!isObject(object)) {
       return false;
@@ -5376,8 +5662,8 @@ System.register("npm:lodash@3.9.3/internal/isIterateeCall", ["npm:lodash@3.9.3/i
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/function/restParam", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/function/restParam.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   var FUNC_ERROR_TEXT = 'Expected a function';
@@ -5417,8 +5703,8 @@ System.register("npm:lodash@3.9.3/function/restParam", [], true, function(requir
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLStringifier", ["github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLStringifier.js", ["github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(process) {
@@ -5563,16 +5849,16 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLStringifier", ["github:jspm/nodelib
         return XMLStringifier;
       })();
     }).call(this);
-  })(require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseCreate", ["npm:lodash@3.9.3/lang/isObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseCreate.js", ["npm:lodash@3.9.3/lang/isObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isObject = require("npm:lodash@3.9.3/lang/isObject");
+  var isObject = require("npm:lodash@3.9.3/lang/isObject.js");
   var baseCreate = (function() {
     function object() {}
     return function(prototype) {
@@ -5589,8 +5875,8 @@ System.register("npm:lodash@3.9.3/internal/baseCreate", ["npm:lodash@3.9.3/lang/
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseIsFunction", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseIsFunction.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function baseIsFunction(value) {
@@ -5601,11 +5887,11 @@ System.register("npm:lodash@3.9.3/internal/baseIsFunction", [], true, function(r
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/lang/isString", ["npm:lodash@3.9.3/internal/isObjectLike"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/lang/isString.js", ["npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike");
+  var isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
   var stringTag = '[object String]';
   var objectProto = Object.prototype;
   var objToString = objectProto.toString;
@@ -5617,8 +5903,8 @@ System.register("npm:lodash@3.9.3/lang/isString", ["npm:lodash@3.9.3/internal/is
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/arrayEvery", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/arrayEvery.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function arrayEvery(array, predicate) {
@@ -5636,8 +5922,8 @@ System.register("npm:lodash@3.9.3/internal/arrayEvery", [], true, function(requi
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/arraySome", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/arraySome.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function arraySome(array, predicate) {
@@ -5655,8 +5941,8 @@ System.register("npm:lodash@3.9.3/internal/arraySome", [], true, function(requir
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/equalByTag", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/equalByTag.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   var boolTag = '[object Boolean]',
@@ -5685,11 +5971,11 @@ System.register("npm:lodash@3.9.3/internal/equalByTag", [], true, function(requi
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/equalObjects", ["npm:lodash@3.9.3/object/keys"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/equalObjects.js", ["npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var keys = require("npm:lodash@3.9.3/object/keys");
+  var keys = require("npm:lodash@3.9.3/object/keys.js");
   var objectProto = Object.prototype;
   var hasOwnProperty = objectProto.hasOwnProperty;
   function equalObjects(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
@@ -5732,12 +6018,12 @@ System.register("npm:lodash@3.9.3/internal/equalObjects", ["npm:lodash@3.9.3/obj
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/lang/isTypedArray", ["npm:lodash@3.9.3/internal/isLength", "npm:lodash@3.9.3/internal/isObjectLike"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/lang/isTypedArray.js", ["npm:lodash@3.9.3/internal/isLength.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isLength = require("npm:lodash@3.9.3/internal/isLength"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike");
+  var isLength = require("npm:lodash@3.9.3/internal/isLength.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
   var argsTag = '[object Arguments]',
       arrayTag = '[object Array]',
       boolTag = '[object Boolean]',
@@ -5774,26 +6060,26 @@ System.register("npm:lodash@3.9.3/lang/isTypedArray", ["npm:lodash@3.9.3/interna
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/toObject", ["npm:lodash@3.9.3/lang/isObject", "github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/toObject.js", ["npm:lodash@3.9.3/lang/isObject.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(process) {
-    var isObject = require("npm:lodash@3.9.3/lang/isObject");
+    var isObject = require("npm:lodash@3.9.3/lang/isObject.js");
     function toObject(value) {
       return isObject(value) ? value : Object(value);
     }
     module.exports = toObject;
-  })(require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/isStrictComparable", ["npm:lodash@3.9.3/lang/isObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/isStrictComparable.js", ["npm:lodash@3.9.3/lang/isObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isObject = require("npm:lodash@3.9.3/lang/isObject");
+  var isObject = require("npm:lodash@3.9.3/lang/isObject.js");
   function isStrictComparable(value) {
     return value === value && !isObject(value);
   }
@@ -5802,12 +6088,12 @@ System.register("npm:lodash@3.9.3/internal/isStrictComparable", ["npm:lodash@3.9
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/object/pairs", ["npm:lodash@3.9.3/object/keys", "npm:lodash@3.9.3/internal/toObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/object/pairs.js", ["npm:lodash@3.9.3/object/keys.js", "npm:lodash@3.9.3/internal/toObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var keys = require("npm:lodash@3.9.3/object/keys"),
-      toObject = require("npm:lodash@3.9.3/internal/toObject");
+  var keys = require("npm:lodash@3.9.3/object/keys.js"),
+      toObject = require("npm:lodash@3.9.3/internal/toObject.js");
   function pairs(object) {
     object = toObject(object);
     var index = -1,
@@ -5825,14 +6111,14 @@ System.register("npm:lodash@3.9.3/object/pairs", ["npm:lodash@3.9.3/object/keys"
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseGet", ["npm:lodash@3.9.3/internal/toObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseGet.js", ["npm:lodash@3.9.3/internal/toObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var toObject = require("npm:lodash@3.9.3/internal/toObject");
+  var toObject = require("npm:lodash@3.9.3/internal/toObject.js");
   function baseGet(object, path, pathKey) {
     if (object == null) {
-      return ;
+      return;
     }
     if (pathKey !== undefined && pathKey in toObject(object)) {
       path = [pathKey];
@@ -5849,8 +6135,8 @@ System.register("npm:lodash@3.9.3/internal/baseGet", ["npm:lodash@3.9.3/internal
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseSlice", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseSlice.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function baseSlice(array, start, end) {
@@ -5877,12 +6163,12 @@ System.register("npm:lodash@3.9.3/internal/baseSlice", [], true, function(requir
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/isKey", ["npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/internal/toObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/isKey.js", ["npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/toObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isArray = require("npm:lodash@3.9.3/lang/isArray"),
-      toObject = require("npm:lodash@3.9.3/internal/toObject");
+  var isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      toObject = require("npm:lodash@3.9.3/internal/toObject.js");
   var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\n\\]|\\.)*?\1)\]/,
       reIsPlainProp = /^\w*$/;
   function isKey(value, object) {
@@ -5901,8 +6187,8 @@ System.register("npm:lodash@3.9.3/internal/isKey", ["npm:lodash@3.9.3/lang/isArr
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/array/last", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/array/last.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   function last(array) {
@@ -5914,13 +6200,13 @@ System.register("npm:lodash@3.9.3/array/last", [], true, function(require, expor
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/toPath", ["npm:lodash@3.9.3/internal/baseToString", "npm:lodash@3.9.3/lang/isArray", "github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/toPath.js", ["npm:lodash@3.9.3/internal/baseToString.js", "npm:lodash@3.9.3/lang/isArray.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(process) {
-    var baseToString = require("npm:lodash@3.9.3/internal/baseToString"),
-        isArray = require("npm:lodash@3.9.3/lang/isArray");
+    var baseToString = require("npm:lodash@3.9.3/internal/baseToString.js"),
+        isArray = require("npm:lodash@3.9.3/lang/isArray.js");
     var rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\n\\]|\\.)*?)\2)\]/g;
     var reEscapeChar = /\\(\\)?/g;
     function toPath(value) {
@@ -5934,17 +6220,17 @@ System.register("npm:lodash@3.9.3/internal/toPath", ["npm:lodash@3.9.3/internal/
       return result;
     }
     module.exports = toPath;
-  })(require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/basePropertyDeep", ["npm:lodash@3.9.3/internal/baseGet", "npm:lodash@3.9.3/internal/toPath"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/basePropertyDeep.js", ["npm:lodash@3.9.3/internal/baseGet.js", "npm:lodash@3.9.3/internal/toPath.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseGet = require("npm:lodash@3.9.3/internal/baseGet"),
-      toPath = require("npm:lodash@3.9.3/internal/toPath");
+  var baseGet = require("npm:lodash@3.9.3/internal/baseGet.js"),
+      toPath = require("npm:lodash@3.9.3/internal/toPath.js");
   function basePropertyDeep(path) {
     var pathKey = (path + '');
     path = toPath(path);
@@ -5957,11 +6243,11 @@ System.register("npm:lodash@3.9.3/internal/basePropertyDeep", ["npm:lodash@3.9.3
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/createBaseFor", ["npm:lodash@3.9.3/internal/toObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/createBaseFor.js", ["npm:lodash@3.9.3/internal/toObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var toObject = require("npm:lodash@3.9.3/internal/toObject");
+  var toObject = require("npm:lodash@3.9.3/internal/toObject.js");
   function createBaseFor(fromRight) {
     return function(object, iteratee, keysFunc) {
       var iterable = toObject(object),
@@ -5982,13 +6268,13 @@ System.register("npm:lodash@3.9.3/internal/createBaseFor", ["npm:lodash@3.9.3/in
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/createBaseEach", ["npm:lodash@3.9.3/internal/getLength", "npm:lodash@3.9.3/internal/isLength", "npm:lodash@3.9.3/internal/toObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/createBaseEach.js", ["npm:lodash@3.9.3/internal/getLength.js", "npm:lodash@3.9.3/internal/isLength.js", "npm:lodash@3.9.3/internal/toObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var getLength = require("npm:lodash@3.9.3/internal/getLength"),
-      isLength = require("npm:lodash@3.9.3/internal/isLength"),
-      toObject = require("npm:lodash@3.9.3/internal/toObject");
+  var getLength = require("npm:lodash@3.9.3/internal/getLength.js"),
+      isLength = require("npm:lodash@3.9.3/internal/isLength.js"),
+      toObject = require("npm:lodash@3.9.3/internal/toObject.js");
   function createBaseEach(eachFunc, fromRight) {
     return function(collection, iteratee) {
       var length = collection ? getLength(collection) : 0;
@@ -6010,14 +6296,14 @@ System.register("npm:lodash@3.9.3/internal/createBaseEach", ["npm:lodash@3.9.3/i
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLAttribute", ["npm:lodash@3.9.3/object/create"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLAttribute.js", ["npm:lodash@3.9.3/object/create.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
     var XMLAttribute,
         create;
-    create = require("npm:lodash@3.9.3/object/create");
+    create = require("npm:lodash@3.9.3/object/create.js");
     module.exports = XMLAttribute = (function() {
       function XMLAttribute(parent, name, value) {
         this.stringify = parent.stringify;
@@ -6043,14 +6329,14 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLAttribute", ["npm:lodash@3.9.3/obje
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction", ["npm:lodash@3.9.3/object/create"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js", ["npm:lodash@3.9.3/object/create.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
     var XMLProcessingInstruction,
         create;
-    create = require("npm:lodash@3.9.3/object/create");
+    create = require("npm:lodash@3.9.3/object/create.js");
     module.exports = XMLProcessingInstruction = (function() {
       function XMLProcessingInstruction(parent, target, value) {
         this.stringify = parent.stringify;
@@ -6103,8 +6389,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction", ["npm:lodas
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLCData", ["npm:lodash@3.9.3/object/create", "npm:xmlbuilder@2.6.4/lib/XMLNode"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLCData.js", ["npm:lodash@3.9.3/object/create.js", "npm:xmlbuilder@2.6.4/lib/XMLNode.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -6125,8 +6411,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLCData", ["npm:lodash@3.9.3/object/c
           return child;
         },
         hasProp = {}.hasOwnProperty;
-    create = require("npm:lodash@3.9.3/object/create");
-    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode.js");
     module.exports = XMLCData = (function(superClass) {
       extend(XMLCData, superClass);
       function XMLCData(parent, text) {
@@ -6172,8 +6458,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLCData", ["npm:lodash@3.9.3/object/c
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLComment", ["npm:lodash@3.9.3/object/create", "npm:xmlbuilder@2.6.4/lib/XMLNode"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLComment.js", ["npm:lodash@3.9.3/object/create.js", "npm:xmlbuilder@2.6.4/lib/XMLNode.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -6194,8 +6480,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLComment", ["npm:lodash@3.9.3/object
           return child;
         },
         hasProp = {}.hasOwnProperty;
-    create = require("npm:lodash@3.9.3/object/create");
-    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode.js");
     module.exports = XMLComment = (function(superClass) {
       extend(XMLComment, superClass);
       function XMLComment(parent, text) {
@@ -6241,14 +6527,14 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLComment", ["npm:lodash@3.9.3/object
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLDTDAttList", ["npm:lodash@3.9.3/object/create"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLDTDAttList.js", ["npm:lodash@3.9.3/object/create.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
     var XMLDTDAttList,
         create;
-    create = require("npm:lodash@3.9.3/object/create");
+    create = require("npm:lodash@3.9.3/object/create.js");
     module.exports = XMLDTDAttList = (function() {
       function XMLDTDAttList(parent, elementName, attributeName, attributeType, defaultValueType, defaultValue) {
         this.stringify = parent.stringify;
@@ -6322,16 +6608,16 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLDTDAttList", ["npm:lodash@3.9.3/obj
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLDTDEntity", ["npm:lodash@3.9.3/object/create", "npm:lodash@3.9.3/lang/isObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLDTDEntity.js", ["npm:lodash@3.9.3/object/create.js", "npm:lodash@3.9.3/lang/isObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
     var XMLDTDEntity,
         create,
         isObject;
-    create = require("npm:lodash@3.9.3/object/create");
-    isObject = require("npm:lodash@3.9.3/lang/isObject");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    isObject = require("npm:lodash@3.9.3/lang/isObject.js");
     module.exports = XMLDTDEntity = (function() {
       function XMLDTDEntity(parent, pe, name, value) {
         this.stringify = parent.stringify;
@@ -6419,16 +6705,16 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLDTDEntity", ["npm:lodash@3.9.3/obje
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLDTDElement", ["npm:lodash@3.9.3/object/create", "npm:lodash@3.9.3/lang/isArray"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLDTDElement.js", ["npm:lodash@3.9.3/object/create.js", "npm:lodash@3.9.3/lang/isArray.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
     var XMLDTDElement,
         create,
         isArray;
-    create = require("npm:lodash@3.9.3/object/create");
-    isArray = require("npm:lodash@3.9.3/lang/isArray");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    isArray = require("npm:lodash@3.9.3/lang/isArray.js");
     module.exports = XMLDTDElement = (function() {
       function XMLDTDElement(parent, name, value) {
         this.stringify = parent.stringify;
@@ -6480,14 +6766,14 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLDTDElement", ["npm:lodash@3.9.3/obj
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLDTDNotation", ["npm:lodash@3.9.3/object/create"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLDTDNotation.js", ["npm:lodash@3.9.3/object/create.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
     var XMLDTDNotation,
         create;
-    create = require("npm:lodash@3.9.3/object/create");
+    create = require("npm:lodash@3.9.3/object/create.js");
     module.exports = XMLDTDNotation = (function() {
       function XMLDTDNotation(parent, name, value) {
         this.stringify = parent.stringify;
@@ -6549,8 +6835,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLDTDNotation", ["npm:lodash@3.9.3/ob
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLRaw", ["npm:lodash@3.9.3/object/create", "npm:xmlbuilder@2.6.4/lib/XMLNode"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLRaw.js", ["npm:lodash@3.9.3/object/create.js", "npm:xmlbuilder@2.6.4/lib/XMLNode.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -6571,8 +6857,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLRaw", ["npm:lodash@3.9.3/object/cre
           return child;
         },
         hasProp = {}.hasOwnProperty;
-    create = require("npm:lodash@3.9.3/object/create");
-    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode.js");
     module.exports = XMLRaw = (function(superClass) {
       extend(XMLRaw, superClass);
       function XMLRaw(parent, text) {
@@ -6618,8 +6904,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLRaw", ["npm:lodash@3.9.3/object/cre
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLText", ["npm:lodash@3.9.3/object/create", "npm:xmlbuilder@2.6.4/lib/XMLNode"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLText.js", ["npm:lodash@3.9.3/object/create.js", "npm:xmlbuilder@2.6.4/lib/XMLNode.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -6640,8 +6926,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLText", ["npm:lodash@3.9.3/object/cr
           return child;
         },
         hasProp = {}.hasOwnProperty;
-    create = require("npm:lodash@3.9.3/object/create");
-    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode.js");
     module.exports = XMLText = (function(superClass) {
       extend(XMLText, superClass);
       function XMLText(parent, text) {
@@ -6687,13 +6973,13 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLText", ["npm:lodash@3.9.3/object/cr
   return module.exports;
 });
 
-System.register("npm:xml2js@0.4.9/lib/bom", ["npm:xml2js@0.4.9/lib/xml2js"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xml2js@0.4.9/lib/bom.js", ["npm:xml2js@0.4.9/lib/xml2js.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
     var xml2js;
-    xml2js = require("npm:xml2js@0.4.9/lib/xml2js");
+    xml2js = require("npm:xml2js@0.4.9/lib/xml2js.js");
     exports.stripBOM = function(str) {
       if (str[0] === '\uFEFF') {
         return str.substring(1);
@@ -6706,8 +6992,8 @@ System.register("npm:xml2js@0.4.9/lib/bom", ["npm:xml2js@0.4.9/lib/xml2js"], tru
   return module.exports;
 });
 
-System.register("npm:xml2js@0.4.9/lib/processors", [], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xml2js@0.4.9/lib/processors.js", [], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -6733,8 +7019,8 @@ System.register("npm:xml2js@0.4.9/lib/processors", [], true, function(require, e
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/index", ["github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/index.js", ["github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   "format cjs";
@@ -7691,7 +7977,7 @@ System.register("npm:lodash@3.9.3/index", ["github:jspm/nodelibs-process@0.1.1"]
         }
         function baseGet(object, path, pathKey) {
           if (object == null) {
-            return ;
+            return;
           }
           if (pathKey !== undefined && pathKey in toObject(object)) {
             path = [pathKey];
@@ -7877,7 +8163,7 @@ System.register("npm:lodash@3.9.3/index", ["github:jspm/nodelibs-process@0.1.1"]
           while (length--) {
             if (stackA[length] == srcValue) {
               object[key] = stackB[length];
-              return ;
+              return;
             }
           }
           var value = object[key],
@@ -10941,7 +11227,7 @@ System.register("npm:lodash@3.9.3/index", ["github:jspm/nodelibs-process@0.1.1"]
         baseForOwn(LazyWrapper.prototype, function(func, methodName) {
           var lodashFunc = lodash[methodName];
           if (!lodashFunc) {
-            return ;
+            return;
           }
           var checkIteratee = /^(?:filter|map|reject)|While$/.test(methodName),
               retUnwrapped = /^(?:first|last)$/.test(methodName);
@@ -11041,106 +11327,106 @@ System.register("npm:lodash@3.9.3/index", ["github:jspm/nodelibs-process@0.1.1"]
         root._ = _;
       }
     }.call(this));
-  })(require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:events@1.0.2", ["npm:events@1.0.2/events"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:events@1.0.2.js", ["npm:events@1.0.2/events.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:events@1.0.2/events");
+  module.exports = require("npm:events@1.0.2/events.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:inherits@2.0.1", ["npm:inherits@2.0.1/inherits_browser"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:inherits@2.0.1.js", ["npm:inherits@2.0.1/inherits_browser.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:inherits@2.0.1/inherits_browser");
+  module.exports = require("npm:inherits@2.0.1/inherits_browser.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:isarray@0.0.1", ["npm:isarray@0.0.1/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:isarray@0.0.1.js", ["npm:isarray@0.0.1/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:isarray@0.0.1/index");
+  module.exports = require("npm:isarray@0.0.1/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:base64-js@0.0.8", ["npm:base64-js@0.0.8/lib/b64"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:base64-js@0.0.8.js", ["npm:base64-js@0.0.8/lib/b64.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:base64-js@0.0.8/lib/b64");
+  module.exports = require("npm:base64-js@0.0.8/lib/b64.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:ieee754@1.1.6", ["npm:ieee754@1.1.6/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:ieee754@1.1.6.js", ["npm:ieee754@1.1.6/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:ieee754@1.1.6/index");
+  module.exports = require("npm:ieee754@1.1.6/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:is-array@1.0.1", ["npm:is-array@1.0.1/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:is-array@1.0.1.js", ["npm:is-array@1.0.1/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:is-array@1.0.1/index");
+  module.exports = require("npm:is-array@1.0.1/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:core-util-is@1.0.1", ["npm:core-util-is@1.0.1/lib/util"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:core-util-is@1.0.1.js", ["npm:core-util-is@1.0.1/lib/util.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:core-util-is@1.0.1/lib/util");
+  module.exports = require("npm:core-util-is@1.0.1/lib/util.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:process@0.10.1", ["npm:process@0.10.1/browser"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:process@0.10.1.js", ["npm:process@0.10.1/browser.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:process@0.10.1/browser");
+  module.exports = require("npm:process@0.10.1/browser.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:string_decoder@0.10.31", ["npm:string_decoder@0.10.31/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:string_decoder@0.10.31.js", ["npm:string_decoder@0.10.31/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:string_decoder@0.10.31/index");
+  module.exports = require("npm:string_decoder@0.10.31/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-string_decoder@0.1.0", ["github:jspm/nodelibs-string_decoder@0.1.0/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-string_decoder@0.1.0.js", ["github:jspm/nodelibs-string_decoder@0.1.0/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("github:jspm/nodelibs-string_decoder@0.1.0/index");
+  module.exports = require("github:jspm/nodelibs-string_decoder@0.1.0/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/string/escapeRegExp", ["npm:lodash@3.9.3/internal/baseToString"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/string/escapeRegExp.js", ["npm:lodash@3.9.3/internal/baseToString.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseToString = require("npm:lodash@3.9.3/internal/baseToString");
+  var baseToString = require("npm:lodash@3.9.3/internal/baseToString.js");
   var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
       reHasRegExpChars = RegExp(reRegExpChars.source);
   function escapeRegExp(string) {
@@ -11152,26 +11438,26 @@ System.register("npm:lodash@3.9.3/string/escapeRegExp", ["npm:lodash@3.9.3/inter
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/getLength", ["npm:lodash@3.9.3/internal/baseProperty"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/getLength.js", ["npm:lodash@3.9.3/internal/baseProperty.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseProperty = require("npm:lodash@3.9.3/internal/baseProperty");
+  var baseProperty = require("npm:lodash@3.9.3/internal/baseProperty.js");
   var getLength = baseProperty('length');
   module.exports = getLength;
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/shimKeys", ["npm:lodash@3.9.3/lang/isArguments", "npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/internal/isIndex", "npm:lodash@3.9.3/internal/isLength", "npm:lodash@3.9.3/object/keysIn"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/shimKeys.js", ["npm:lodash@3.9.3/lang/isArguments.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isIndex.js", "npm:lodash@3.9.3/internal/isLength.js", "npm:lodash@3.9.3/object/keysIn.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isArguments = require("npm:lodash@3.9.3/lang/isArguments"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray"),
-      isIndex = require("npm:lodash@3.9.3/internal/isIndex"),
-      isLength = require("npm:lodash@3.9.3/internal/isLength"),
-      keysIn = require("npm:lodash@3.9.3/object/keysIn");
+  var isArguments = require("npm:lodash@3.9.3/lang/isArguments.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isIndex = require("npm:lodash@3.9.3/internal/isIndex.js"),
+      isLength = require("npm:lodash@3.9.3/internal/isLength.js"),
+      keysIn = require("npm:lodash@3.9.3/object/keysIn.js");
   var objectProto = Object.prototype;
   var hasOwnProperty = objectProto.hasOwnProperty;
   function shimKeys(object) {
@@ -11194,12 +11480,12 @@ System.register("npm:lodash@3.9.3/internal/shimKeys", ["npm:lodash@3.9.3/lang/is
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseAssign", ["npm:lodash@3.9.3/internal/baseCopy", "npm:lodash@3.9.3/object/keys"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseAssign.js", ["npm:lodash@3.9.3/internal/baseCopy.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseCopy = require("npm:lodash@3.9.3/internal/baseCopy"),
-      keys = require("npm:lodash@3.9.3/object/keys");
+  var baseCopy = require("npm:lodash@3.9.3/internal/baseCopy.js"),
+      keys = require("npm:lodash@3.9.3/object/keys.js");
   function baseAssign(object, source) {
     return source == null ? object : baseCopy(source, keys(source), object);
   }
@@ -11208,11 +11494,11 @@ System.register("npm:lodash@3.9.3/internal/baseAssign", ["npm:lodash@3.9.3/inter
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/bindCallback", ["npm:lodash@3.9.3/utility/identity"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/bindCallback.js", ["npm:lodash@3.9.3/utility/identity.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var identity = require("npm:lodash@3.9.3/utility/identity");
+  var identity = require("npm:lodash@3.9.3/utility/identity.js");
   function bindCallback(func, thisArg, argCount) {
     if (typeof func != 'function') {
       return identity;
@@ -11247,13 +11533,13 @@ System.register("npm:lodash@3.9.3/internal/bindCallback", ["npm:lodash@3.9.3/uti
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/object/create", ["npm:lodash@3.9.3/internal/baseAssign", "npm:lodash@3.9.3/internal/baseCreate", "npm:lodash@3.9.3/internal/isIterateeCall"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/object/create.js", ["npm:lodash@3.9.3/internal/baseAssign.js", "npm:lodash@3.9.3/internal/baseCreate.js", "npm:lodash@3.9.3/internal/isIterateeCall.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseAssign = require("npm:lodash@3.9.3/internal/baseAssign"),
-      baseCreate = require("npm:lodash@3.9.3/internal/baseCreate"),
-      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall");
+  var baseAssign = require("npm:lodash@3.9.3/internal/baseAssign.js"),
+      baseCreate = require("npm:lodash@3.9.3/internal/baseCreate.js"),
+      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall.js");
   function create(prototype, properties, guard) {
     var result = baseCreate(prototype);
     if (guard && isIterateeCall(prototype, properties, guard)) {
@@ -11266,12 +11552,12 @@ System.register("npm:lodash@3.9.3/object/create", ["npm:lodash@3.9.3/internal/ba
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/lang/isFunction", ["npm:lodash@3.9.3/internal/baseIsFunction", "npm:lodash@3.9.3/internal/getNative"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/lang/isFunction.js", ["npm:lodash@3.9.3/internal/baseIsFunction.js", "npm:lodash@3.9.3/internal/getNative.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseIsFunction = require("npm:lodash@3.9.3/internal/baseIsFunction"),
-      getNative = require("npm:lodash@3.9.3/internal/getNative");
+  var baseIsFunction = require("npm:lodash@3.9.3/internal/baseIsFunction.js"),
+      getNative = require("npm:lodash@3.9.3/internal/getNative.js");
   var funcTag = '[object Function]';
   var objectProto = Object.prototype;
   var objToString = objectProto.toString;
@@ -11284,17 +11570,17 @@ System.register("npm:lodash@3.9.3/lang/isFunction", ["npm:lodash@3.9.3/internal/
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/lang/isEmpty", ["npm:lodash@3.9.3/lang/isArguments", "npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/internal/isArrayLike", "npm:lodash@3.9.3/lang/isFunction", "npm:lodash@3.9.3/internal/isObjectLike", "npm:lodash@3.9.3/lang/isString", "npm:lodash@3.9.3/object/keys"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/lang/isEmpty.js", ["npm:lodash@3.9.3/lang/isArguments.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isArrayLike.js", "npm:lodash@3.9.3/lang/isFunction.js", "npm:lodash@3.9.3/internal/isObjectLike.js", "npm:lodash@3.9.3/lang/isString.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isArguments = require("npm:lodash@3.9.3/lang/isArguments"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray"),
-      isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike"),
-      isFunction = require("npm:lodash@3.9.3/lang/isFunction"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike"),
-      isString = require("npm:lodash@3.9.3/lang/isString"),
-      keys = require("npm:lodash@3.9.3/object/keys");
+  var isArguments = require("npm:lodash@3.9.3/lang/isArguments.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike.js"),
+      isFunction = require("npm:lodash@3.9.3/lang/isFunction.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js"),
+      isString = require("npm:lodash@3.9.3/lang/isString.js"),
+      keys = require("npm:lodash@3.9.3/object/keys.js");
   function isEmpty(value) {
     if (value == null) {
       return true;
@@ -11309,11 +11595,11 @@ System.register("npm:lodash@3.9.3/lang/isEmpty", ["npm:lodash@3.9.3/lang/isArgum
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/equalArrays", ["npm:lodash@3.9.3/internal/arraySome"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/equalArrays.js", ["npm:lodash@3.9.3/internal/arraySome.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var arraySome = require("npm:lodash@3.9.3/internal/arraySome");
+  var arraySome = require("npm:lodash@3.9.3/internal/arraySome.js");
   function equalArrays(array, other, equalFunc, customizer, isLoose, stackA, stackB) {
     var index = -1,
         arrLength = array.length,
@@ -11348,12 +11634,12 @@ System.register("npm:lodash@3.9.3/internal/equalArrays", ["npm:lodash@3.9.3/inte
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/getMatchData", ["npm:lodash@3.9.3/internal/isStrictComparable", "npm:lodash@3.9.3/object/pairs"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/getMatchData.js", ["npm:lodash@3.9.3/internal/isStrictComparable.js", "npm:lodash@3.9.3/object/pairs.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isStrictComparable = require("npm:lodash@3.9.3/internal/isStrictComparable"),
-      pairs = require("npm:lodash@3.9.3/object/pairs");
+  var isStrictComparable = require("npm:lodash@3.9.3/internal/isStrictComparable.js"),
+      pairs = require("npm:lodash@3.9.3/object/pairs.js");
   function getMatchData(object) {
     var result = pairs(object),
         length = result.length;
@@ -11367,19 +11653,19 @@ System.register("npm:lodash@3.9.3/internal/getMatchData", ["npm:lodash@3.9.3/int
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseMatchesProperty", ["npm:lodash@3.9.3/internal/baseGet", "npm:lodash@3.9.3/internal/baseIsEqual", "npm:lodash@3.9.3/internal/baseSlice", "npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/internal/isKey", "npm:lodash@3.9.3/internal/isStrictComparable", "npm:lodash@3.9.3/array/last", "npm:lodash@3.9.3/internal/toObject", "npm:lodash@3.9.3/internal/toPath"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseMatchesProperty.js", ["npm:lodash@3.9.3/internal/baseGet.js", "npm:lodash@3.9.3/internal/baseIsEqual.js", "npm:lodash@3.9.3/internal/baseSlice.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isKey.js", "npm:lodash@3.9.3/internal/isStrictComparable.js", "npm:lodash@3.9.3/array/last.js", "npm:lodash@3.9.3/internal/toObject.js", "npm:lodash@3.9.3/internal/toPath.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseGet = require("npm:lodash@3.9.3/internal/baseGet"),
-      baseIsEqual = require("npm:lodash@3.9.3/internal/baseIsEqual"),
-      baseSlice = require("npm:lodash@3.9.3/internal/baseSlice"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray"),
-      isKey = require("npm:lodash@3.9.3/internal/isKey"),
-      isStrictComparable = require("npm:lodash@3.9.3/internal/isStrictComparable"),
-      last = require("npm:lodash@3.9.3/array/last"),
-      toObject = require("npm:lodash@3.9.3/internal/toObject"),
-      toPath = require("npm:lodash@3.9.3/internal/toPath");
+  var baseGet = require("npm:lodash@3.9.3/internal/baseGet.js"),
+      baseIsEqual = require("npm:lodash@3.9.3/internal/baseIsEqual.js"),
+      baseSlice = require("npm:lodash@3.9.3/internal/baseSlice.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isKey = require("npm:lodash@3.9.3/internal/isKey.js"),
+      isStrictComparable = require("npm:lodash@3.9.3/internal/isStrictComparable.js"),
+      last = require("npm:lodash@3.9.3/array/last.js"),
+      toObject = require("npm:lodash@3.9.3/internal/toObject.js"),
+      toPath = require("npm:lodash@3.9.3/internal/toPath.js");
   function baseMatchesProperty(path, srcValue) {
     var isArr = isArray(path),
         isCommon = isKey(path) && isStrictComparable(srcValue),
@@ -11407,13 +11693,13 @@ System.register("npm:lodash@3.9.3/internal/baseMatchesProperty", ["npm:lodash@3.
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/utility/property", ["npm:lodash@3.9.3/internal/baseProperty", "npm:lodash@3.9.3/internal/basePropertyDeep", "npm:lodash@3.9.3/internal/isKey"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/utility/property.js", ["npm:lodash@3.9.3/internal/baseProperty.js", "npm:lodash@3.9.3/internal/basePropertyDeep.js", "npm:lodash@3.9.3/internal/isKey.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseProperty = require("npm:lodash@3.9.3/internal/baseProperty"),
-      basePropertyDeep = require("npm:lodash@3.9.3/internal/basePropertyDeep"),
-      isKey = require("npm:lodash@3.9.3/internal/isKey");
+  var baseProperty = require("npm:lodash@3.9.3/internal/baseProperty.js"),
+      basePropertyDeep = require("npm:lodash@3.9.3/internal/basePropertyDeep.js"),
+      isKey = require("npm:lodash@3.9.3/internal/isKey.js");
   function property(path) {
     return isKey(path) ? baseProperty(path) : basePropertyDeep(path);
   }
@@ -11422,19 +11708,19 @@ System.register("npm:lodash@3.9.3/utility/property", ["npm:lodash@3.9.3/internal
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseFor", ["npm:lodash@3.9.3/internal/createBaseFor"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseFor.js", ["npm:lodash@3.9.3/internal/createBaseFor.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var createBaseFor = require("npm:lodash@3.9.3/internal/createBaseFor");
+  var createBaseFor = require("npm:lodash@3.9.3/internal/createBaseFor.js");
   var baseFor = createBaseFor();
   module.exports = baseFor;
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLDocType", ["npm:lodash@3.9.3/object/create", "npm:lodash@3.9.3/lang/isObject", "npm:xmlbuilder@2.6.4/lib/XMLCData", "npm:xmlbuilder@2.6.4/lib/XMLComment", "npm:xmlbuilder@2.6.4/lib/XMLDTDAttList", "npm:xmlbuilder@2.6.4/lib/XMLDTDEntity", "npm:xmlbuilder@2.6.4/lib/XMLDTDElement", "npm:xmlbuilder@2.6.4/lib/XMLDTDNotation", "npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLDocType.js", ["npm:lodash@3.9.3/object/create.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:xmlbuilder@2.6.4/lib/XMLCData.js", "npm:xmlbuilder@2.6.4/lib/XMLComment.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDAttList.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDEntity.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDElement.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDNotation.js", "npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -11448,15 +11734,15 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLDocType", ["npm:lodash@3.9.3/object
         XMLProcessingInstruction,
         create,
         isObject;
-    create = require("npm:lodash@3.9.3/object/create");
-    isObject = require("npm:lodash@3.9.3/lang/isObject");
-    XMLCData = require("npm:xmlbuilder@2.6.4/lib/XMLCData");
-    XMLComment = require("npm:xmlbuilder@2.6.4/lib/XMLComment");
-    XMLDTDAttList = require("npm:xmlbuilder@2.6.4/lib/XMLDTDAttList");
-    XMLDTDEntity = require("npm:xmlbuilder@2.6.4/lib/XMLDTDEntity");
-    XMLDTDElement = require("npm:xmlbuilder@2.6.4/lib/XMLDTDElement");
-    XMLDTDNotation = require("npm:xmlbuilder@2.6.4/lib/XMLDTDNotation");
-    XMLProcessingInstruction = require("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    isObject = require("npm:lodash@3.9.3/lang/isObject.js");
+    XMLCData = require("npm:xmlbuilder@2.6.4/lib/XMLCData.js");
+    XMLComment = require("npm:xmlbuilder@2.6.4/lib/XMLComment.js");
+    XMLDTDAttList = require("npm:xmlbuilder@2.6.4/lib/XMLDTDAttList.js");
+    XMLDTDEntity = require("npm:xmlbuilder@2.6.4/lib/XMLDTDEntity.js");
+    XMLDTDElement = require("npm:xmlbuilder@2.6.4/lib/XMLDTDElement.js");
+    XMLDTDNotation = require("npm:xmlbuilder@2.6.4/lib/XMLDTDNotation.js");
+    XMLProcessingInstruction = require("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js");
     module.exports = XMLDocType = (function() {
       function XMLDocType(parent, pubID, sysID) {
         var ref,
@@ -11619,31 +11905,31 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLDocType", ["npm:lodash@3.9.3/object
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3", ["npm:lodash@3.9.3/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3.js", ["npm:lodash@3.9.3/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:lodash@3.9.3/index");
+  module.exports = require("npm:lodash@3.9.3/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-events@0.1.1/index", ["npm:events@1.0.2"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-events@0.1.1/index.js", ["npm:events@1.0.2.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = System._nodeRequire ? System._nodeRequire('events') : require("npm:events@1.0.2");
+  module.exports = System._nodeRequire ? System._nodeRequire('events') : require("npm:events@1.0.2.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:buffer@3.2.2/index", ["npm:base64-js@0.0.8", "npm:ieee754@1.1.6", "npm:is-array@1.0.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:buffer@3.2.2/index.js", ["npm:base64-js@0.0.8.js", "npm:ieee754@1.1.6.js", "npm:is-array@1.0.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var base64 = require("npm:base64-js@0.0.8");
-  var ieee754 = require("npm:ieee754@1.1.6");
-  var isArray = require("npm:is-array@1.0.1");
+  var base64 = require("npm:base64-js@0.0.8.js");
+  var ieee754 = require("npm:ieee754@1.1.6.js");
+  var isArray = require("npm:is-array@1.0.1.js");
   exports.Buffer = Buffer;
   exports.SlowBuffer = SlowBuffer;
   exports.INSPECT_MAX_BYTES = 50;
@@ -12625,9 +12911,9 @@ System.register("npm:buffer@3.2.2/index", ["npm:base64-js@0.0.8", "npm:ieee754@1
     if (end < start)
       throw new RangeError('end < start');
     if (end === start)
-      return ;
+      return;
     if (this.length === 0)
-      return ;
+      return;
     if (start < 0 || start >= this.length)
       throw new RangeError('start out of bounds');
     if (end < 0 || end > this.length)
@@ -12845,21 +13131,21 @@ System.register("npm:buffer@3.2.2/index", ["npm:base64-js@0.0.8", "npm:ieee754@1
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-process@0.1.1/index", ["npm:process@0.10.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-process@0.1.1/index.js", ["npm:process@0.10.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = System._nodeRequire ? process : require("npm:process@0.10.1");
+  module.exports = System._nodeRequire ? process : require("npm:process@0.10.1.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/lang/isNative", ["npm:lodash@3.9.3/string/escapeRegExp", "npm:lodash@3.9.3/internal/isObjectLike"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/lang/isNative.js", ["npm:lodash@3.9.3/string/escapeRegExp.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var escapeRegExp = require("npm:lodash@3.9.3/string/escapeRegExp"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike");
+  var escapeRegExp = require("npm:lodash@3.9.3/string/escapeRegExp.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
   var funcTag = '[object Function]';
   var reIsHostCtor = /^\[object .+?Constructor\]$/;
   var objectProto = Object.prototype;
@@ -12881,12 +13167,12 @@ System.register("npm:lodash@3.9.3/lang/isNative", ["npm:lodash@3.9.3/string/esca
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/isArrayLike", ["npm:lodash@3.9.3/internal/getLength", "npm:lodash@3.9.3/internal/isLength"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/isArrayLike.js", ["npm:lodash@3.9.3/internal/getLength.js", "npm:lodash@3.9.3/internal/isLength.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var getLength = require("npm:lodash@3.9.3/internal/getLength"),
-      isLength = require("npm:lodash@3.9.3/internal/isLength");
+  var getLength = require("npm:lodash@3.9.3/internal/getLength.js"),
+      isLength = require("npm:lodash@3.9.3/internal/isLength.js");
   function isArrayLike(value) {
     return value != null && isLength(getLength(value));
   }
@@ -12895,13 +13181,13 @@ System.register("npm:lodash@3.9.3/internal/isArrayLike", ["npm:lodash@3.9.3/inte
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/createAssigner", ["npm:lodash@3.9.3/internal/bindCallback", "npm:lodash@3.9.3/internal/isIterateeCall", "npm:lodash@3.9.3/function/restParam"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/createAssigner.js", ["npm:lodash@3.9.3/internal/bindCallback.js", "npm:lodash@3.9.3/internal/isIterateeCall.js", "npm:lodash@3.9.3/function/restParam.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var bindCallback = require("npm:lodash@3.9.3/internal/bindCallback"),
-      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall"),
-      restParam = require("npm:lodash@3.9.3/function/restParam");
+  var bindCallback = require("npm:lodash@3.9.3/internal/bindCallback.js"),
+      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall.js"),
+      restParam = require("npm:lodash@3.9.3/function/restParam.js");
   function createAssigner(assigner) {
     return restParam(function(object, sources) {
       var index = -1,
@@ -12934,15 +13220,15 @@ System.register("npm:lodash@3.9.3/internal/createAssigner", ["npm:lodash@3.9.3/i
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseIsEqualDeep", ["npm:lodash@3.9.3/internal/equalArrays", "npm:lodash@3.9.3/internal/equalByTag", "npm:lodash@3.9.3/internal/equalObjects", "npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/lang/isTypedArray"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseIsEqualDeep.js", ["npm:lodash@3.9.3/internal/equalArrays.js", "npm:lodash@3.9.3/internal/equalByTag.js", "npm:lodash@3.9.3/internal/equalObjects.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/lang/isTypedArray.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var equalArrays = require("npm:lodash@3.9.3/internal/equalArrays"),
-      equalByTag = require("npm:lodash@3.9.3/internal/equalByTag"),
-      equalObjects = require("npm:lodash@3.9.3/internal/equalObjects"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray"),
-      isTypedArray = require("npm:lodash@3.9.3/lang/isTypedArray");
+  var equalArrays = require("npm:lodash@3.9.3/internal/equalArrays.js"),
+      equalByTag = require("npm:lodash@3.9.3/internal/equalByTag.js"),
+      equalObjects = require("npm:lodash@3.9.3/internal/equalObjects.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isTypedArray = require("npm:lodash@3.9.3/lang/isTypedArray.js");
   var argsTag = '[object Arguments]',
       arrayTag = '[object Array]',
       objectTag = '[object Object]';
@@ -13006,12 +13292,12 @@ System.register("npm:lodash@3.9.3/internal/baseIsEqualDeep", ["npm:lodash@3.9.3/
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseForOwn", ["npm:lodash@3.9.3/internal/baseFor", "npm:lodash@3.9.3/object/keys"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseForOwn.js", ["npm:lodash@3.9.3/internal/baseFor.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseFor = require("npm:lodash@3.9.3/internal/baseFor"),
-      keys = require("npm:lodash@3.9.3/object/keys");
+  var baseFor = require("npm:lodash@3.9.3/internal/baseFor.js"),
+      keys = require("npm:lodash@3.9.3/object/keys.js");
   function baseForOwn(object, iteratee) {
     return baseFor(object, iteratee, keys);
   }
@@ -13020,38 +13306,38 @@ System.register("npm:lodash@3.9.3/internal/baseForOwn", ["npm:lodash@3.9.3/inter
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-events@0.1.1", ["github:jspm/nodelibs-events@0.1.1/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-events@0.1.1.js", ["github:jspm/nodelibs-events@0.1.1/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("github:jspm/nodelibs-events@0.1.1/index");
+  module.exports = require("github:jspm/nodelibs-events@0.1.1/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:buffer@3.2.2", ["npm:buffer@3.2.2/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:buffer@3.2.2.js", ["npm:buffer@3.2.2/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:buffer@3.2.2/index");
+  module.exports = require("npm:buffer@3.2.2/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-process@0.1.1", ["github:jspm/nodelibs-process@0.1.1/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-process@0.1.1.js", ["github:jspm/nodelibs-process@0.1.1/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("github:jspm/nodelibs-process@0.1.1/index");
+  module.exports = require("github:jspm/nodelibs-process@0.1.1/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/getNative", ["npm:lodash@3.9.3/lang/isNative"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/getNative.js", ["npm:lodash@3.9.3/lang/isNative.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var isNative = require("npm:lodash@3.9.3/lang/isNative");
+  var isNative = require("npm:lodash@3.9.3/lang/isNative.js");
   function getNative(object, key) {
     var value = object == null ? undefined : object[key];
     return isNative(value) ? value : undefined;
@@ -13061,13 +13347,13 @@ System.register("npm:lodash@3.9.3/internal/getNative", ["npm:lodash@3.9.3/lang/i
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseIsEqual", ["npm:lodash@3.9.3/internal/baseIsEqualDeep", "npm:lodash@3.9.3/lang/isObject", "npm:lodash@3.9.3/internal/isObjectLike"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseIsEqual.js", ["npm:lodash@3.9.3/internal/baseIsEqualDeep.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseIsEqualDeep = require("npm:lodash@3.9.3/internal/baseIsEqualDeep"),
-      isObject = require("npm:lodash@3.9.3/lang/isObject"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike");
+  var baseIsEqualDeep = require("npm:lodash@3.9.3/internal/baseIsEqualDeep.js"),
+      isObject = require("npm:lodash@3.9.3/lang/isObject.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
   function baseIsEqual(value, other, customizer, isLoose, stackA, stackB) {
     if (value === other) {
       return true;
@@ -13082,38 +13368,38 @@ System.register("npm:lodash@3.9.3/internal/baseIsEqual", ["npm:lodash@3.9.3/inte
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseEach", ["npm:lodash@3.9.3/internal/baseForOwn", "npm:lodash@3.9.3/internal/createBaseEach"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseEach.js", ["npm:lodash@3.9.3/internal/baseForOwn.js", "npm:lodash@3.9.3/internal/createBaseEach.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseForOwn = require("npm:lodash@3.9.3/internal/baseForOwn"),
-      createBaseEach = require("npm:lodash@3.9.3/internal/createBaseEach");
+  var baseForOwn = require("npm:lodash@3.9.3/internal/baseForOwn.js"),
+      createBaseEach = require("npm:lodash@3.9.3/internal/createBaseEach.js");
   var baseEach = createBaseEach(baseForOwn);
   module.exports = baseEach;
   global.define = __define;
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-buffer@0.1.0/index", ["npm:buffer@3.2.2"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-buffer@0.1.0/index.js", ["npm:buffer@3.2.2.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = System._nodeRequire ? System._nodeRequire('buffer') : require("npm:buffer@3.2.2");
+  module.exports = System._nodeRequire ? System._nodeRequire('buffer') : require("npm:buffer@3.2.2.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/lib/_stream_writable", ["github:jspm/nodelibs-buffer@0.1.0", "npm:core-util-is@1.0.1", "npm:inherits@2.0.1", "npm:stream-browserify@1.0.0/index", "npm:readable-stream@1.1.13/lib/_stream_duplex", "npm:readable-stream@1.1.13/lib/_stream_duplex", "github:jspm/nodelibs-buffer@0.1.0", "github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_writable.js", ["github:jspm/nodelibs-buffer@0.1.0.js", "npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js", "npm:stream-browserify@1.0.0/index.js", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "github:jspm/nodelibs-buffer@0.1.0.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(Buffer, process) {
     module.exports = Writable;
-    var Buffer = require("github:jspm/nodelibs-buffer@0.1.0").Buffer;
+    var Buffer = require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer;
     Writable.WritableState = WritableState;
-    var util = require("npm:core-util-is@1.0.1");
-    util.inherits = require("npm:inherits@2.0.1");
-    var Stream = require("npm:stream-browserify@1.0.0/index");
+    var util = require("npm:core-util-is@1.0.1.js");
+    util.inherits = require("npm:inherits@2.0.1.js");
+    var Stream = require("npm:stream-browserify@1.0.0/index.js");
     util.inherits(Writable, Stream);
     function WriteReq(chunk, encoding, cb) {
       this.chunk = chunk;
@@ -13121,7 +13407,7 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_writable", ["github:jspm
       this.callback = cb;
     }
     function WritableState(options, stream) {
-      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex");
+      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
       options = options || {};
       var hwm = options.highWaterMark;
       var defaultHwm = options.objectMode ? 16 : 16 * 1024;
@@ -13153,7 +13439,7 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_writable", ["github:jspm
       this.errorEmitted = false;
     }
     function Writable(options) {
-      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex");
+      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
       if (!(this instanceof Writable) && !(this instanceof Duplex))
         return new Writable(options);
       this._writableState = new WritableState(options, this);
@@ -13389,19 +13675,19 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_writable", ["github:jspm
       }
       state.ended = true;
     }
-  })(require("github:jspm/nodelibs-buffer@0.1.0").Buffer, require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer, require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/object/keys", ["npm:lodash@3.9.3/internal/getNative", "npm:lodash@3.9.3/internal/isArrayLike", "npm:lodash@3.9.3/lang/isObject", "npm:lodash@3.9.3/internal/shimKeys"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/object/keys.js", ["npm:lodash@3.9.3/internal/getNative.js", "npm:lodash@3.9.3/internal/isArrayLike.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:lodash@3.9.3/internal/shimKeys.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var getNative = require("npm:lodash@3.9.3/internal/getNative"),
-      isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike"),
-      isObject = require("npm:lodash@3.9.3/lang/isObject"),
-      shimKeys = require("npm:lodash@3.9.3/internal/shimKeys");
+  var getNative = require("npm:lodash@3.9.3/internal/getNative.js"),
+      isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike.js"),
+      isObject = require("npm:lodash@3.9.3/lang/isObject.js"),
+      shimKeys = require("npm:lodash@3.9.3/internal/shimKeys.js");
   var nativeKeys = getNative(Object, 'keys');
   var keys = !nativeKeys ? shimKeys : function(object) {
     var Ctor = object == null ? null : object.constructor;
@@ -13415,12 +13701,12 @@ System.register("npm:lodash@3.9.3/object/keys", ["npm:lodash@3.9.3/internal/getN
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseIsMatch", ["npm:lodash@3.9.3/internal/baseIsEqual", "npm:lodash@3.9.3/internal/toObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseIsMatch.js", ["npm:lodash@3.9.3/internal/baseIsEqual.js", "npm:lodash@3.9.3/internal/toObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseIsEqual = require("npm:lodash@3.9.3/internal/baseIsEqual"),
-      toObject = require("npm:lodash@3.9.3/internal/toObject");
+  var baseIsEqual = require("npm:lodash@3.9.3/internal/baseIsEqual.js"),
+      toObject = require("npm:lodash@3.9.3/internal/toObject.js");
   function baseIsMatch(object, matchData, customizer) {
     var index = matchData.length,
         length = index,
@@ -13458,11 +13744,11 @@ System.register("npm:lodash@3.9.3/internal/baseIsMatch", ["npm:lodash@3.9.3/inte
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseEvery", ["npm:lodash@3.9.3/internal/baseEach"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseEvery.js", ["npm:lodash@3.9.3/internal/baseEach.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseEach = require("npm:lodash@3.9.3/internal/baseEach");
+  var baseEach = require("npm:lodash@3.9.3/internal/baseEach.js");
   function baseEvery(collection, predicate) {
     var result = true;
     baseEach(collection, function(value, index, collection) {
@@ -13476,17 +13762,17 @@ System.register("npm:lodash@3.9.3/internal/baseEvery", ["npm:lodash@3.9.3/intern
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-buffer@0.1.0", ["github:jspm/nodelibs-buffer@0.1.0/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-buffer@0.1.0.js", ["github:jspm/nodelibs-buffer@0.1.0/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("github:jspm/nodelibs-buffer@0.1.0/index");
+  module.exports = require("github:jspm/nodelibs-buffer@0.1.0/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/lib/_stream_duplex", ["npm:core-util-is@1.0.1", "npm:inherits@2.0.1", "npm:readable-stream@1.1.13/lib/_stream_readable", "npm:readable-stream@1.1.13/lib/_stream_writable", "github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_duplex.js", ["npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js", "npm:readable-stream@1.1.13/lib/_stream_readable.js", "npm:readable-stream@1.1.13/lib/_stream_writable.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(process) {
@@ -13497,10 +13783,10 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_duplex", ["npm:core-util
         keys.push(key);
       return keys;
     };
-    var util = require("npm:core-util-is@1.0.1");
-    util.inherits = require("npm:inherits@2.0.1");
-    var Readable = require("npm:readable-stream@1.1.13/lib/_stream_readable");
-    var Writable = require("npm:readable-stream@1.1.13/lib/_stream_writable");
+    var util = require("npm:core-util-is@1.0.1.js");
+    util.inherits = require("npm:inherits@2.0.1.js");
+    var Readable = require("npm:readable-stream@1.1.13/lib/_stream_readable.js");
+    var Writable = require("npm:readable-stream@1.1.13/lib/_stream_writable.js");
     util.inherits(Duplex, Readable);
     forEach(objectKeys(Writable.prototype), function(method) {
       if (!Duplex.prototype[method])
@@ -13522,7 +13808,7 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_duplex", ["npm:core-util
     }
     function onend() {
       if (this.allowHalfOpen || this._writableState.ended)
-        return ;
+        return;
       process.nextTick(this.end.bind(this));
     }
     function forEach(xs, f) {
@@ -13531,16 +13817,16 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_duplex", ["npm:core-util
         f(xs[i], i);
       }
     }
-  })(require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/assignWith", ["npm:lodash@3.9.3/object/keys"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/assignWith.js", ["npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var keys = require("npm:lodash@3.9.3/object/keys");
+  var keys = require("npm:lodash@3.9.3/object/keys.js");
   function assignWith(object, source, customizer) {
     var index = -1,
         props = keys(source),
@@ -13560,13 +13846,13 @@ System.register("npm:lodash@3.9.3/internal/assignWith", ["npm:lodash@3.9.3/objec
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseMatches", ["npm:lodash@3.9.3/internal/baseIsMatch", "npm:lodash@3.9.3/internal/getMatchData", "npm:lodash@3.9.3/internal/toObject"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseMatches.js", ["npm:lodash@3.9.3/internal/baseIsMatch.js", "npm:lodash@3.9.3/internal/getMatchData.js", "npm:lodash@3.9.3/internal/toObject.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseIsMatch = require("npm:lodash@3.9.3/internal/baseIsMatch"),
-      getMatchData = require("npm:lodash@3.9.3/internal/getMatchData"),
-      toObject = require("npm:lodash@3.9.3/internal/toObject");
+  var baseIsMatch = require("npm:lodash@3.9.3/internal/baseIsMatch.js"),
+      getMatchData = require("npm:lodash@3.9.3/internal/getMatchData.js"),
+      toObject = require("npm:lodash@3.9.3/internal/toObject.js");
   function baseMatches(source) {
     var matchData = getMatchData(source);
     if (matchData.length == 1 && matchData[0][2]) {
@@ -13588,23 +13874,23 @@ System.register("npm:lodash@3.9.3/internal/baseMatches", ["npm:lodash@3.9.3/inte
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/lib/_stream_readable", ["npm:isarray@0.0.1", "github:jspm/nodelibs-buffer@0.1.0", "github:jspm/nodelibs-events@0.1.1", "npm:stream-browserify@1.0.0/index", "npm:core-util-is@1.0.1", "npm:inherits@2.0.1", "@empty", "npm:readable-stream@1.1.13/lib/_stream_duplex", "npm:string_decoder@0.10.31", "npm:readable-stream@1.1.13/lib/_stream_duplex", "npm:string_decoder@0.10.31", "github:jspm/nodelibs-buffer@0.1.0", "github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_readable.js", ["npm:isarray@0.0.1.js", "github:jspm/nodelibs-buffer@0.1.0.js", "github:jspm/nodelibs-events@0.1.1.js", "npm:stream-browserify@1.0.0/index.js", "npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js", "@empty", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "npm:string_decoder@0.10.31.js", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "npm:string_decoder@0.10.31.js", "github:jspm/nodelibs-buffer@0.1.0.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(Buffer, process) {
     module.exports = Readable;
-    var isArray = require("npm:isarray@0.0.1");
-    var Buffer = require("github:jspm/nodelibs-buffer@0.1.0").Buffer;
+    var isArray = require("npm:isarray@0.0.1.js");
+    var Buffer = require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer;
     Readable.ReadableState = ReadableState;
-    var EE = require("github:jspm/nodelibs-events@0.1.1").EventEmitter;
+    var EE = require("github:jspm/nodelibs-events@0.1.1.js").EventEmitter;
     if (!EE.listenerCount)
       EE.listenerCount = function(emitter, type) {
         return emitter.listeners(type).length;
       };
-    var Stream = require("npm:stream-browserify@1.0.0/index");
-    var util = require("npm:core-util-is@1.0.1");
-    util.inherits = require("npm:inherits@2.0.1");
+    var Stream = require("npm:stream-browserify@1.0.0/index.js");
+    var util = require("npm:core-util-is@1.0.1.js");
+    util.inherits = require("npm:inherits@2.0.1.js");
     var StringDecoder;
     var debug = require("@empty");
     if (debug && debug.debuglog) {
@@ -13614,7 +13900,7 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_readable", ["npm:isarray
     }
     util.inherits(Readable, Stream);
     function ReadableState(options, stream) {
-      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex");
+      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
       options = options || {};
       var hwm = options.highWaterMark;
       var defaultHwm = options.objectMode ? 16 : 16 * 1024;
@@ -13643,13 +13929,13 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_readable", ["npm:isarray
       this.encoding = null;
       if (options.encoding) {
         if (!StringDecoder)
-          StringDecoder = require("npm:string_decoder@0.10.31").StringDecoder;
+          StringDecoder = require("npm:string_decoder@0.10.31.js").StringDecoder;
         this.decoder = new StringDecoder(options.encoding);
         this.encoding = options.encoding;
       }
     }
     function Readable(options) {
-      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex");
+      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
       if (!(this instanceof Readable))
         return new Readable(options);
       this._readableState = new ReadableState(options, this);
@@ -13715,7 +14001,7 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_readable", ["npm:isarray
     }
     Readable.prototype.setEncoding = function(enc) {
       if (!StringDecoder)
-        StringDecoder = require("npm:string_decoder@0.10.31").StringDecoder;
+        StringDecoder = require("npm:string_decoder@0.10.31.js").StringDecoder;
       this._readableState.decoder = new StringDecoder(enc);
       this._readableState.encoding = enc;
       return this;
@@ -14105,7 +14391,7 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_readable", ["npm:isarray
         if (state.decoder)
           chunk = state.decoder.write(chunk);
         if (!chunk || !state.objectMode && !chunk.length)
-          return ;
+          return;
         var ret = self.push(chunk);
         if (!ret) {
           paused = true;
@@ -14213,18 +14499,18 @@ System.register("npm:readable-stream@1.1.13/lib/_stream_readable", ["npm:isarray
       }
       return -1;
     }
-  })(require("github:jspm/nodelibs-buffer@0.1.0").Buffer, require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer, require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/object/assign", ["npm:lodash@3.9.3/internal/assignWith", "npm:lodash@3.9.3/internal/baseAssign", "npm:lodash@3.9.3/internal/createAssigner"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/object/assign.js", ["npm:lodash@3.9.3/internal/assignWith.js", "npm:lodash@3.9.3/internal/baseAssign.js", "npm:lodash@3.9.3/internal/createAssigner.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var assignWith = require("npm:lodash@3.9.3/internal/assignWith"),
-      baseAssign = require("npm:lodash@3.9.3/internal/baseAssign"),
-      createAssigner = require("npm:lodash@3.9.3/internal/createAssigner");
+  var assignWith = require("npm:lodash@3.9.3/internal/assignWith.js"),
+      baseAssign = require("npm:lodash@3.9.3/internal/baseAssign.js"),
+      createAssigner = require("npm:lodash@3.9.3/internal/createAssigner.js");
   var assign = createAssigner(function(object, source, customizer) {
     return customizer ? assignWith(object, source, customizer) : baseAssign(object, source);
   });
@@ -14233,15 +14519,15 @@ System.register("npm:lodash@3.9.3/object/assign", ["npm:lodash@3.9.3/internal/as
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/internal/baseCallback", ["npm:lodash@3.9.3/internal/baseMatches", "npm:lodash@3.9.3/internal/baseMatchesProperty", "npm:lodash@3.9.3/internal/bindCallback", "npm:lodash@3.9.3/utility/identity", "npm:lodash@3.9.3/utility/property"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/internal/baseCallback.js", ["npm:lodash@3.9.3/internal/baseMatches.js", "npm:lodash@3.9.3/internal/baseMatchesProperty.js", "npm:lodash@3.9.3/internal/bindCallback.js", "npm:lodash@3.9.3/utility/identity.js", "npm:lodash@3.9.3/utility/property.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var baseMatches = require("npm:lodash@3.9.3/internal/baseMatches"),
-      baseMatchesProperty = require("npm:lodash@3.9.3/internal/baseMatchesProperty"),
-      bindCallback = require("npm:lodash@3.9.3/internal/bindCallback"),
-      identity = require("npm:lodash@3.9.3/utility/identity"),
-      property = require("npm:lodash@3.9.3/utility/property");
+  var baseMatches = require("npm:lodash@3.9.3/internal/baseMatches.js"),
+      baseMatchesProperty = require("npm:lodash@3.9.3/internal/baseMatchesProperty.js"),
+      bindCallback = require("npm:lodash@3.9.3/internal/bindCallback.js"),
+      identity = require("npm:lodash@3.9.3/utility/identity.js"),
+      property = require("npm:lodash@3.9.3/utility/property.js");
   function baseCallback(func, thisArg, argCount) {
     var type = typeof func;
     if (type == 'function') {
@@ -14260,30 +14546,30 @@ System.register("npm:lodash@3.9.3/internal/baseCallback", ["npm:lodash@3.9.3/int
   return module.exports;
 });
 
-System.register("npm:readable-stream@1.1.13/readable", ["npm:readable-stream@1.1.13/lib/_stream_readable", "npm:stream-browserify@1.0.0/index", "npm:readable-stream@1.1.13/lib/_stream_writable", "npm:readable-stream@1.1.13/lib/_stream_duplex", "npm:readable-stream@1.1.13/lib/_stream_transform", "npm:readable-stream@1.1.13/lib/_stream_passthrough"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:readable-stream@1.1.13/readable.js", ["npm:readable-stream@1.1.13/lib/_stream_readable.js", "npm:stream-browserify@1.0.0/index.js", "npm:readable-stream@1.1.13/lib/_stream_writable.js", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "npm:readable-stream@1.1.13/lib/_stream_transform.js", "npm:readable-stream@1.1.13/lib/_stream_passthrough.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  exports = module.exports = require("npm:readable-stream@1.1.13/lib/_stream_readable");
-  exports.Stream = require("npm:stream-browserify@1.0.0/index");
+  exports = module.exports = require("npm:readable-stream@1.1.13/lib/_stream_readable.js");
+  exports.Stream = require("npm:stream-browserify@1.0.0/index.js");
   exports.Readable = exports;
-  exports.Writable = require("npm:readable-stream@1.1.13/lib/_stream_writable");
-  exports.Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex");
-  exports.Transform = require("npm:readable-stream@1.1.13/lib/_stream_transform");
-  exports.PassThrough = require("npm:readable-stream@1.1.13/lib/_stream_passthrough");
+  exports.Writable = require("npm:readable-stream@1.1.13/lib/_stream_writable.js");
+  exports.Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
+  exports.Transform = require("npm:readable-stream@1.1.13/lib/_stream_transform.js");
+  exports.PassThrough = require("npm:readable-stream@1.1.13/lib/_stream_passthrough.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:lodash@3.9.3/collection/every", ["npm:lodash@3.9.3/internal/arrayEvery", "npm:lodash@3.9.3/internal/baseCallback", "npm:lodash@3.9.3/internal/baseEvery", "npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/internal/isIterateeCall"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:lodash@3.9.3/collection/every.js", ["npm:lodash@3.9.3/internal/arrayEvery.js", "npm:lodash@3.9.3/internal/baseCallback.js", "npm:lodash@3.9.3/internal/baseEvery.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isIterateeCall.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  var arrayEvery = require("npm:lodash@3.9.3/internal/arrayEvery"),
-      baseCallback = require("npm:lodash@3.9.3/internal/baseCallback"),
-      baseEvery = require("npm:lodash@3.9.3/internal/baseEvery"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray"),
-      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall");
+  var arrayEvery = require("npm:lodash@3.9.3/internal/arrayEvery.js"),
+      baseCallback = require("npm:lodash@3.9.3/internal/baseCallback.js"),
+      baseEvery = require("npm:lodash@3.9.3/internal/baseEvery.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall.js");
   function every(collection, predicate, thisArg) {
     var func = isArray(collection) ? arrayEvery : baseEvery;
     if (thisArg && isIterateeCall(collection, predicate, thisArg)) {
@@ -14299,19 +14585,19 @@ System.register("npm:lodash@3.9.3/collection/every", ["npm:lodash@3.9.3/internal
   return module.exports;
 });
 
-System.register("npm:stream-browserify@1.0.0/index", ["github:jspm/nodelibs-events@0.1.1", "npm:inherits@2.0.1", "npm:readable-stream@1.1.13/readable", "npm:readable-stream@1.1.13/writable", "npm:readable-stream@1.1.13/duplex", "npm:readable-stream@1.1.13/transform", "npm:readable-stream@1.1.13/passthrough"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:stream-browserify@1.0.0/index.js", ["github:jspm/nodelibs-events@0.1.1.js", "npm:inherits@2.0.1.js", "npm:readable-stream@1.1.13/readable.js", "npm:readable-stream@1.1.13/writable.js", "npm:readable-stream@1.1.13/duplex.js", "npm:readable-stream@1.1.13/transform.js", "npm:readable-stream@1.1.13/passthrough.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   module.exports = Stream;
-  var EE = require("github:jspm/nodelibs-events@0.1.1").EventEmitter;
-  var inherits = require("npm:inherits@2.0.1");
+  var EE = require("github:jspm/nodelibs-events@0.1.1.js").EventEmitter;
+  var inherits = require("npm:inherits@2.0.1.js");
   inherits(Stream, EE);
-  Stream.Readable = require("npm:readable-stream@1.1.13/readable");
-  Stream.Writable = require("npm:readable-stream@1.1.13/writable");
-  Stream.Duplex = require("npm:readable-stream@1.1.13/duplex");
-  Stream.Transform = require("npm:readable-stream@1.1.13/transform");
-  Stream.PassThrough = require("npm:readable-stream@1.1.13/passthrough");
+  Stream.Readable = require("npm:readable-stream@1.1.13/readable.js");
+  Stream.Writable = require("npm:readable-stream@1.1.13/writable.js");
+  Stream.Duplex = require("npm:readable-stream@1.1.13/duplex.js");
+  Stream.Transform = require("npm:readable-stream@1.1.13/transform.js");
+  Stream.PassThrough = require("npm:readable-stream@1.1.13/passthrough.js");
   Stream.Stream = Stream;
   function Stream() {
     EE.call(this);
@@ -14339,13 +14625,13 @@ System.register("npm:stream-browserify@1.0.0/index", ["github:jspm/nodelibs-even
     var didOnEnd = false;
     function onend() {
       if (didOnEnd)
-        return ;
+        return;
       didOnEnd = true;
       dest.end();
     }
     function onclose() {
       if (didOnEnd)
-        return ;
+        return;
       didOnEnd = true;
       if (typeof dest.destroy === 'function')
         dest.destroy();
@@ -14379,8 +14665,8 @@ System.register("npm:stream-browserify@1.0.0/index", ["github:jspm/nodelibs-even
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLElement", ["npm:lodash@3.9.3/object/create", "npm:lodash@3.9.3/lang/isObject", "npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/lang/isFunction", "npm:lodash@3.9.3/collection/every", "npm:xmlbuilder@2.6.4/lib/XMLNode", "npm:xmlbuilder@2.6.4/lib/XMLAttribute", "npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLElement.js", ["npm:lodash@3.9.3/object/create.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/lang/isFunction.js", "npm:lodash@3.9.3/collection/every.js", "npm:xmlbuilder@2.6.4/lib/XMLNode.js", "npm:xmlbuilder@2.6.4/lib/XMLAttribute.js", "npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -14407,14 +14693,14 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLElement", ["npm:lodash@3.9.3/object
           return child;
         },
         hasProp = {}.hasOwnProperty;
-    create = require("npm:lodash@3.9.3/object/create");
-    isObject = require("npm:lodash@3.9.3/lang/isObject");
-    isArray = require("npm:lodash@3.9.3/lang/isArray");
-    isFunction = require("npm:lodash@3.9.3/lang/isFunction");
-    every = require("npm:lodash@3.9.3/collection/every");
-    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode");
-    XMLAttribute = require("npm:xmlbuilder@2.6.4/lib/XMLAttribute");
-    XMLProcessingInstruction = require("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    isObject = require("npm:lodash@3.9.3/lang/isObject.js");
+    isArray = require("npm:lodash@3.9.3/lang/isArray.js");
+    isFunction = require("npm:lodash@3.9.3/lang/isFunction.js");
+    every = require("npm:lodash@3.9.3/collection/every.js");
+    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode.js");
+    XMLAttribute = require("npm:xmlbuilder@2.6.4/lib/XMLAttribute.js");
+    XMLProcessingInstruction = require("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js");
     module.exports = XMLElement = (function(superClass) {
       extend(XMLElement, superClass);
       function XMLElement(parent, name, attributes) {
@@ -14635,17 +14921,17 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLElement", ["npm:lodash@3.9.3/object
   return module.exports;
 });
 
-System.register("npm:stream-browserify@1.0.0", ["npm:stream-browserify@1.0.0/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:stream-browserify@1.0.0.js", ["npm:stream-browserify@1.0.0/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:stream-browserify@1.0.0/index");
+  module.exports = require("npm:stream-browserify@1.0.0/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLNode", ["npm:lodash@3.9.3/lang/isObject", "npm:lodash@3.9.3/lang/isArray", "npm:lodash@3.9.3/lang/isFunction", "npm:lodash@3.9.3/lang/isEmpty", "npm:xmlbuilder@2.6.4/lib/XMLElement", "npm:xmlbuilder@2.6.4/lib/XMLCData", "npm:xmlbuilder@2.6.4/lib/XMLComment", "npm:xmlbuilder@2.6.4/lib/XMLDeclaration", "npm:xmlbuilder@2.6.4/lib/XMLDocType", "npm:xmlbuilder@2.6.4/lib/XMLRaw", "npm:xmlbuilder@2.6.4/lib/XMLText"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLNode.js", ["npm:lodash@3.9.3/lang/isObject.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/lang/isFunction.js", "npm:lodash@3.9.3/lang/isEmpty.js", "npm:xmlbuilder@2.6.4/lib/XMLElement.js", "npm:xmlbuilder@2.6.4/lib/XMLCData.js", "npm:xmlbuilder@2.6.4/lib/XMLComment.js", "npm:xmlbuilder@2.6.4/lib/XMLDeclaration.js", "npm:xmlbuilder@2.6.4/lib/XMLDocType.js", "npm:xmlbuilder@2.6.4/lib/XMLRaw.js", "npm:xmlbuilder@2.6.4/lib/XMLText.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -14662,10 +14948,10 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLNode", ["npm:lodash@3.9.3/lang/isOb
         isFunction,
         isObject,
         hasProp = {}.hasOwnProperty;
-    isObject = require("npm:lodash@3.9.3/lang/isObject");
-    isArray = require("npm:lodash@3.9.3/lang/isArray");
-    isFunction = require("npm:lodash@3.9.3/lang/isFunction");
-    isEmpty = require("npm:lodash@3.9.3/lang/isEmpty");
+    isObject = require("npm:lodash@3.9.3/lang/isObject.js");
+    isArray = require("npm:lodash@3.9.3/lang/isArray.js");
+    isFunction = require("npm:lodash@3.9.3/lang/isFunction.js");
+    isEmpty = require("npm:lodash@3.9.3/lang/isEmpty.js");
     XMLElement = null;
     XMLCData = null;
     XMLComment = null;
@@ -14679,13 +14965,13 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLNode", ["npm:lodash@3.9.3/lang/isOb
         this.options = this.parent.options;
         this.stringify = this.parent.stringify;
         if (XMLElement === null) {
-          XMLElement = require("npm:xmlbuilder@2.6.4/lib/XMLElement");
-          XMLCData = require("npm:xmlbuilder@2.6.4/lib/XMLCData");
-          XMLComment = require("npm:xmlbuilder@2.6.4/lib/XMLComment");
-          XMLDeclaration = require("npm:xmlbuilder@2.6.4/lib/XMLDeclaration");
-          XMLDocType = require("npm:xmlbuilder@2.6.4/lib/XMLDocType");
-          XMLRaw = require("npm:xmlbuilder@2.6.4/lib/XMLRaw");
-          XMLText = require("npm:xmlbuilder@2.6.4/lib/XMLText");
+          XMLElement = require("npm:xmlbuilder@2.6.4/lib/XMLElement.js");
+          XMLCData = require("npm:xmlbuilder@2.6.4/lib/XMLCData.js");
+          XMLComment = require("npm:xmlbuilder@2.6.4/lib/XMLComment.js");
+          XMLDeclaration = require("npm:xmlbuilder@2.6.4/lib/XMLDeclaration.js");
+          XMLDocType = require("npm:xmlbuilder@2.6.4/lib/XMLDocType.js");
+          XMLRaw = require("npm:xmlbuilder@2.6.4/lib/XMLRaw.js");
+          XMLText = require("npm:xmlbuilder@2.6.4/lib/XMLText.js");
         }
       }
       XMLNode.prototype.clone = function() {
@@ -14962,17 +15248,17 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLNode", ["npm:lodash@3.9.3/lang/isOb
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-stream@0.1.0/index", ["npm:stream-browserify@1.0.0"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-stream@0.1.0/index.js", ["npm:stream-browserify@1.0.0.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = System._nodeRequire ? System._nodeRequire('stream') : require("npm:stream-browserify@1.0.0");
+  module.exports = System._nodeRequire ? System._nodeRequire('stream') : require("npm:stream-browserify@1.0.0.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLDeclaration", ["npm:lodash@3.9.3/object/create", "npm:lodash@3.9.3/lang/isObject", "npm:xmlbuilder@2.6.4/lib/XMLNode"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLDeclaration.js", ["npm:lodash@3.9.3/object/create.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:xmlbuilder@2.6.4/lib/XMLNode.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -14994,9 +15280,9 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLDeclaration", ["npm:lodash@3.9.3/ob
           return child;
         },
         hasProp = {}.hasOwnProperty;
-    create = require("npm:lodash@3.9.3/object/create");
-    isObject = require("npm:lodash@3.9.3/lang/isObject");
-    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode");
+    create = require("npm:lodash@3.9.3/object/create.js");
+    isObject = require("npm:lodash@3.9.3/lang/isObject.js");
+    XMLNode = require("npm:xmlbuilder@2.6.4/lib/XMLNode.js");
     module.exports = XMLDeclaration = (function(superClass) {
       extend(XMLDeclaration, superClass);
       function XMLDeclaration(parent, version, encoding, standalone) {
@@ -15064,17 +15350,17 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLDeclaration", ["npm:lodash@3.9.3/ob
   return module.exports;
 });
 
-System.register("github:jspm/nodelibs-stream@0.1.0", ["github:jspm/nodelibs-stream@0.1.0/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("github:jspm/nodelibs-stream@0.1.0.js", ["github:jspm/nodelibs-stream@0.1.0/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("github:jspm/nodelibs-stream@0.1.0/index");
+  module.exports = require("github:jspm/nodelibs-stream@0.1.0/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/XMLBuilder", ["npm:xmlbuilder@2.6.4/lib/XMLStringifier", "npm:xmlbuilder@2.6.4/lib/XMLDeclaration", "npm:xmlbuilder@2.6.4/lib/XMLDocType", "npm:xmlbuilder@2.6.4/lib/XMLElement"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLBuilder.js", ["npm:xmlbuilder@2.6.4/lib/XMLStringifier.js", "npm:xmlbuilder@2.6.4/lib/XMLDeclaration.js", "npm:xmlbuilder@2.6.4/lib/XMLDocType.js", "npm:xmlbuilder@2.6.4/lib/XMLElement.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
@@ -15083,10 +15369,10 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLBuilder", ["npm:xmlbuilder@2.6.4/li
         XMLDocType,
         XMLElement,
         XMLStringifier;
-    XMLStringifier = require("npm:xmlbuilder@2.6.4/lib/XMLStringifier");
-    XMLDeclaration = require("npm:xmlbuilder@2.6.4/lib/XMLDeclaration");
-    XMLDocType = require("npm:xmlbuilder@2.6.4/lib/XMLDocType");
-    XMLElement = require("npm:xmlbuilder@2.6.4/lib/XMLElement");
+    XMLStringifier = require("npm:xmlbuilder@2.6.4/lib/XMLStringifier.js");
+    XMLDeclaration = require("npm:xmlbuilder@2.6.4/lib/XMLDeclaration.js");
+    XMLDocType = require("npm:xmlbuilder@2.6.4/lib/XMLDocType.js");
+    XMLElement = require("npm:xmlbuilder@2.6.4/lib/XMLElement.js");
     module.exports = XMLBuilder = (function() {
       function XMLBuilder(name, options) {
         var root,
@@ -15150,8 +15436,8 @@ System.register("npm:xmlbuilder@2.6.4/lib/XMLBuilder", ["npm:xmlbuilder@2.6.4/li
   return module.exports;
 });
 
-System.register("npm:sax@0.6.1/lib/sax", ["github:jspm/nodelibs-stream@0.1.0", "github:jspm/nodelibs-string_decoder@0.1.0", "github:jspm/nodelibs-buffer@0.1.0", "github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:sax@0.6.1/lib/sax.js", ["github:jspm/nodelibs-stream@0.1.0.js", "github:jspm/nodelibs-string_decoder@0.1.0.js", "github:jspm/nodelibs-buffer@0.1.0.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(Buffer, process) {
@@ -15273,7 +15559,7 @@ System.register("npm:sax@0.6.1/lib/sax", ["github:jspm/nodelibs-stream@0.1.0", "
         }
       };
       try {
-        var Stream = require("github:jspm/nodelibs-stream@0.1.0").Stream;
+        var Stream = require("github:jspm/nodelibs-stream@0.1.0.js").Stream;
       } catch (ex) {
         var Stream = function() {};
       }
@@ -15320,7 +15606,7 @@ System.register("npm:sax@0.6.1/lib/sax", ["github:jspm/nodelibs-stream@0.1.0", "
       SAXStream.prototype.write = function(data) {
         if (typeof Buffer === 'function' && typeof Buffer.isBuffer === 'function' && Buffer.isBuffer(data)) {
           if (!this._decoder) {
-            var SD = require("github:jspm/nodelibs-string_decoder@0.1.0").StringDecoder;
+            var SD = require("github:jspm/nodelibs-string_decoder@0.1.0.js").StringDecoder;
             this._decoder = new SD('utf8');
           }
           data = this._decoder.write(data);
@@ -15859,14 +16145,14 @@ System.register("npm:sax@0.6.1/lib/sax", ["github:jspm/nodelibs-stream@0.1.0", "
           strictFail(parser, "Weird empty close tag.");
           parser.textNode += "</>";
           parser.state = S.TEXT;
-          return ;
+          return;
         }
         if (parser.script) {
           if (parser.tagName !== "script") {
             parser.script += "</" + parser.tagName + ">";
             parser.tagName = "";
             parser.state = S.SCRIPT;
-            return ;
+            return;
           }
           emitNode(parser, "onscript", parser.script);
           parser.script = "";
@@ -15887,7 +16173,7 @@ System.register("npm:sax@0.6.1/lib/sax", ["github:jspm/nodelibs-stream@0.1.0", "
           strictFail(parser, "Unmatched closing tag: " + parser.tagName);
           parser.textNode += "</" + parser.tagName + ">";
           parser.state = S.TEXT;
-          return ;
+          return;
         }
         parser.tagName = tagName;
         var s = parser.tags.length;
@@ -16444,20 +16730,20 @@ System.register("npm:sax@0.6.1/lib/sax", ["github:jspm/nodelibs-stream@0.1.0", "
         }());
       }
     })(typeof exports === "undefined" ? sax = {} : exports);
-  })(require("github:jspm/nodelibs-buffer@0.1.0").Buffer, require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer, require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4/lib/index", ["npm:lodash@3.9.3/object/assign", "npm:xmlbuilder@2.6.4/lib/XMLBuilder"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/index.js", ["npm:lodash@3.9.3/object/assign.js", "npm:xmlbuilder@2.6.4/lib/XMLBuilder.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function() {
     var XMLBuilder,
         assign;
-    assign = require("npm:lodash@3.9.3/object/assign");
-    XMLBuilder = require("npm:xmlbuilder@2.6.4/lib/XMLBuilder");
+    assign = require("npm:lodash@3.9.3/object/assign.js");
+    XMLBuilder = require("npm:xmlbuilder@2.6.4/lib/XMLBuilder.js");
     module.exports.create = function(name, xmldec, doctype, options) {
       options = assign({}, xmldec, doctype, options);
       return new XMLBuilder(name, options).root();
@@ -16467,26 +16753,26 @@ System.register("npm:xmlbuilder@2.6.4/lib/index", ["npm:lodash@3.9.3/object/assi
   return module.exports;
 });
 
-System.register("npm:sax@0.6.1", ["npm:sax@0.6.1/lib/sax"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:sax@0.6.1.js", ["npm:sax@0.6.1/lib/sax.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:sax@0.6.1/lib/sax");
+  module.exports = require("npm:sax@0.6.1/lib/sax.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:xmlbuilder@2.6.4", ["npm:xmlbuilder@2.6.4/lib/index"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xmlbuilder@2.6.4.js", ["npm:xmlbuilder@2.6.4/lib/index.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:xmlbuilder@2.6.4/lib/index");
+  module.exports = require("npm:xmlbuilder@2.6.4/lib/index.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:xml2js@0.4.9/lib/xml2js", ["npm:sax@0.6.1", "github:jspm/nodelibs-events@0.1.1", "npm:xmlbuilder@2.6.4", "npm:xml2js@0.4.9/lib/bom", "npm:xml2js@0.4.9/lib/processors", "github:jspm/nodelibs-process@0.1.1"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xml2js@0.4.9/lib/xml2js.js", ["npm:sax@0.6.1.js", "github:jspm/nodelibs-events@0.1.1.js", "npm:xmlbuilder@2.6.4.js", "npm:xml2js@0.4.9/lib/bom.js", "npm:xml2js@0.4.9/lib/processors.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
   (function(process) {
@@ -16520,11 +16806,11 @@ System.register("npm:xml2js@0.4.9/lib/xml2js", ["npm:sax@0.6.1", "github:jspm/no
               return fn.apply(me, arguments);
             };
           };
-      sax = require("npm:sax@0.6.1");
-      events = require("github:jspm/nodelibs-events@0.1.1");
-      builder = require("npm:xmlbuilder@2.6.4");
-      bom = require("npm:xml2js@0.4.9/lib/bom");
-      processors = require("npm:xml2js@0.4.9/lib/processors");
+      sax = require("npm:sax@0.6.1.js");
+      events = require("github:jspm/nodelibs-events@0.1.1.js");
+      builder = require("npm:xmlbuilder@2.6.4.js");
+      bom = require("npm:xml2js@0.4.9/lib/bom.js");
+      processors = require("npm:xml2js@0.4.9/lib/processors.js");
       isEmpty = function(thing) {
         return typeof thing === "object" && (thing != null) && Object.keys(thing).length === 0;
       };
@@ -17038,23 +17324,23 @@ System.register("npm:xml2js@0.4.9/lib/xml2js", ["npm:sax@0.6.1", "github:jspm/no
         return parser.parseString(str, cb);
       };
     }).call(this);
-  })(require("github:jspm/nodelibs-process@0.1.1"));
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
 
-System.register("npm:xml2js@0.4.9", ["npm:xml2js@0.4.9/lib/xml2js"], true, function(require, exports, module) {
-  var global = System.global,
+System.registerDynamic("npm:xml2js@0.4.9.js", ["npm:xml2js@0.4.9/lib/xml2js.js"], true, function(require, exports, module) {
+  var global = this,
       __define = global.define;
   global.define = undefined;
-  module.exports = require("npm:xml2js@0.4.9/lib/xml2js");
+  module.exports = require("npm:xml2js@0.4.9/lib/xml2js.js");
   global.define = __define;
   return module.exports;
 });
 
-System.register("github:Bizboard/arva-utils@master/ObjectHelper", ["npm:lodash@3.9.3"], function($__export) {
+System.register("github:Bizboard/arva-utils@master/ObjectHelper.js", ["npm:lodash@3.9.3.js"], function($__export) {
   "use strict";
-  var __moduleName = "github:Bizboard/arva-utils@master/ObjectHelper";
+  var __moduleName = "github:Bizboard/arva-utils@master/ObjectHelper.js";
   var _,
       ObjectHelper;
   return {
@@ -17062,7 +17348,7 @@ System.register("github:Bizboard/arva-utils@master/ObjectHelper", ["npm:lodash@3
       _ = $__m.default;
     }],
     execute: function() {
-      ObjectHelper = (function() {
+      ObjectHelper = function() {
         function ObjectHelper() {}
         return ($traceurRuntime.createClass)(ObjectHelper, {}, {
           hideMethodsAndPrivatePropertiesFromObject: function(object) {
@@ -17092,7 +17378,7 @@ System.register("github:Bizboard/arva-utils@master/ObjectHelper", ["npm:lodash@3
             while (!descriptor) {
               prototype = Object.getPrototypeOf(prototype);
               if (prototype.constructor.name === 'Object' || prototype.constructor.name === 'Array') {
-                return ;
+                return;
               }
               descriptor = Object.getOwnPropertyDescriptor(prototype, propName);
             }
@@ -17140,7 +17426,7 @@ System.register("github:Bizboard/arva-utils@master/ObjectHelper", ["npm:lodash@3
                 shadow = object.shadow;
               }
             } catch (error) {
-              return ;
+              return;
             }
             shadow[propName] = prop;
             Object.defineProperty(object, 'shadow', {
@@ -17280,15 +17566,15 @@ System.register("github:Bizboard/arva-utils@master/ObjectHelper", ["npm:lodash@3
             return result;
           }
         });
-      }());
+      }();
       $__export("ObjectHelper", ObjectHelper);
     }
   };
 });
 
-System.register("github:Bizboard/arva-utils@master/request/RequestClient", [], function($__export) {
+System.register("github:Bizboard/arva-utils@master/request/RequestClient.js", [], function($__export) {
   "use strict";
-  var __moduleName = "github:Bizboard/arva-utils@master/request/RequestClient";
+  var __moduleName = "github:Bizboard/arva-utils@master/request/RequestClient.js";
   function GetRequest(url) {
     return new Promise(function(resolve, reject) {
       var req = new XMLHttpRequest();
@@ -17316,7 +17602,7 @@ System.register("github:Bizboard/arva-utils@master/request/RequestClient", [], f
     if (!options.data) {
       options.data = '';
     }
-    return new Promise((function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
       var req = new XMLHttpRequest();
       req.open('POST', options.url, true);
       var $__3 = true;
@@ -17344,7 +17630,11 @@ System.register("github:Bizboard/arva-utils@master/request/RequestClient", [], f
       }
       req.onload = function() {
         if (req.status === 200) {
-          resolve(req.response);
+          var responseDate = req.getResponseHeader('Date');
+          resolve({
+            response: req.response,
+            timestamp: responseDate
+          });
         } else {
           reject(Error(req.statusText));
         }
@@ -17353,7 +17643,7 @@ System.register("github:Bizboard/arva-utils@master/request/RequestClient", [], f
         reject(Error('Network Error'));
       };
       req.send(options.data);
-    }));
+    });
   }
   $__export("GetRequest", GetRequest);
   $__export("PostRequest", PostRequest);
@@ -17364,9 +17654,9 @@ System.register("github:Bizboard/arva-utils@master/request/RequestClient", [], f
   };
 });
 
-System.register("github:Bizboard/arva-utils@master/request/XmlParser", [], function($__export) {
+System.register("github:Bizboard/arva-utils@master/request/XmlParser.js", [], function($__export) {
   "use strict";
-  var __moduleName = "github:Bizboard/arva-utils@master/request/XmlParser";
+  var __moduleName = "github:Bizboard/arva-utils@master/request/XmlParser.js";
   function ParseStringToXml(text) {
     try {
       var xml = null;
@@ -17380,7 +17670,7 @@ System.register("github:Bizboard/arva-utils@master/request/XmlParser", [], funct
         return null;
       } else {
         if (typeof ActiveXObject !== 'function') {
-          var ActiveXObject = (function() {});
+          var ActiveXObject = function() {};
         }
         xml = new ActiveXObject('Microsoft.XMLDOM');
         xml.async = false;
@@ -17399,9 +17689,9 @@ System.register("github:Bizboard/arva-utils@master/request/XmlParser", [], funct
   };
 });
 
-System.register("github:Bizboard/arva-utils@master/request/UrlParser", [], function($__export) {
+System.register("github:Bizboard/arva-utils@master/request/UrlParser.js", [], function($__export) {
   "use strict";
-  var __moduleName = "github:Bizboard/arva-utils@master/request/UrlParser";
+  var __moduleName = "github:Bizboard/arva-utils@master/request/UrlParser.js";
   function UrlParser(url) {
     var e = /^([a-z][a-z0-9+.-]*):(?:\/\/((?:(?=((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9A-F]{2})*))(\3)@)?(?=(\[[0-9A-F:.]{2,}\]|(?:[a-z0-9-._~!$&'()*+,;=]|%[0-9A-F]{2})*))\5(?::(?=(\d*))\6)?)(\/(?=((?:[a-z0-9-._~!$&'()*+,;=:@\/]|%[0-9A-F]{2})*))\8)?|(\/?(?!\/)(?=((?:[a-z0-9-._~!$&'()*+,;=:@\/]|%[0-9A-F]{2})*))\10)?)(?:\?(?=((?:[a-z0-9-._~!$&'()*+,;=:@\/?]|%[0-9A-F]{2})*))\11)?(?:#(?=((?:[a-z0-9-._~!$&'()*+,;=:@\/?]|%[0-9A-F]{2})*))\12)?$/i;
     if (url.match(e)) {
@@ -17424,9 +17714,9 @@ System.register("github:Bizboard/arva-utils@master/request/UrlParser", [], funct
   };
 });
 
-System.register("SoapClient", ["xmljs", "npm:xml2js@0.4.9", "npm:lodash@3.9.3", "github:Bizboard/arva-utils@master/ObjectHelper", "github:Bizboard/arva-utils@master/request/RequestClient", "github:Bizboard/arva-utils@master/request/XmlParser"], function($__export) {
+System.register("SoapClient.js", ["xmljs.js", "npm:xml2js@0.4.9.js", "npm:lodash@3.9.3.js", "github:Bizboard/arva-utils@master/ObjectHelper.js", "github:Bizboard/arva-utils@master/request/RequestClient.js", "github:Bizboard/arva-utils@master/request/XmlParser.js"], function($__export) {
   "use strict";
-  var __moduleName = "SoapClient";
+  var __moduleName = "SoapClient.js";
   var XML2JS,
       xmljs,
       _,
@@ -17449,7 +17739,7 @@ System.register("SoapClient", ["xmljs", "npm:xml2js@0.4.9", "npm:lodash@3.9.3", 
       ParseStringToXml = $__m.ParseStringToXml;
     }],
     execute: function() {
-      SoapClient = (function() {
+      SoapClient = function() {
         function SoapClient() {
           ObjectHelper.bindAllMethods(this, this);
           ObjectHelper.hideMethodsAndPrivatePropertiesFromObject(this);
@@ -17470,57 +17760,6 @@ System.register("SoapClient", ["xmljs", "npm:xml2js@0.4.9", "npm:lodash@3.9.3", 
           _handleError: function(error) {
             return "Error!";
           },
-          _handleSuccess: function(data) {
-            var nodes,
-                node,
-                rootnode,
-                name,
-                NODE_ELEMENT = 1,
-                attributes,
-                attribute,
-                results = [],
-                result,
-                root = '',
-                i,
-                j;
-            if (typeof(data.selectSingleNode) != "undefined")
-              rootnode = data.selectSingleNode("//rs:data");
-            else
-              rootnode = data.querySelector("data");
-            if (rootnode) {
-              nodes = rootnode.childNodes;
-            } else {
-              if (typeof(data.selectSingleNode) != "undefined") {
-                rootnode = data.selectSingleNode("//Result");
-                nodes = rootnode.selectNodes("//row");
-              } else {
-                rootnode = data.querySelector("Result");
-                nodes = rootnode.querySelectorAll("row");
-              }
-            }
-            for (i = 0; i < nodes.length; i += 1) {
-              node = nodes[i];
-              if (node.nodeType === NODE_ELEMENT) {
-                attributes = node.attributes;
-                result = {};
-                for (j = 0; j < attributes.length; j += 1) {
-                  attribute = attributes[j];
-                  name = attribute.name.replace('ows_', '');
-                  if (name == "ID") {
-                    name = "id";
-                    result[name] = attribute.value;
-                  } else if (!isNaN(attribute.value))
-                    result[name] = parseFloat(attribute.value);
-                  else
-                    result[name] = attribute.value;
-                }
-                if ((result.Hidden || '').toUpperCase() !== "TRUE") {
-                  results.push(result);
-                }
-              }
-            }
-            return results;
-          },
           call: function(config) {
             var request;
             config = config || {};
@@ -17534,9 +17773,9 @@ System.register("SoapClient", ["xmljs", "npm:xml2js@0.4.9", "npm:lodash@3.9.3", 
             };
             var context = this;
             return new Promise(function(resolve, reject) {
-              PostRequest(request).then(function(response) {
+              PostRequest(request).then(function(soapresult) {
                 var parseString = xmljs.parseString;
-                parseString(response, function(err, result) {
+                parseString(soapresult.response, function(err, result) {
                   var results = result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse[0].GetListItemsResult[0].listitems[0]["rs:data"][0];
                   var arrayOfObjects = [];
                   if (results.$.ItemCount !== '0') {
@@ -17544,7 +17783,10 @@ System.register("SoapClient", ["xmljs", "npm:xml2js@0.4.9", "npm:lodash@3.9.3", 
                       arrayOfObjects.push(results['z:row'][row].$);
                     }
                   }
-                  resolve(arrayOfObjects);
+                  resolve({
+                    data: arrayOfObjects,
+                    timestamp: soapresult.timestamp
+                  });
                 });
               }, function(error) {
                 reject(context._handleError(error));
@@ -17552,30 +17794,32 @@ System.register("SoapClient", ["xmljs", "npm:xml2js@0.4.9", "npm:lodash@3.9.3", 
             });
           }
         }, {});
-      }());
+      }();
       $__export("SoapClient", SoapClient);
     }
   };
 });
 
-System.register("Operations", ["SoapClient", "github:Bizboard/arva-utils@master/request/UrlParser", "npm:lodash@3.9.3"], function($__export) {
+System.register("Operations.js", ["SoapClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js", "npm:lodash@3.9.3.js"], function($__export) {
   "use strict";
-  var __moduleName = "Operations";
+  var __moduleName = "Operations.js";
   var SoapClient,
       UrlParser,
       _,
       soapClient,
       cache,
+      retriever,
       window,
-      global;
+      global,
+      interval;
   function _ParsePath(path, endPoint) {
     var url = UrlParser(path);
     if (!url)
-      console.log("Invalid datasource path provided!");
+      console.log('Invalid datasource path provided!');
     var pathParts = url.path.split('/');
-    var newPath = url.protocol + "://" + url.host + "/";
+    var newPath = url.protocol + '://' + url.host + '/';
     for (var i = 0; i < pathParts.length; i++)
-      newPath += pathParts[i] + "/";
+      newPath += pathParts[i] + '/';
     newPath += endPoint;
     return newPath;
   }
@@ -17614,58 +17858,77 @@ System.register("Operations", ["SoapClient", "github:Bizboard/arva-utils@master/
     execute: function() {
       soapClient = new SoapClient();
       cache = [];
+      retriever = null;
       window = this;
       global = this;
+      interval = 3000;
       this.onmessage = function(event) {
-        var $__0 = this;
         var operation = event.data[0];
         var args = event.data[1];
         if (operation === 'init') {
-          this._retriever = _GetListItemsDefaultConfiguration();
-          this._retriever.url = _ParsePath(args.endPoint, _GetListService());
-          this._retriever.params = {
-            "listName": args.listName,
-            "query": {"Query": {"Where": {"Geq": {"FieldRef": [{
-                      "_Name": "Modified",
-                      "_IncludeTimeValue": "TRUE",
-                      "Value": {
-                        "_Type": "_DateTime",
-                        "_value": "2020-08-10T10:00:00Z"
-                      }
-                    }]}}}},
-            "queryOptions": {"QueryOptions": {
-                "IncludeMandatoryColumns": "FALSE",
-                "ViewAttributes": {"_Scope": "RecursiveAll"}
+          retriever = _GetListItemsDefaultConfiguration();
+          retriever.url = _ParsePath(args.endPoint, _GetListService());
+          retriever.params = {
+            'listName': args.listName,
+            'viewFields': {'ViewFields': ''},
+            'query': {'Query': {'Where': {'Gt': {
+                    'FieldRef': {'_Name': 'Modified'},
+                    'Value': {
+                      '_Type': 'DateTime',
+                      '_IncludeTimeValue': 'TRUE',
+                      '__text': new Date(0).toISOString()
+                    }
+                  }}}},
+            'queryOptions': {'QueryOptions': {
+                'IncludeMandatoryColumns': 'FALSE',
+                'ViewAttributes': {'_Scope': 'RecursiveAll'}
               }}
           };
+          _refresh();
+          console.log('not blocking');
         }
-        if (operation === 'value') {
-          soapClient.call(this._retriever).then((function(data) {
-            $__0.postMessage({
-              event: 'value',
-              result: data
-            });
-          }));
-        } else if (operation === 'child_added') {
-          setInterval((function() {
-            soapClient.call($__0._retriever).then((function(data) {
-              var $__1 = function(record) {
-                var isCached = _.findIndex(cache, function(item) {
-                  return data[record]['ows_ID'] == item['ows_ID'];
+        function _refresh() {
+          soapClient.call(retriever).then(function(result) {
+            _setLastUpdated(result.timestamp);
+            var $__0 = function(record) {
+              var isCached = _.findIndex(cache, function(item) {
+                return result.data[record]['ows_ID'] == item['ows_ID'];
+              });
+              if (isCached == -1) {
+                cache.push(result.data[record]);
+                postMessage({
+                  event: 'child_added',
+                  result: result.data[record]
                 });
-                if (isCached == -1) {
-                  cache.push(data[record]);
-                  $__0.postMessage({
-                    event: 'child_added',
-                    result: data[record]
+              } else {
+                if (!_.isEqual(result.data[record], cache[isCached])) {
+                  cache.splice(isCached, 1, result.data[record]);
+                  postMessage({
+                    event: 'child_changed',
+                    result: result.data[record]
                   });
                 }
-              };
-              for (var record in data) {
-                $__1(record);
               }
-            }));
-          }), 3000);
+            };
+            for (var record in result.data) {
+              $__0(record);
+            }
+            postMessage({
+              event: 'value',
+              result: cache
+            });
+            setTimeout(_refresh, interval);
+          }).catch(function(err) {
+            setTimeout(_refresh, interval);
+          });
+        }
+        function _setLastUpdated(newDate) {
+          if (newDate) {
+            var dateObject = new Date(newDate);
+            var offset = dateObject.getTimezoneOffset();
+            dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
+            retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
+          }
         }
       };
       ;
@@ -17677,5 +17940,8 @@ System.register("Operations", ["SoapClient", "github:Bizboard/arva-utils@master/
   };
 });
 
+})
+(function(factory) {
+  factory();
 });
 //# sourceMappingURL=worker.js.map

@@ -2,72 +2,36 @@
  * Created by mysim1 on 13/06/15.
  */
 import EventEmitter     from 'eventemitter3';
-import worker           from 'worker.js!base64';
+//import worker           from 'worker!base64';
+import {BlobHelper}     from 'arva-utils/BlobHelper';
 
-function b64toBlob(b64Data, contentType, sliceSize) {
-    contentType = contentType || '';
-    sliceSize = sliceSize || 512;
+// convert the worker role in base64 format to a sourcecodeblob
+var DEBUG_WORKER = true;
+//var SharePointWorkerSourcecodeBlob = BlobHelper.base64toBlob(worker);
 
-    var byteCharacters = atob(b64Data);
-    var byteArrays = [];
-
-    for (var offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-        var slice = byteCharacters.slice(offset, offset + sliceSize);
-
-        var byteNumbers = new Array(slice.length);
-        for (var i = 0; i < slice.length; i++) {
-            byteNumbers[i] = slice.charCodeAt(i);
-        }
-
-        var byteArray = new Uint8Array(byteNumbers);
-
-        byteArrays.push(byteArray);
-    }
-
-    var blob = new Blob(byteArrays, {type: contentType});
-    return blob;
-}
-
-var sourcecodeBlob = b64toBlob(worker);
+/**
+ * The SharePoint class will utilize a Web Worker to perform data operations. Running the data interfacing in a
+ * seperate thread from the UI thread will ensure there is minimal interruption of the user interaction.
+ */
 
 export class SharePoint extends EventEmitter {
 
     constructor(options = {}) {
         super();
 
-        let url = window.URL.createObjectURL(sourcecodeBlob);
-        this.worker = new Worker(url);
+        if (DEBUG_WORKER) {
+            this.worker = new Worker('worker.js');
+        }
+        else {
+            let url = window.URL.createObjectURL(SharePointWorkerSourcecodeBlob);
+            this.worker = new Worker(url);
+        }
 
-        this.worker.onmessage = (msg) => {
+        this.worker.onmessage = function(msg) {
             this.emit(msg.data.event, msg.data.result);
-        };
+        }.bind(this);
 
         // have the worker initialized
         this.worker.postMessage(['init', options]);
-    }
-
-    /**
-     * Before we add the handler for the specific event. We first instruct the worker to perform according operations.
-     * @param event
-     * @param handler
-     */
-    on(event, handler) {
-        if (event === 'value') {
-            this.worker.postMessage(['value']);
-        }
-
-        if (event === 'child_added') {
-            this.worker.postMessage(['child_added']);
-        }
-
-        if (event === 'child_changed') {
-            this.worker.postMessage(['value']);
-        }
-
-        if (event === 'child_removed') {
-            this.worker.postMessage(['value']);
-        }
-
-        super.on(event, handler);
     }
 }
