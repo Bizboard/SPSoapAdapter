@@ -34,4 +34,12 @@ export class SharePoint extends EventEmitter {
         // have the worker initialized
         this.worker.postMessage(['init', options]);
     }
+
+    set(model) {
+        this.worker.postMessage(['set', model]);
+    }
+
+    remove(model) {
+        this.worker.postMessage(['remove', model]);
+    }
 }

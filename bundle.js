@@ -4120,7 +4120,14 @@ System.register("SharePoint.js", ["npm:eventemitter3@1.1.0.js", "github:Bizboard
           }.bind(this);
           this.worker.postMessage(['init', options]);
         }
-        return ($traceurRuntime.createClass)(SharePoint, {}, {}, $__super);
+        return ($traceurRuntime.createClass)(SharePoint, {
+          set: function(model) {
+            this.worker.postMessage(['set', model]);
+          },
+          remove: function(model) {
+            this.worker.postMessage(['remove', model]);
+          }
+        }, {}, $__super);
       }(EventEmitter);
       $__export("SharePoint", SharePoint);
     }
@@ -4130,23 +4137,25 @@ System.register("SharePoint.js", ["npm:eventemitter3@1.1.0.js", "github:Bizboard
 System.register("main.js", ["SharePoint.js"], function($__export) {
   "use strict";
   var __moduleName = "main.js";
-  var SharePoint,
-      spWorker;
+  var SharePoint;
   return {
     setters: [function($__m) {
       SharePoint = $__m.SharePoint;
     }],
     execute: function() {
-      spWorker = new SharePoint({
+      window.spworker = new SharePoint({
         endPoint: 'https://bizboardapps.sharepoint.com/sites/Bizmark01',
         listName: 'Offers',
         fields: {}
       });
-      spWorker.on('child_added', function(data) {
+      window.spworker.on('child_added', function(data) {
         console.log('Added:', data);
       });
-      spWorker.on('child_changed', function(data) {
+      window.spworker.on('child_changed', function(data) {
         console.log('Changed:', data);
+      });
+      window.spworker.on('child_removed', function(data) {
+        console.log('Removed:', data);
       });
     }
   };

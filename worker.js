@@ -3883,7 +3883,7 @@ System = curSystem; })();
   // etc UMD / module pattern
 })*/
 
-(['Operations.js'], function(System) {
+(['Worker/Operations.js'], function(System) {
 
 (function(__global) {
   var loader = System;
@@ -4114,7 +4114,7 @@ System = curSystem; })();
 })(typeof self != 'undefined' ? self : global);
 (function() {
 var _removeDefine = System.get("@@amd-helpers").createDefine();
-define("xmljs.js", ["require"], function(require) {
+define("Worker/xmljs.js", ["require"], function(require) {
   return function(config) {
     'use strict';
     var VERSION = "1.1.6";
@@ -17714,9 +17714,9 @@ System.register("github:Bizboard/arva-utils@master/request/UrlParser.js", [], fu
   };
 });
 
-System.register("SoapClient.js", ["xmljs.js", "npm:xml2js@0.4.9.js", "npm:lodash@3.9.3.js", "github:Bizboard/arva-utils@master/ObjectHelper.js", "github:Bizboard/arva-utils@master/request/RequestClient.js", "github:Bizboard/arva-utils@master/request/XmlParser.js"], function($__export) {
+System.register("Worker/SoapClient.js", ["Worker/xmljs.js", "npm:xml2js@0.4.9.js", "npm:lodash@3.9.3.js", "github:Bizboard/arva-utils@master/ObjectHelper.js", "github:Bizboard/arva-utils@master/request/RequestClient.js", "github:Bizboard/arva-utils@master/request/XmlParser.js"], function($__export) {
   "use strict";
-  var __moduleName = "SoapClient.js";
+  var __moduleName = "Worker/SoapClient.js";
   var XML2JS,
       xmljs,
       _,
@@ -17776,15 +17776,8 @@ System.register("SoapClient.js", ["xmljs.js", "npm:xml2js@0.4.9.js", "npm:lodash
               PostRequest(request).then(function(soapresult) {
                 var parseString = xmljs.parseString;
                 parseString(soapresult.response, function(err, result) {
-                  var results = result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse[0].GetListItemsResult[0].listitems[0]["rs:data"][0];
-                  var arrayOfObjects = [];
-                  if (results.$.ItemCount !== '0') {
-                    for (var row in results['z:row']) {
-                      arrayOfObjects.push(results['z:row'][row].$);
-                    }
-                  }
                   resolve({
-                    data: arrayOfObjects,
+                    data: result,
                     timestamp: soapresult.timestamp
                   });
                 });
@@ -17800,9 +17793,9 @@ System.register("SoapClient.js", ["xmljs.js", "npm:xml2js@0.4.9.js", "npm:lodash
   };
 });
 
-System.register("Operations.js", ["SoapClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js", "npm:lodash@3.9.3.js"], function($__export) {
+System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js", "npm:lodash@3.9.3.js"], function($__export) {
   "use strict";
-  var __moduleName = "Operations.js";
+  var __moduleName = "Worker/Operations.js";
   var SoapClient,
       UrlParser,
       _,
@@ -17811,7 +17804,198 @@ System.register("Operations.js", ["SoapClient.js", "github:Bizboard/arva-utils@m
       retriever,
       window,
       global,
-      interval;
+      interval,
+      settings;
+  function _updateCache(data) {
+    var $__0 = function(record) {
+      var isCached = _.findIndex(cache, function(item) {
+        return data[record].id == item.id;
+      });
+      if (isCached == -1) {
+        cache.push(data[record]);
+        postMessage({
+          event: 'child_added',
+          result: data[record]
+        });
+      } else {
+        if (!_.isEqual(data[record], cache[isCached])) {
+          cache.splice(isCached, 1, data[record]);
+          postMessage({
+            event: 'child_changed',
+            result: data[record]
+          });
+        }
+      }
+    };
+    for (var record in data) {
+      $__0(record);
+    }
+  }
+  function _refresh() {
+    soapClient.call(retriever).then(function(result) {
+      _setLastUpdated(result.timestamp);
+      var data = _getResults(result.data);
+      _updateCache(data);
+      postMessage({
+        event: 'value',
+        result: cache
+      });
+      setTimeout(_refresh, interval);
+    }).catch(function(err) {
+      setTimeout(_refresh, interval);
+    });
+  }
+  function _setLastUpdated(newDate) {
+    if (newDate) {
+      var dateObject = new Date(newDate);
+      var offset = dateObject.getTimezoneOffset();
+      dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
+      retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
+    }
+  }
+  function _handleInit(args) {
+    retriever = _GetListItemsDefaultConfiguration();
+    retriever.url = _ParsePath(args.endPoint, _GetListService());
+    retriever.params = {
+      'listName': args.listName,
+      'viewFields': {'ViewFields': ''},
+      'query': {'Query': {'Where': {'Gt': {
+              'FieldRef': {'_Name': 'Modified'},
+              'Value': {
+                '_Type': 'DateTime',
+                '_IncludeTimeValue': 'TRUE',
+                '__text': new Date(0).toISOString()
+              }
+            }}}},
+      'queryOptions': {'QueryOptions': {
+          'IncludeMandatoryColumns': 'FALSE',
+          'ViewAttributes': {'_Scope': 'RecursiveAll'}
+        }}
+    };
+  }
+  function _handleSet(newData) {
+    var configuration = _UpdateListItemsDefaultConfiguration();
+    configuration.url = _ParsePath(settings.endPoint, _GetListService());
+    var fieldCollection = [];
+    var method = '';
+    if (newData.id) {
+      fieldCollection.push({
+        "_Name": "ID",
+        "__text": newData.id
+      });
+      method = "Update";
+    } else {
+      fieldCollection.push({
+        "_Name": "ID",
+        "__text": 'New'
+      });
+      method = 'New';
+    }
+    for (var prop in newData) {
+      if (prop == "id" || typeof(newData[prop]) == "undefined")
+        continue;
+      if (prop == "priority")
+        continue;
+      fieldCollection.push({
+        "_Name": prop,
+        "__text": newData[prop]
+      });
+    }
+    configuration.params = {
+      "listName": settings.listName,
+      "updates": {"Batch": {
+          "Method": {
+            "Field": fieldCollection,
+            "_ID": "1",
+            "_Cmd": method
+          },
+          "_OnError": "Continue",
+          "_ListVersion": "1",
+          "_ViewName": ""
+        }}
+    };
+    soapClient.call(configuration).then(function(result) {
+      var data = _getResults(result.data);
+      _updateCache(data);
+    }, function(error) {
+      console.log(error);
+    });
+  }
+  function _getResults(result) {
+    var arrayOfObjects = [];
+    var node = null;
+    if (result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse) {
+      node = result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse[0].GetListItemsResult[0].listitems[0]["rs:data"][0];
+      if (node) {
+        if (node.$.ItemCount !== '0') {
+          for (var row in node['z:row']) {
+            var raw = node['z:row'][row].$;
+            var record = _formatRecord(raw);
+            arrayOfObjects.push(record);
+          }
+        }
+      }
+    } else if (result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse) {
+      var error = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0].Result[0].ErrorCode;
+      if (error == '0x00000000') {
+        node = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0];
+        if (node) {
+          for (var row$__1 in node.Result) {
+            var raw$__2 = node.Result[row$__1]["z:row"][0].$;
+            var record$__3 = _formatRecord(raw$__2);
+            arrayOfObjects.push(record$__3);
+          }
+        }
+      }
+    }
+    return arrayOfObjects;
+  }
+  function _formatRecord(record) {
+    var result = {};
+    for (var attribute in record) {
+      var name = attribute.replace('ows_', '');
+      if (name == 'xmlns:z')
+        continue;
+      if (name == "ID") {
+        name = "id";
+        result[name] = record[attribute];
+      } else if (!isNaN(record[attribute]))
+        result[name] = parseFloat(record[attribute]);
+      else
+        result[name] = record[attribute];
+    }
+    return result;
+  }
+  function _handleRemove(record) {
+    var configuration = _UpdateListItemsDefaultConfiguration();
+    configuration.url = _ParsePath(settings.endPoint, _GetListService());
+    var fieldCollection = [];
+    fieldCollection.push({
+      "_Name": "ID",
+      "__text": record.id
+    });
+    configuration.params = {
+      "listName": settings.listName,
+      "updates": {"Batch": {
+          "Method": {
+            "Field": fieldCollection,
+            "_ID": '1',
+            "_Cmd": 'Delete'
+          },
+          "_OnError": 'Continue',
+          "_ListVersion": '1',
+          "_ViewName": ''
+        }}
+    };
+    soapClient.call(configuration).then(function() {
+      postMessage({
+        event: 'child_removed',
+        result: record
+      });
+    }, function(error) {
+      console.log(error);
+    });
+  }
   function _ParsePath(path, endPoint) {
     var url = UrlParser(path);
     if (!url)
@@ -17862,73 +18046,18 @@ System.register("Operations.js", ["SoapClient.js", "github:Bizboard/arva-utils@m
       window = this;
       global = this;
       interval = 3000;
+      settings = {};
       this.onmessage = function(event) {
         var operation = event.data[0];
         var args = event.data[1];
         if (operation === 'init') {
-          retriever = _GetListItemsDefaultConfiguration();
-          retriever.url = _ParsePath(args.endPoint, _GetListService());
-          retriever.params = {
-            'listName': args.listName,
-            'viewFields': {'ViewFields': ''},
-            'query': {'Query': {'Where': {'Gt': {
-                    'FieldRef': {'_Name': 'Modified'},
-                    'Value': {
-                      '_Type': 'DateTime',
-                      '_IncludeTimeValue': 'TRUE',
-                      '__text': new Date(0).toISOString()
-                    }
-                  }}}},
-            'queryOptions': {'QueryOptions': {
-                'IncludeMandatoryColumns': 'FALSE',
-                'ViewAttributes': {'_Scope': 'RecursiveAll'}
-              }}
-          };
+          settings = args;
+          _handleInit(settings);
           _refresh();
-          console.log('not blocking');
-        }
-        function _refresh() {
-          soapClient.call(retriever).then(function(result) {
-            _setLastUpdated(result.timestamp);
-            var $__0 = function(record) {
-              var isCached = _.findIndex(cache, function(item) {
-                return result.data[record]['ows_ID'] == item['ows_ID'];
-              });
-              if (isCached == -1) {
-                cache.push(result.data[record]);
-                postMessage({
-                  event: 'child_added',
-                  result: result.data[record]
-                });
-              } else {
-                if (!_.isEqual(result.data[record], cache[isCached])) {
-                  cache.splice(isCached, 1, result.data[record]);
-                  postMessage({
-                    event: 'child_changed',
-                    result: result.data[record]
-                  });
-                }
-              }
-            };
-            for (var record in result.data) {
-              $__0(record);
-            }
-            postMessage({
-              event: 'value',
-              result: cache
-            });
-            setTimeout(_refresh, interval);
-          }).catch(function(err) {
-            setTimeout(_refresh, interval);
-          });
-        }
-        function _setLastUpdated(newDate) {
-          if (newDate) {
-            var dateObject = new Date(newDate);
-            var offset = dateObject.getTimezoneOffset();
-            dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
-            retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
-          }
+        } else if (operation == 'set') {
+          _handleSet(args);
+        } else if (operation == 'remove') {
+          _handleRemove(args);
         }
       };
       ;

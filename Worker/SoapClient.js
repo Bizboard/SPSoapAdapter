@@ -85,15 +85,7 @@ export class SoapClient {
 
                     var parseString = xmljs.parseString;
                     parseString(soapresult.response, function (err, result) {
-                        let results = result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse[0].GetListItemsResult[0].listitems[0]["rs:data"][0];
-                        let arrayOfObjects = [];
-                        if (results.$.ItemCount !== '0') {
-                            for (let row in results['z:row']) {
-                                arrayOfObjects.push(results['z:row'][row].$);
-                            }
-                        }
-
-                        resolve({ data: arrayOfObjects, timestamp: soapresult.timestamp });
+                        resolve({ data: result, timestamp: soapresult.timestamp });
                     });
 
                 }, function(error){
