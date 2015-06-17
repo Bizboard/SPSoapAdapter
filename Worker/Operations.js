@@ -39,53 +39,16 @@ this.onmessage = function(event) {
 
 };
 
-function _updateCache(data) {
-    for (let record in data) {
-
-        let isCached = _.findIndex(cache, function(item) {
-            return  data[record].id == item.id;
-        });
-
-        if (isCached == -1) {
-            cache.push(data[record]);
-            postMessage({ event: 'child_added', result: data[record] });
-        }
-        else {
-            if (!_.isEqual(data[record], cache[isCached])) {
-                cache.splice(isCached, 1, data[record]);
-                postMessage({event: 'child_changed', result: data[record]});
-            }
-        }
-    }
-}
-
-function _refresh() {
-    soapClient.call(retriever)
-        .then((result)=> {
-
-            _setLastUpdated(result.timestamp);
-            let data = _getResults(result.data);
-            _updateCache(data);
-
-            postMessage({ event: 'value', result: cache });
-            setTimeout(_refresh, interval);
-
-        }).catch(function(err){
-
-            setTimeout(_refresh, interval);
-        });
-}
-
-function _setLastUpdated(newDate) {
-    if (newDate) {
-        let dateObject = new Date(newDate);
-        let offset = dateObject.getTimezoneOffset();
-        dateObject.setTime(dateObject.getTime() + (offset*-1)*60*1000);
-        retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
-    }
-}
 
 
+
+
+
+/**
+ * Start reading the list from SharePoint and only retrieve changes from last polling timestamp.
+ * @param args
+ * @private
+ */
 function _handleInit(args) {
     // initialize with SharePoint configuration
     retriever = _GetListItemsDefaultConfiguration();
@@ -193,7 +156,117 @@ function _handleSet(newData) {
         });
 }
 
+/**
+ * Remove a record from SharePoint
+ * @param record
+ * @private
+ */
+function _handleRemove(record) {
+    var configuration = _UpdateListItemsDefaultConfiguration();
+    configuration.url = _ParsePath(settings.endPoint, _GetListService());
+    var fieldCollection = [];
 
+    fieldCollection.push({
+        "_Name": "ID",
+        "__text": record.id
+    });
+
+    configuration.params = {
+        "listName": settings.listName,
+        "updates": {
+            "Batch": {
+                "Method": {
+                    "Field": fieldCollection,
+
+                    "_ID": '1',
+                    "_Cmd": 'Delete'
+                },
+
+                "_OnError": 'Continue',
+                "_ListVersion": '1',
+                "_ViewName": ''
+            }
+        }
+    };
+
+    // initial initialisation of the datasource
+    soapClient.call(configuration)
+        .then(()=>{
+            postMessage({ event: 'child_removed', result: record });
+        }, (error) =>{
+            console.log(error);
+        });
+}
+
+
+/**
+ * Update our cache and bubble child_added or child_changed events
+ * @param data
+ * @private
+ */
+function _updateCache(data) {
+    for (let record in data) {
+
+        let isCached = _.findIndex(cache, function(item) {
+            return  data[record].id == item.id;
+        });
+
+        if (isCached == -1) {
+            cache.push(data[record]);
+            postMessage({ event: 'child_added', result: data[record] });
+        }
+        else {
+            if (!_.isEqual(data[record], cache[isCached])) {
+                cache.splice(isCached, 1, data[record]);
+                postMessage({event: 'child_changed', result: data[record]});
+            }
+        }
+    }
+}
+
+
+/**
+ * Update the last polling timestamp so we only get the latest changes.
+ * @param newDate
+ * @private
+ */
+function _setLastUpdated(newDate) {
+    if (newDate) {
+        let dateObject = new Date(newDate);
+        let offset = dateObject.getTimezoneOffset();
+        dateObject.setTime(dateObject.getTime() + (offset*-1)*60*1000);
+        retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
+    }
+}
+
+
+/**
+ * Refresh SharePoint with latest changes.
+ * @private
+ */
+function _refresh() {
+    soapClient.call(retriever)
+        .then((result)=> {
+
+            _setLastUpdated(result.timestamp);
+            let data = _getResults(result.data);
+            _updateCache(data);
+
+            postMessage({ event: 'value', result: cache });
+            setTimeout(_refresh, interval);
+
+        }).catch(function(err){
+
+            setTimeout(_refresh, interval);
+        });
+}
+
+/**
+ * Parse SharePoint response into formatted records
+ * @param result
+ * @returns {Array}
+ * @private
+ */
 function _getResults(result) {
 
     let arrayOfObjects = [];
@@ -233,6 +306,12 @@ function _getResults(result) {
     return arrayOfObjects;
 }
 
+/**
+ * Strip SharePoint record from SharePoint specifics
+ * @param record
+ * @returns {{}}
+ * @private
+ */
 function _formatRecord(record) {
     let result = {};
     for (let attribute in record) {
@@ -267,44 +346,16 @@ function _formatRecord(record) {
     return result;
 }
 
-function _handleRemove(record) {
-    var configuration = _UpdateListItemsDefaultConfiguration();
-    configuration.url = _ParsePath(settings.endPoint, _GetListService());
-    var fieldCollection = [];
-
-    fieldCollection.push({
-        "_Name": "ID",
-        "__text": record.id
-    });
-
-    configuration.params = {
-        "listName": settings.listName,
-        "updates": {
-            "Batch": {
-                "Method": {
-                    "Field": fieldCollection,
-
-                    "_ID": '1',
-                    "_Cmd": 'Delete'
-                },
-
-                "_OnError": 'Continue',
-                "_ListVersion": '1',
-                "_ViewName": ''
-            }
-        }
-    };
-
-    // initial initialisation of the datasource
-    soapClient.call(configuration)
-        .then(()=>{
-            postMessage({ event: 'child_removed', result: record });
-        }, (error) =>{
-            console.log(error);
-        });
-}
 
 
+
+/**
+ * Double check if given path is a valid path
+ * @param path
+ * @param endPoint
+ * @returns {string}
+ * @private
+ */
 function _ParsePath(path, endPoint) {
 
     var url = UrlParser(path);
@@ -319,6 +370,11 @@ function _ParsePath(path, endPoint) {
 };
 
 
+/**
+ * Get Default resource for Updating Lists
+ * @returns {{url: string, service: string, method: string, params: string, headers: (Map|*)}}
+ * @private
+ */
 function _UpdateListItemsDefaultConfiguration() {
     return {
         url: '',
@@ -332,6 +388,12 @@ function _UpdateListItemsDefaultConfiguration() {
     };
 };
 
+
+/**
+ * Get Default resource for Reading Lists
+ * @returns {{url: string, service: string, method: string, params: string, headers: (Map|*)}}
+ * @private
+ */
 function _GetListItemsDefaultConfiguration() {
     return {
         url: '',
@@ -345,12 +407,22 @@ function _GetListItemsDefaultConfiguration() {
     };
 };
 
+
+/**
+ * Default interface for Get list
+ * @returns {string}
+ * @private
+ */
 function _GetListService() {
     return '_vti_bin/Lists.asmx';
 };
 
 
-
+/**
+ * Default interface for Update list
+ * @returns {string}
+ * @private
+ */
 function _GetUserGroupService() {
     return '_vti_bin/UserGroup.asmx';
 };
