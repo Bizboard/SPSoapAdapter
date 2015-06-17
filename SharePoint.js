@@ -28,7 +28,7 @@ export class SharePoint extends EventEmitter {
         }
 
         this.worker.onmessage = function(msg) {
-            this.emit(msg.data.event, msg.data.result);
+            this.emit(msg.data.event, msg.data.result, msg.data.previousSiblingId);
         }.bind(this);
 
         // have the worker initialized

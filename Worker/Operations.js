@@ -18,7 +18,7 @@ var settings = {};
  * Handle incoming requests from the UI layer.
  * @param event Event will be an array where the first parameter is the instruction, and second parameter is the relevant data for that action.
  */
-this.onmessage = function(event) {
+this.onmessage = function (event) {
     var operation = event.data[0];
     var args = event.data[1];
 
@@ -138,7 +138,7 @@ function _handleSet(newData) {
 
     // initial initialisation of the datasource
     soapClient.call(configuration)
-        .then((result)=>{
+        .then((result)=> {
 
             let data = _getResults(result.data);
             _updateCache(data);
@@ -183,9 +183,9 @@ function _handleRemove(record) {
 
     // initial initialisation of the datasource
     soapClient.call(configuration)
-        .then(()=>{
-            postMessage({ event: 'child_removed', result: record });
-        }, (error) =>{
+        .then(()=> {
+            postMessage({event: 'child_removed', result: record});
+        }, (error) => {
             console.log(error);
         });
 }
@@ -199,18 +199,29 @@ function _handleRemove(record) {
 function _updateCache(data) {
     for (let record in data) {
 
-        let isCached = _.findIndex(cache, function(item) {
-            return  data[record].id == item.id;
+        let isCached = _.findIndex(cache, function (item) {
+            return data[record].id == item.id;
         });
 
         if (isCached == -1) {
             cache.push(data[record]);
-            postMessage({ event: 'child_added', result: data[record] });
+
+            let previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
+            postMessage({
+                event: 'child_added',
+                result: data[record],
+                previousSiblingId: previousSiblingId ? previousSiblingId.id : null
+            });
         }
         else {
             if (!_.isEqual(data[record], cache[isCached])) {
                 cache.splice(isCached, 1, data[record]);
-                postMessage({event: 'child_changed', result: data[record]});
+                let previousSibling = isCached == 0 ? null : cache[isCached - 1];
+                postMessage({
+                    event: 'child_changed',
+                    result: data[record],
+                    previousSiblingId: previousSibling ? previousSibling.id : null
+                });
             }
         }
     }
@@ -226,7 +237,7 @@ function _setLastUpdated(newDate) {
     if (newDate) {
         let dateObject = new Date(newDate);
         let offset = dateObject.getTimezoneOffset();
-        dateObject.setTime(dateObject.getTime() + (offset*-1)*60*1000);
+        dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
         retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
     }
 }
@@ -244,10 +255,10 @@ function _refresh() {
             let data = _getResults(result.data);
             _updateCache(data);
 
-            postMessage({ event: 'value', result: cache });
+            postMessage({event: 'value', result: cache});
             setTimeout(_refresh, interval);
 
-        }).catch(function(err){
+        }).catch(function (err) {
 
             setTimeout(_refresh, interval);
         });
@@ -263,7 +274,6 @@ function _getResults(result) {
 
     let arrayOfObjects = [];
     let node = null;
-
 
 
     if (result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse) {
@@ -311,8 +321,8 @@ function _formatRecord(record) {
         let name = attribute.replace('ows_', '');
         if (name == 'xmlns:z') continue;
 
-        if (name=="ID"){
-            name="id";
+        if (name == "ID") {
+            name = "id";
             result[name] = record[attribute];
         }
 
@@ -339,8 +349,6 @@ function _formatRecord(record) {
 }
 
 
-
-
 /**
  * Double check if given path is a valid path
  * @param path
@@ -355,7 +363,7 @@ function _ParsePath(path, endPoint) {
 
     var pathParts = url.path.split('/');
     var newPath = url.protocol + '://' + url.host + '/';
-    for(var i=0;i<pathParts.length;i++)
+    for (var i = 0; i < pathParts.length; i++)
         newPath += pathParts[i] + '/';
     newPath += endPoint;
     return newPath;
