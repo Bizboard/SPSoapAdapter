@@ -17806,53 +17806,6 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
       global,
       interval,
       settings;
-  function _updateCache(data) {
-    var $__0 = function(record) {
-      var isCached = _.findIndex(cache, function(item) {
-        return data[record].id == item.id;
-      });
-      if (isCached == -1) {
-        cache.push(data[record]);
-        postMessage({
-          event: 'child_added',
-          result: data[record]
-        });
-      } else {
-        if (!_.isEqual(data[record], cache[isCached])) {
-          cache.splice(isCached, 1, data[record]);
-          postMessage({
-            event: 'child_changed',
-            result: data[record]
-          });
-        }
-      }
-    };
-    for (var record in data) {
-      $__0(record);
-    }
-  }
-  function _refresh() {
-    soapClient.call(retriever).then(function(result) {
-      _setLastUpdated(result.timestamp);
-      var data = _getResults(result.data);
-      _updateCache(data);
-      postMessage({
-        event: 'value',
-        result: cache
-      });
-      setTimeout(_refresh, interval);
-    }).catch(function(err) {
-      setTimeout(_refresh, interval);
-    });
-  }
-  function _setLastUpdated(newDate) {
-    if (newDate) {
-      var dateObject = new Date(newDate);
-      var offset = dateObject.getTimezoneOffset();
-      dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
-      retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
-    }
-  }
   function _handleInit(args) {
     retriever = _GetListItemsDefaultConfiguration();
     retriever.url = _ParsePath(args.endPoint, _GetListService());
@@ -17921,6 +17874,83 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
       console.log(error);
     });
   }
+  function _handleRemove(record) {
+    var configuration = _UpdateListItemsDefaultConfiguration();
+    configuration.url = _ParsePath(settings.endPoint, _GetListService());
+    var fieldCollection = [];
+    fieldCollection.push({
+      "_Name": "ID",
+      "__text": record.id
+    });
+    configuration.params = {
+      "listName": settings.listName,
+      "updates": {"Batch": {
+          "Method": {
+            "Field": fieldCollection,
+            "_ID": '1',
+            "_Cmd": 'Delete'
+          },
+          "_OnError": 'Continue',
+          "_ListVersion": '1',
+          "_ViewName": ''
+        }}
+    };
+    soapClient.call(configuration).then(function() {
+      postMessage({
+        event: 'child_removed',
+        result: record
+      });
+    }, function(error) {
+      console.log(error);
+    });
+  }
+  function _updateCache(data) {
+    var $__0 = function(record) {
+      var isCached = _.findIndex(cache, function(item) {
+        return data[record].id == item.id;
+      });
+      if (isCached == -1) {
+        cache.push(data[record]);
+        postMessage({
+          event: 'child_added',
+          result: data[record]
+        });
+      } else {
+        if (!_.isEqual(data[record], cache[isCached])) {
+          cache.splice(isCached, 1, data[record]);
+          postMessage({
+            event: 'child_changed',
+            result: data[record]
+          });
+        }
+      }
+    };
+    for (var record in data) {
+      $__0(record);
+    }
+  }
+  function _setLastUpdated(newDate) {
+    if (newDate) {
+      var dateObject = new Date(newDate);
+      var offset = dateObject.getTimezoneOffset();
+      dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
+      retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
+    }
+  }
+  function _refresh() {
+    soapClient.call(retriever).then(function(result) {
+      _setLastUpdated(result.timestamp);
+      var data = _getResults(result.data);
+      _updateCache(data);
+      postMessage({
+        event: 'value',
+        result: cache
+      });
+      setTimeout(_refresh, interval);
+    }).catch(function(err) {
+      setTimeout(_refresh, interval);
+    });
+  }
   function _getResults(result) {
     var arrayOfObjects = [];
     var node = null;
@@ -17965,36 +17995,6 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
         result[name] = record[attribute];
     }
     return result;
-  }
-  function _handleRemove(record) {
-    var configuration = _UpdateListItemsDefaultConfiguration();
-    configuration.url = _ParsePath(settings.endPoint, _GetListService());
-    var fieldCollection = [];
-    fieldCollection.push({
-      "_Name": "ID",
-      "__text": record.id
-    });
-    configuration.params = {
-      "listName": settings.listName,
-      "updates": {"Batch": {
-          "Method": {
-            "Field": fieldCollection,
-            "_ID": '1',
-            "_Cmd": 'Delete'
-          },
-          "_OnError": 'Continue',
-          "_ListVersion": '1',
-          "_ViewName": ''
-        }}
-    };
-    soapClient.call(configuration).then(function() {
-      postMessage({
-        event: 'child_removed',
-        result: record
-      });
-    }, function(error) {
-      console.log(error);
-    });
   }
   function _ParsePath(path, endPoint) {
     var url = UrlParser(path);

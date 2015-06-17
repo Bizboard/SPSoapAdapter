@@ -19,7 +19,6 @@ var settings = {};
  * @param event Event will be an array where the first parameter is the instruction, and second parameter is the relevant data for that action.
  */
 this.onmessage = function(event) {
-
     var operation = event.data[0];
     var args = event.data[1];
 
@@ -35,14 +34,7 @@ this.onmessage = function(event) {
     else if (operation == 'remove') {
         _handleRemove(args);
     }
-
-
 };
-
-
-
-
-
 
 /**
  * Start reading the list from SharePoint and only retrieve changes from last polling timestamp.
