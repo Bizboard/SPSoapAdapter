@@ -2,11 +2,13 @@
  * Created by mysim1 on 13/06/15.
  */
 import {SoapClient}     from './SoapClient';
+import {ExistsRequest}  from 'arva-utils/request/RequestClient';
 import {UrlParser}      from 'arva-utils/request/UrlParser';
 import _                from 'lodash';
 
 // setup the soapClient.
 var soapClient = new SoapClient();
+var tempKeys = [];
 var cache = [];
 var retriever = null;
 var window = this;
@@ -24,9 +26,15 @@ this.onmessage = function (event) {
 
 
     if (operation === 'init') {
-        settings = args;
-        _handleInit(settings);
-        _refresh();
+        try {
+            settings = _intializeSettings(args);
+            _handleInit(settings);
+            _refresh();
+        }
+        // if we can't initalize. we might as well kill ourselfs.
+        catch (exception) {
+            this.close();
+        }
     }
     else if (operation == 'set') {
         _handleSet(args)
@@ -36,12 +44,43 @@ this.onmessage = function (event) {
     }
 };
 
+
+function _intializeSettings(args) {
+
+    // rebuild endpoint from polling server and interpreting response
+    var url = UrlParser(args.endPoint);
+    if (!url) throw new Error('Invalid DataSource path provided!');
+
+    var newPath = url.protocol + '://' + url.host + '/';
+    var pathParts = url.path.split('/');
+    let identifiedParts = [];
+
+    while (!ExistsRequest(newPath + pathParts.join('/') + '/' + _GetListService()) ) {
+        identifiedParts.push(pathParts.splice(pathParts.length-1, 1)[0]);
+    }
+
+    if (identifiedParts.length>1) {
+        throw new Error('Parameters could not be correctly extracted for polling. Assuming invalid state.');
+    }
+    else {
+
+        return {
+            endPoint: newPath + pathParts.join('/'),
+            listName: identifiedParts[0],
+            itemId: identifiedParts[1]
+        };
+    }
+}
+
 /**
  * Start reading the list from SharePoint and only retrieve changes from last polling timestamp.
  * @param args
  * @private
  */
 function _handleInit(args) {
+
+    if (!args.listName) return;
+
     // initialize with SharePoint configuration
     retriever = _GetListItemsDefaultConfiguration();
 
@@ -89,6 +128,14 @@ function _handleSet(newData) {
     var fieldCollection = [];
     var method = '';
 
+    let isLocal = _.findIndex(tempKeys, function(key){
+        return key.localId == newData.id;
+    });
+
+    if (isLocal > -1) {
+        newData.id = tempKeys[isLocal].remoteId;
+    }
+
     // assume existing record to be updated.
     if (newData.id) {
 
@@ -110,7 +157,7 @@ function _handleSet(newData) {
 
     for (var prop in newData) {
         if (prop == "id" || typeof(newData[prop]) == "undefined") continue;
-        if (prop == "priority") continue;
+        if (prop == "priority" || prop == "_temporary-identifier") continue;
 
         fieldCollection.push({
             "_Name": prop,
@@ -141,8 +188,14 @@ function _handleSet(newData) {
         .then((result)=> {
 
             let data = _getResults(result.data);
-            _updateCache(data);
+            if (data.length==1) {
 
+                // push ID mapping for given session
+                if (newData['_temporary-identifier']) {
+                    tempKeys.push({localId: newData['_temporary-identifier'], remoteId: data[0].id});
+                }
+                _updateCache(data);
+            }
         }, (error) => {
             console.log(error);
         });
@@ -157,6 +210,14 @@ function _handleRemove(record) {
     var configuration = _UpdateListItemsDefaultConfiguration();
     configuration.url = _ParsePath(settings.endPoint, _GetListService());
     var fieldCollection = [];
+
+    let isLocal = _.findIndex(tempKeys, function(key){
+        return key.localId == record.id;
+    });
+
+    if (isLocal > -1) {
+        record.id = tempKeys[isLocal].remoteId;
+    }
 
     fieldCollection.push({
         "_Name": "ID",
@@ -198,6 +259,14 @@ function _handleRemove(record) {
  */
 function _updateCache(data) {
     for (let record in data) {
+
+        let isLocal = _.findIndex(tempKeys, function(key){
+            return key.remoteId == data.id;
+        });
+
+        if (isLocal>-1) {
+            data[record].id = tempKeys[isLocal].localId;
+        }
 
         let isCached = _.findIndex(cache, function (item) {
             return data[record].id == item.id;
@@ -248,20 +317,22 @@ function _setLastUpdated(newDate) {
  * @private
  */
 function _refresh() {
-    soapClient.call(retriever)
-        .then((result)=> {
+    if (retriever) {
+        soapClient.call(retriever)
+            .then((result)=> {
 
-            _setLastUpdated(result.timestamp);
-            let data = _getResults(result.data);
-            _updateCache(data);
+                _setLastUpdated(result.timestamp);
+                let data = _getResults(result.data);
+                _updateCache(data);
 
-            postMessage({event: 'value', result: cache});
-            setTimeout(_refresh, interval);
+                postMessage({event: 'value', result: cache});
+                setTimeout(_refresh, interval);
 
-        }).catch(function (err) {
+            }).catch(function (err) {
 
-            setTimeout(_refresh, interval);
-        });
+                setTimeout(_refresh, interval);
+            });
+    }
 }
 
 /**
@@ -326,17 +397,16 @@ function _formatRecord(record) {
             result[name] = record[attribute];
         }
 
-        /*
-         if (attribute.value.indexOf(";#")>-1) {
-         var keys = attribute.value.split(";#");
-         var pairs = keys.length/2;
-         var assignable = pairs.length>1?[]:{};
-         for(var pair=0;pair<pairs;pair++){
-         if (pairs>1) assignable.push({ id: keys[pair], value: keys[pair+1]});
-         else assignable = {id: keys[pair], value: keys[pair+1]};
-         }
-         result[name] = { id: 0, value: ""};
-         }*/
+        else if (record[attribute].indexOf(";#") > -1) {
+            var keys = record[attribute].split(";#");
+            var pairs = keys.length / 2;
+            var assignable = pairs.length > 1 ? [] : {};
+            for (var pair = 0; pair < pairs; pair++) {
+                if (pairs > 1) assignable.push({id: keys[pair], value: keys[pair + 1]});
+                else assignable = {id: keys[pair], value: keys[pair + 1]};
+            }
+            result[name] = assignable;
+        }
 
         // map a number when that number is detected
         else if (!isNaN(record[attribute]))

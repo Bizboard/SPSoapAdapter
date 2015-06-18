@@ -17645,8 +17645,19 @@ System.register("github:Bizboard/arva-utils@master/request/RequestClient.js", []
       req.send(options.data);
     });
   }
+  function ExistsRequest(url) {
+    var req = new XMLHttpRequest();
+    req.open('OPTIONS', url, false);
+    req.send();
+    if (req.status !== 404) {
+      return true;
+    } else {
+      return false;
+    }
+  }
   $__export("GetRequest", GetRequest);
   $__export("PostRequest", PostRequest);
+  $__export("ExistsRequest", ExistsRequest);
   return {
     setters: [],
     execute: function() {
@@ -17793,20 +17804,44 @@ System.register("Worker/SoapClient.js", ["Worker/xmljs.js", "npm:xml2js@0.4.9.js
   };
 });
 
-System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js", "npm:lodash@3.9.3.js"], function($__export) {
+System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboard/arva-utils@master/request/RequestClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js", "npm:lodash@3.9.3.js"], function($__export) {
   "use strict";
   var __moduleName = "Worker/Operations.js";
   var SoapClient,
+      ExistsRequest,
       UrlParser,
       _,
       soapClient,
+      tempKeys,
       cache,
       retriever,
       window,
       global,
       interval,
       settings;
+  function _intializeSettings(args) {
+    var url = UrlParser(args.endPoint);
+    if (!url)
+      throw new Error('Invalid DataSource path provided!');
+    var newPath = url.protocol + '://' + url.host + '/';
+    var pathParts = url.path.split('/');
+    var identifiedParts = [];
+    while (!ExistsRequest(newPath + pathParts.join('/') + '/' + _GetListService())) {
+      identifiedParts.push(pathParts.splice(pathParts.length - 1, 1)[0]);
+    }
+    if (identifiedParts.length > 1) {
+      throw new Error('Parameters could not be correctly extracted for polling. Assuming invalid state.');
+    } else {
+      return {
+        endPoint: newPath + pathParts.join('/'),
+        listName: identifiedParts[0],
+        itemId: identifiedParts[1]
+      };
+    }
+  }
   function _handleInit(args) {
+    if (!args.listName)
+      return;
     retriever = _GetListItemsDefaultConfiguration();
     retriever.url = _ParsePath(args.endPoint, _GetListService());
     retriever.params = {
@@ -17831,6 +17866,12 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     configuration.url = _ParsePath(settings.endPoint, _GetListService());
     var fieldCollection = [];
     var method = '';
+    var isLocal = _.findIndex(tempKeys, function(key) {
+      return key.localId == newData.id;
+    });
+    if (isLocal > -1) {
+      newData.id = tempKeys[isLocal].remoteId;
+    }
     if (newData.id) {
       fieldCollection.push({
         "_Name": "ID",
@@ -17847,7 +17888,7 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     for (var prop in newData) {
       if (prop == "id" || typeof(newData[prop]) == "undefined")
         continue;
-      if (prop == "priority")
+      if (prop == "priority" || prop == "_temporary-identifier")
         continue;
       fieldCollection.push({
         "_Name": prop,
@@ -17869,7 +17910,15 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     };
     soapClient.call(configuration).then(function(result) {
       var data = _getResults(result.data);
-      _updateCache(data);
+      if (data.length == 1) {
+        if (newData['_temporary-identifier']) {
+          tempKeys.push({
+            localId: newData['_temporary-identifier'],
+            remoteId: data[0].id
+          });
+        }
+        _updateCache(data);
+      }
     }, function(error) {
       console.log(error);
     });
@@ -17878,6 +17927,12 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     var configuration = _UpdateListItemsDefaultConfiguration();
     configuration.url = _ParsePath(settings.endPoint, _GetListService());
     var fieldCollection = [];
+    var isLocal = _.findIndex(tempKeys, function(key) {
+      return key.localId == record.id;
+    });
+    if (isLocal > -1) {
+      record.id = tempKeys[isLocal].remoteId;
+    }
     fieldCollection.push({
       "_Name": "ID",
       "__text": record.id
@@ -17906,21 +17961,31 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
   }
   function _updateCache(data) {
     var $__0 = function(record) {
+      var isLocal = _.findIndex(tempKeys, function(key) {
+        return key.remoteId == data.id;
+      });
+      if (isLocal > -1) {
+        data[record].id = tempKeys[isLocal].localId;
+      }
       var isCached = _.findIndex(cache, function(item) {
         return data[record].id == item.id;
       });
       if (isCached == -1) {
         cache.push(data[record]);
+        var previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
         postMessage({
           event: 'child_added',
-          result: data[record]
+          result: data[record],
+          previousSiblingId: previousSiblingId ? previousSiblingId.id : null
         });
       } else {
         if (!_.isEqual(data[record], cache[isCached])) {
           cache.splice(isCached, 1, data[record]);
+          var previousSibling = isCached == 0 ? null : cache[isCached - 1];
           postMessage({
             event: 'child_changed',
-            result: data[record]
+            result: data[record],
+            previousSiblingId: previousSibling ? previousSibling.id : null
           });
         }
       }
@@ -17938,18 +18003,20 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     }
   }
   function _refresh() {
-    soapClient.call(retriever).then(function(result) {
-      _setLastUpdated(result.timestamp);
-      var data = _getResults(result.data);
-      _updateCache(data);
-      postMessage({
-        event: 'value',
-        result: cache
+    if (retriever) {
+      soapClient.call(retriever).then(function(result) {
+        _setLastUpdated(result.timestamp);
+        var data = _getResults(result.data);
+        _updateCache(data);
+        postMessage({
+          event: 'value',
+          result: cache
+        });
+        setTimeout(_refresh, interval);
+      }).catch(function(err) {
+        setTimeout(_refresh, interval);
       });
-      setTimeout(_refresh, interval);
-    }).catch(function(err) {
-      setTimeout(_refresh, interval);
-    });
+    }
   }
   function _getResults(result) {
     var arrayOfObjects = [];
@@ -17989,6 +18056,23 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
       if (name == "ID") {
         name = "id";
         result[name] = record[attribute];
+      } else if (record[attribute].indexOf(";#") > -1) {
+        var keys = record[attribute].split(";#");
+        var pairs = keys.length / 2;
+        var assignable = pairs.length > 1 ? [] : {};
+        for (var pair = 0; pair < pairs; pair++) {
+          if (pairs > 1)
+            assignable.push({
+              id: keys[pair],
+              value: keys[pair + 1]
+            });
+          else
+            assignable = {
+              id: keys[pair],
+              value: keys[pair + 1]
+            };
+        }
+        result[name] = assignable;
       } else if (!isNaN(record[attribute]))
         result[name] = parseFloat(record[attribute]);
       else
@@ -18035,12 +18119,15 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     setters: [function($__m) {
       SoapClient = $__m.SoapClient;
     }, function($__m) {
+      ExistsRequest = $__m.ExistsRequest;
+    }, function($__m) {
       UrlParser = $__m.UrlParser;
     }, function($__m) {
       _ = $__m.default;
     }],
     execute: function() {
       soapClient = new SoapClient();
+      tempKeys = [];
       cache = [];
       retriever = null;
       window = this;
@@ -18051,9 +18138,13 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
         var operation = event.data[0];
         var args = event.data[1];
         if (operation === 'init') {
-          settings = args;
-          _handleInit(settings);
-          _refresh();
+          try {
+            settings = _intializeSettings(args);
+            _handleInit(settings);
+            _refresh();
+          } catch (exception) {
+            this.close();
+          }
         } else if (operation == 'set') {
           _handleSet(args);
         } else if (operation == 'remove') {
