@@ -27,8 +27,8 @@ export class SharePoint extends EventEmitter {
 
         this.workerId = endpoint.path;
 
-        if (DEBUG_WORKER) {
 
+        if (DEBUG_WORKER) {
             // if the worker doesn't exist. create it and register the message handlers
             // once so we can re-use the worker at a later moment.
 
@@ -36,7 +36,14 @@ export class SharePoint extends EventEmitter {
                 SPWorkers[this.workerId] = new Worker('worker.js');
 
                 SPWorkers[this.workerId].onmessage = function(msg) {
-                    this.emit(msg.data.event, msg.data.result, msg.data.previousSiblingId);
+                    if (msg.data.event === 'INVALIDSTATE') {
+                        console.log("Worker Error:", msg.data.result);
+                        delete SPWorkers[this.workerId];
+                        this.workerId = msg.data.result.endPoint;
+                    }
+                    else {
+                        this.emit(msg.data.event, msg.data.result, msg.data.previousSiblingId);
+                    }
                 }.bind(this);
 
                 // have the worker initialized

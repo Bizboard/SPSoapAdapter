@@ -17827,10 +17827,13 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     var pathParts = url.path.split('/');
     var identifiedParts = [];
     while (!ExistsRequest(newPath + pathParts.join('/') + '/' + _GetListService())) {
-      identifiedParts.push(pathParts.splice(pathParts.length - 1, 1)[0]);
+      identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
     }
     if (identifiedParts.length > 1) {
-      throw new Error('Parameters could not be correctly extracted for polling. Assuming invalid state.');
+      throw {
+        endPoint: pathParts.join('/') + '/' + identifiedParts[0],
+        message: 'Parameters could not be correctly extracted for polling. Assuming invalid state.'
+      };
     } else {
       return {
         endPoint: newPath + pathParts.join('/'),
@@ -17847,14 +17850,7 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     retriever.params = {
       'listName': args.listName,
       'viewFields': {'ViewFields': ''},
-      'query': {'Query': {'Where': {'Gt': {
-              'FieldRef': {'_Name': 'Modified'},
-              'Value': {
-                '_Type': 'DateTime',
-                '_IncludeTimeValue': 'TRUE',
-                '__text': new Date(0).toISOString()
-              }
-            }}}},
+      'since': new Date(0).toISOString(),
       'queryOptions': {'QueryOptions': {
           'IncludeMandatoryColumns': 'FALSE',
           'ViewAttributes': {'_Scope': 'RecursiveAll'}
@@ -17998,14 +17994,14 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     if (newDate) {
       var dateObject = new Date(newDate);
       var offset = dateObject.getTimezoneOffset();
-      dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
-      retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
+      retriever.params.since = dateObject.toISOString();
     }
   }
   function _refresh() {
     if (retriever) {
       soapClient.call(retriever).then(function(result) {
         _setLastUpdated(result.timestamp);
+        _handleDeleted(result.data);
         var data = _getResults(result.data);
         _updateCache(data);
         postMessage({
@@ -18018,11 +18014,39 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
       });
     }
   }
+  function _handleDeleted(result) {
+    var changes = null;
+    changes = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][1];
+    if (changes && changes.$.ItemCount !== '0') {
+      var $__1 = function(cacheItem) {
+        var stillExists = _.findIndex(changes['z:row'], function(raw) {
+          var record = _formatRecord(raw.$);
+          var isLocal = _.findIndex(tempKeys, function(key) {
+            return key.remoteId == record.id;
+          });
+          if (isLocal > -1) {
+            record.id = tempKeys[isLocal].localId;
+          }
+          return cache[cacheItem].id == record.id;
+        });
+        if (stillExists == -1) {
+          postMessage({
+            event: 'child_removed',
+            result: cache[cacheItem]
+          });
+          cache.splice(cacheItem, 1);
+        }
+      };
+      for (var cacheItem in cache) {
+        $__1(cacheItem);
+      }
+    }
+  }
   function _getResults(result) {
     var arrayOfObjects = [];
     var node = null;
-    if (result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse) {
-      node = result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse[0].GetListItemsResult[0].listitems[0]["rs:data"][0];
+    if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse) {
+      node = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][0];
       if (node) {
         if (node.$.ItemCount !== '0') {
           for (var row in node['z:row']) {
@@ -18037,10 +18061,10 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
       if (error == '0x00000000') {
         node = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0];
         if (node) {
-          for (var row$__1 in node.Result) {
-            var raw$__2 = node.Result[row$__1]["z:row"][0].$;
-            var record$__3 = _formatRecord(raw$__2);
-            arrayOfObjects.push(record$__3);
+          for (var row$__2 in node.Result) {
+            var raw$__3 = node.Result[row$__2]["z:row"][0].$;
+            var record$__4 = _formatRecord(raw$__3);
+            arrayOfObjects.push(record$__4);
           }
         }
       }
@@ -18104,9 +18128,9 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     return {
       url: '',
       service: 'Lists',
-      method: 'GetListItems',
+      method: 'GetListItemChanges',
       params: '',
-      headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItems'], ['Content-Type', 'text/xml']])
+      headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChanges'], ['Content-Type', 'text/xml']])
     };
   }
   function _GetListService() {
@@ -18143,7 +18167,11 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
             _handleInit(settings);
             _refresh();
           } catch (exception) {
-            this.close();
+            postMessage({
+              event: 'INVALIDSTATE',
+              result: exception
+            });
+            self.close();
           }
         } else if (operation == 'set') {
           _handleSet(args);

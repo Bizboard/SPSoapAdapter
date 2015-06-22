@@ -33,7 +33,8 @@ this.onmessage = function (event) {
         }
         // if we can't initalize. we might as well kill ourselfs.
         catch (exception) {
-            this.close();
+            postMessage({ event: 'INVALIDSTATE', result: exception });
+            self.close();
         }
     }
     else if (operation == 'set') {
@@ -56,14 +57,16 @@ function _intializeSettings(args) {
     let identifiedParts = [];
 
     while (!ExistsRequest(newPath + pathParts.join('/') + '/' + _GetListService()) ) {
-        identifiedParts.push(pathParts.splice(pathParts.length-1, 1)[0]);
+        identifiedParts.unshift(pathParts.splice(pathParts.length-1, 1)[0]);
     }
 
     if (identifiedParts.length>1) {
-        throw new Error('Parameters could not be correctly extracted for polling. Assuming invalid state.');
+        throw {
+            endPoint: pathParts.join('/') + '/' + identifiedParts[0],
+            message: 'Parameters could not be correctly extracted for polling. Assuming invalid state.'
+        }
     }
     else {
-
         return {
             endPoint: newPath + pathParts.join('/'),
             listName: identifiedParts[0],
@@ -90,7 +93,8 @@ function _handleInit(args) {
         'viewFields': {
             'ViewFields': ''
         },
-        'query': {
+        'since': new Date(0).toISOString(),
+        /*'query': {
             'Query': {
                 'Where': {
                     'Gt': {
@@ -105,7 +109,7 @@ function _handleInit(args) {
                     }
                 }
             }
-        },
+        },*/
         'queryOptions': {
             'QueryOptions': {
                 'IncludeMandatoryColumns': 'FALSE',
@@ -306,8 +310,9 @@ function _setLastUpdated(newDate) {
     if (newDate) {
         let dateObject = new Date(newDate);
         let offset = dateObject.getTimezoneOffset();
-        dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
-        retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
+        //dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
+        retriever.params.since = dateObject.toISOString();
+        //retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
     }
 }
 
@@ -322,6 +327,7 @@ function _refresh() {
             .then((result)=> {
 
                 _setLastUpdated(result.timestamp);
+                _handleDeleted(result.data);
                 let data = _getResults(result.data);
                 _updateCache(data);
 
@@ -332,6 +338,56 @@ function _refresh() {
 
                 setTimeout(_refresh, interval);
             });
+    }
+}
+
+function _handleDeleted(result) {
+
+    let changes = null;
+    changes = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][1];
+
+    if (changes && changes.$.ItemCount !== '0') {
+
+        for (let cacheItem in cache) {
+
+            let stillExists = _.findIndex(changes['z:row'], function(raw) {
+                let record = _formatRecord(raw.$);
+
+                let isLocal = _.findIndex(tempKeys, function(key){
+                    return key.remoteId == record.id;
+                });
+
+                if (isLocal>-1) {
+                    record.id = tempKeys[isLocal].localId;
+                }
+
+                return cache[cacheItem].id == record.id;
+            });
+/*
+            for (let row in changes['z:row']) {
+                let raw = node['z:row'][row].$;
+                let record = _formatRecord(raw);
+
+                let isLocal = _.findIndex(tempKeys, function(key){
+                    return key.remoteId == record.id;
+                });
+
+                if (isLocal>-1) {
+                    record.id = tempKeys[isLocal].localId;
+                }
+
+                if (record.id==cache[cacheItem].id) {
+                    stillExists = true;
+                }
+            }*/
+
+            if (stillExists == -1) {
+                postMessage({ event: 'child_removed',
+                    result: cache[cacheItem]
+                });
+                cache.splice(cacheItem,1);
+            }
+        }
     }
 }
 
@@ -347,8 +403,10 @@ function _getResults(result) {
     let node = null;
 
 
-    if (result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse) {
-        node = result["soap:Envelope"]["soap:Body"][0].GetListItemsResponse[0].GetListItemsResult[0].listitems[0]["rs:data"][0];
+
+    if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse) {
+
+        node = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][0];
 
         if (node) {
             if (node.$.ItemCount !== '0') {
@@ -468,10 +526,10 @@ function _GetListItemsDefaultConfiguration() {
     return {
         url: '',
         service: 'Lists',
-        method: 'GetListItems',
+        method: 'GetListItemChanges',
         params: '',
         headers: new Map([
-            ['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItems'],
+            ['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChanges'],
             ['Content-Type', 'text/xml']
         ])
     };

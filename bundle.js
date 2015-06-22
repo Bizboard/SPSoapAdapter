@@ -8556,6 +8556,11 @@ System.register("SharePoint.js", ["npm:eventemitter3@1.1.0.js", "npm:lodash@3.9.
           if (!endpoint)
             throw Error('Invalid configuration.');
           this.workerId = endpoint.path;
+          for (var worker in SPWorkers) {
+            if (endpoint.path.indexOf(worker.path) > -1) {
+              this.workerId = worker.path;
+            }
+          }
           if (DEBUG_WORKER) {
             if (!SPWorkers[this.workerId]) {
               SPWorkers[this.workerId] = new Worker('worker.js');
@@ -8602,16 +8607,6 @@ System.register("main.js", ["SharePoint.js"], function($__export) {
         console.log('Changed:', data);
       });
       window.spworker1.on('child_removed', function(data) {
-        console.log('Removed:', data);
-      });
-      window.spworker2 = new SharePoint({endPoint: 'https://bizboardapps.sharepoint.com/sites/Bizmark01/Fotos'});
-      window.spworker2.on('child_added', function(data) {
-        console.log('Added:', data);
-      });
-      window.spworker2.on('child_changed', function(data) {
-        console.log('Changed:', data);
-      });
-      window.spworker2.on('child_removed', function(data) {
         console.log('Removed:', data);
       });
     }
