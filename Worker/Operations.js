@@ -309,10 +309,7 @@ function _updateCache(data) {
 function _setLastUpdated(newDate) {
     if (newDate) {
         let dateObject = new Date(newDate);
-        let offset = dateObject.getTimezoneOffset();
-        //dateObject.setTime(dateObject.getTime() + (offset * -1) * 60 * 1000);
         retriever.params.since = dateObject.toISOString();
-        //retriever.params.query.Query.Where.Gt.Value.__text = dateObject.toISOString();
     }
 }
 
@@ -343,8 +340,7 @@ function _refresh() {
 
 function _handleDeleted(result) {
 
-    let changes = null;
-    changes = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][1];
+    let changes = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][1];
 
     if (changes && changes.$.ItemCount !== '0') {
 
@@ -363,23 +359,6 @@ function _handleDeleted(result) {
 
                 return cache[cacheItem].id == record.id;
             });
-/*
-            for (let row in changes['z:row']) {
-                let raw = node['z:row'][row].$;
-                let record = _formatRecord(raw);
-
-                let isLocal = _.findIndex(tempKeys, function(key){
-                    return key.remoteId == record.id;
-                });
-
-                if (isLocal>-1) {
-                    record.id = tempKeys[isLocal].localId;
-                }
-
-                if (record.id==cache[cacheItem].id) {
-                    stillExists = true;
-                }
-            }*/
 
             if (stillExists == -1) {
                 postMessage({ event: 'child_removed',
