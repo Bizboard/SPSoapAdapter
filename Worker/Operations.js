@@ -33,7 +33,7 @@ this.onmessage = function (event) {
         }
             // if we can't initalize. we might as well kill ourselfs.
         catch (exception) {
-            postMessage({ event: 'INVALIDSTATE', result: exception });
+            postMessage({event: 'INVALIDSTATE', result: exception});
             self.close();
         }
     }
@@ -56,11 +56,11 @@ function _intializeSettings(args) {
     var pathParts = url.path.split('/');
     let identifiedParts = [];
 
-    while (!ExistsRequest(newPath + pathParts.join('/') + '/' + _GetListService()) ) {
-        identifiedParts.unshift(pathParts.splice(pathParts.length-1, 1)[0]);
+    while (!ExistsRequest(newPath + pathParts.join('/') + '/' + _GetListService())) {
+        identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
     }
 
-    if (identifiedParts.length>1) {
+    if (identifiedParts.length > 1) {
         throw {
             endPoint: pathParts.join('/') + '/' + identifiedParts[0],
             message: 'Parameters could not be correctly extracted for polling. Assuming invalid state.'
@@ -152,7 +152,7 @@ function _handleSet(newData) {
     var fieldCollection = [];
     var method = '';
 
-    let isLocal = _.findIndex(tempKeys, function(key){
+    let isLocal = _.findIndex(tempKeys, function (key) {
         return key.localId == newData.id;
     });
 
@@ -212,7 +212,7 @@ function _handleSet(newData) {
         .then((result)=> {
 
             let data = _getResults(result.data);
-            if (data.length==1) {
+            if (data.length == 1) {
 
                 // push ID mapping for given session
                 if (newData['_temporary-identifier']) {
@@ -235,7 +235,7 @@ function _handleRemove(record) {
     configuration.url = _ParsePath(settings.endPoint, _GetListService());
     var fieldCollection = [];
 
-    let isLocal = _.findIndex(tempKeys, function(key){
+    let isLocal = _.findIndex(tempKeys, function (key) {
         return key.localId == record.id;
     });
 
@@ -282,47 +282,42 @@ function _handleRemove(record) {
  * @private
  */
 function _updateCache(data) {
-    let counter = 0;
+
     for (let record in data) {
-        counter++;
 
-        setTimeout(function(record, data){
-            let isLocal = _.findIndex(tempKeys, function(key){
-                return key.remoteId == data.id;
+        let isLocal = _.findIndex(tempKeys, function (key) {
+            return key.remoteId == data.id;
+        });
+
+        if (isLocal > -1) {
+            data[record].id = tempKeys[isLocal].localId;
+        }
+
+        let isCached = _.findIndex(cache, function (item) {
+            return data[record].id == item.id;
+        });
+
+        if (isCached == -1) {
+            cache.push(data[record]);
+
+            let previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
+            postMessage({
+                event: 'child_added',
+                result: data[record],
+                previousSiblingId: previousSiblingId ? previousSiblingId.id : null
             });
-
-            if (isLocal>-1) {
-                data[record].id = tempKeys[isLocal].localId;
-            }
-
-            let isCached = _.findIndex(cache, function (item) {
-                return data[record].id == item.id;
-            });
-
-            if (isCached == -1) {
-                cache.push(data[record]);
-
-                let previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
+        }
+        else {
+            if (!_.isEqual(data[record], cache[isCached])) {
+                cache.splice(isCached, 1, data[record]);
+                let previousSibling = isCached == 0 ? null : cache[isCached - 1];
                 postMessage({
-                    event: 'child_added',
+                    event: 'child_changed',
                     result: data[record],
-                    previousSiblingId: previousSiblingId ? previousSiblingId.id : null
+                    previousSiblingId: previousSibling ? previousSibling.id : null
                 });
             }
-            else {
-                if (!_.isEqual(data[record], cache[isCached])) {
-                    cache.splice(isCached, 1, data[record]);
-                    let previousSibling = isCached == 0 ? null : cache[isCached - 1];
-                    postMessage({
-                        event: 'child_changed',
-                        result: data[record],
-                        previousSiblingId: previousSibling ? previousSibling.id : null
-                    });
-                }
-            }
-        }.bind(this, record, data), 50 * counter);
-
-
+        }
     }
 }
 
@@ -377,19 +372,20 @@ function _handleDeleted(result) {
 
                 let recordId = changes[change]._;
 
-                let isLocal = _.findIndex(tempKeys, function(key){
+                let isLocal = _.findIndex(tempKeys, function (key) {
                     return key.remoteId == recordId;
                 });
 
-                if (isLocal>-1) {
+                if (isLocal > -1) {
                     recordId = tempKeys[isLocal].localId;
                 }
 
-                let cacheItem = _.findIndex(cache, function(item) {
+                let cacheItem = _.findIndex(cache, function (item) {
                     return item.id == recordId;
                 });
 
-                postMessage({ event: 'child_removed',
+                postMessage({
+                    event: 'child_removed',
                     result: cache[cacheItem]
                 });
                 cache.splice(cacheItem, 1);
@@ -408,7 +404,6 @@ function _getResults(result) {
 
     let arrayOfObjects = [];
     let node = null;
-
 
 
     if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse) {

@@ -17981,43 +17981,38 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     });
   }
   function _updateCache(data) {
-    var counter = 0;
-    var $__0 = this,
-        $__1 = function(record) {
-          counter++;
-          setTimeout(function(record, data) {
-            var isLocal = _.findIndex(tempKeys, function(key) {
-              return key.remoteId == data.id;
-            });
-            if (isLocal > -1) {
-              data[record].id = tempKeys[isLocal].localId;
-            }
-            var isCached = _.findIndex(cache, function(item) {
-              return data[record].id == item.id;
-            });
-            if (isCached == -1) {
-              cache.push(data[record]);
-              var previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
-              postMessage({
-                event: 'child_added',
-                result: data[record],
-                previousSiblingId: previousSiblingId ? previousSiblingId.id : null
-              });
-            } else {
-              if (!_.isEqual(data[record], cache[isCached])) {
-                cache.splice(isCached, 1, data[record]);
-                var previousSibling = isCached == 0 ? null : cache[isCached - 1];
-                postMessage({
-                  event: 'child_changed',
-                  result: data[record],
-                  previousSiblingId: previousSibling ? previousSibling.id : null
-                });
-              }
-            }
-          }.bind($__0, record, data), 50 * counter);
-        };
+    var $__0 = function(record) {
+      var isLocal = _.findIndex(tempKeys, function(key) {
+        return key.remoteId == data.id;
+      });
+      if (isLocal > -1) {
+        data[record].id = tempKeys[isLocal].localId;
+      }
+      var isCached = _.findIndex(cache, function(item) {
+        return data[record].id == item.id;
+      });
+      if (isCached == -1) {
+        cache.push(data[record]);
+        var previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
+        postMessage({
+          event: 'child_added',
+          result: data[record],
+          previousSiblingId: previousSiblingId ? previousSiblingId.id : null
+        });
+      } else {
+        if (!_.isEqual(data[record], cache[isCached])) {
+          cache.splice(isCached, 1, data[record]);
+          var previousSibling = isCached == 0 ? null : cache[isCached - 1];
+          postMessage({
+            event: 'child_changed',
+            result: data[record],
+            previousSiblingId: previousSibling ? previousSibling.id : null
+          });
+        }
+      }
+    };
     for (var record in data) {
-      $__1(record);
+      $__0(record);
     }
   }
   function _setLastUpdated(lastChangeToken) {
@@ -18045,7 +18040,7 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
   function _handleDeleted(result) {
     var changes = result.Id || null;
     if (changes && changes.length > 0) {
-      var $__2 = function(change) {
+      var $__1 = function(change) {
         if (changes[change].$.ChangeType == "Delete") {
           var recordId = changes[change]._;
           var isLocal = _.findIndex(tempKeys, function(key) {
@@ -18065,7 +18060,7 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
         }
       };
       for (var change in changes) {
-        $__2(change);
+        $__1(change);
       }
     }
   }
@@ -18088,10 +18083,10 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
       if (error == '0x00000000') {
         node = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0];
         if (node) {
-          for (var row$__3 in node.Result) {
-            var raw$__4 = node.Result[row$__3]["z:row"][0].$;
-            var record$__5 = _formatRecord(raw$__4);
-            arrayOfObjects.push(record$__5);
+          for (var row$__2 in node.Result) {
+            var raw$__3 = node.Result[row$__2]["z:row"][0].$;
+            var record$__4 = _formatRecord(raw$__3);
+            arrayOfObjects.push(record$__4);
           }
         }
       }
