@@ -17872,10 +17872,10 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
             "_Name": args.orderBy
           }};
       } else {
-        retriever.params.query = {OrderBy: {"FieldRef": {
-              "_Ascending": "TRUE",
-              "_Name": args.orderBy
-            }}};
+        retriever.params.query = {Query: {OrderBy: {"FieldRef": {
+                "_Ascending": "TRUE",
+                "_Name": args.orderBy
+              }}}};
       }
     }
     if (args.limit) {
