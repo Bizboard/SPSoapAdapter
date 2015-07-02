@@ -126,10 +126,12 @@ function _handleInit(args) {
         }
         else {
             retriever.params.query = {
-                OrderBy: {
-                    "FieldRef": {
-                        "_Ascending": "TRUE",
-                        "_Name": args.orderBy
+                Query: {
+                    OrderBy: {
+                        "FieldRef": {
+                            "_Ascending": "TRUE",
+                            "_Name": args.orderBy
+                        }
                     }
                 }
             };
