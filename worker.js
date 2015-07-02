@@ -17835,11 +17835,18 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
         message: 'Parameters could not be correctly extracted for polling. Assuming invalid state.'
       };
     } else {
-      return {
+      var resultconfig = {
         endPoint: newPath + pathParts.join('/'),
         listName: identifiedParts[0],
         itemId: identifiedParts[1]
       };
+      if (args.query)
+        resultconfig.query = args.query;
+      if (args.limit)
+        resultconfig.limit = args.limit;
+      if (args.orderBy)
+        resultconfig.orderBy = args.orderBy;
+      return resultconfig;
     }
   }
   function _handleInit(args) {
@@ -17850,12 +17857,30 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     retriever.params = {
       'listName': args.listName,
       'viewFields': {'ViewFields': ''},
-      'since': new Date(0).toISOString(),
       'queryOptions': {'QueryOptions': {
           'IncludeMandatoryColumns': 'FALSE',
           'ViewAttributes': {'_Scope': 'RecursiveAll'}
         }}
     };
+    if (args.query) {
+      retriever.params.query = args.query;
+    }
+    if (args.orderBy) {
+      if (retriever.params.query) {
+        retriever.params.query.OrderBy = {"FieldRef": {
+            "_Ascending": "TRUE",
+            "_Name": args.orderBy
+          }};
+      } else {
+        retriever.params.query = {OrderBy: {"FieldRef": {
+              "_Ascending": "TRUE",
+              "_Name": args.orderBy
+            }}};
+      }
+    }
+    if (args.limit) {
+      retriever.params.rowLimit = args.limit;
+    }
   }
   function _handleSet(newData) {
     var configuration = _UpdateListItemsDefaultConfiguration();
@@ -17956,52 +17981,55 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     });
   }
   function _updateCache(data) {
-    var $__0 = function(record) {
-      var isLocal = _.findIndex(tempKeys, function(key) {
-        return key.remoteId == data.id;
-      });
-      if (isLocal > -1) {
-        data[record].id = tempKeys[isLocal].localId;
-      }
-      var isCached = _.findIndex(cache, function(item) {
-        return data[record].id == item.id;
-      });
-      if (isCached == -1) {
-        cache.push(data[record]);
-        var previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
-        postMessage({
-          event: 'child_added',
-          result: data[record],
-          previousSiblingId: previousSiblingId ? previousSiblingId.id : null
-        });
-      } else {
-        if (!_.isEqual(data[record], cache[isCached])) {
-          cache.splice(isCached, 1, data[record]);
-          var previousSibling = isCached == 0 ? null : cache[isCached - 1];
-          postMessage({
-            event: 'child_changed',
-            result: data[record],
-            previousSiblingId: previousSibling ? previousSibling.id : null
-          });
-        }
-      }
-    };
+    var counter = 0;
+    var $__0 = this,
+        $__1 = function(record) {
+          counter++;
+          setTimeout(function(record, data) {
+            var isLocal = _.findIndex(tempKeys, function(key) {
+              return key.remoteId == data.id;
+            });
+            if (isLocal > -1) {
+              data[record].id = tempKeys[isLocal].localId;
+            }
+            var isCached = _.findIndex(cache, function(item) {
+              return data[record].id == item.id;
+            });
+            if (isCached == -1) {
+              cache.push(data[record]);
+              var previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
+              postMessage({
+                event: 'child_added',
+                result: data[record],
+                previousSiblingId: previousSiblingId ? previousSiblingId.id : null
+              });
+            } else {
+              if (!_.isEqual(data[record], cache[isCached])) {
+                cache.splice(isCached, 1, data[record]);
+                var previousSibling = isCached == 0 ? null : cache[isCached - 1];
+                postMessage({
+                  event: 'child_changed',
+                  result: data[record],
+                  previousSiblingId: previousSibling ? previousSibling.id : null
+                });
+              }
+            }
+          }.bind($__0, record, data), 50 * counter);
+        };
     for (var record in data) {
-      $__0(record);
+      $__1(record);
     }
   }
-  function _setLastUpdated(newDate) {
-    if (newDate) {
-      var dateObject = new Date(newDate);
-      var offset = dateObject.getTimezoneOffset();
-      retriever.params.since = dateObject.toISOString();
-    }
+  function _setLastUpdated(lastChangeToken) {
+    retriever.params.changeToken = lastChangeToken;
   }
   function _refresh() {
     if (retriever) {
       soapClient.call(retriever).then(function(result) {
-        _setLastUpdated(result.timestamp);
-        _handleDeleted(result.data);
+        var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
+        var lastChangedToken = changes.$.LastChangeToken;
+        _setLastUpdated(lastChangedToken);
+        _handleDeleted(changes);
         var data = _getResults(result.data);
         _updateCache(data);
         postMessage({
@@ -18015,21 +18043,20 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     }
   }
   function _handleDeleted(result) {
-    var changes = null;
-    changes = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][1];
-    if (changes && changes.$.ItemCount !== '0') {
-      var $__1 = function(cacheItem) {
-        var stillExists = _.findIndex(changes['z:row'], function(raw) {
-          var record = _formatRecord(raw.$);
+    var changes = result.Id || null;
+    if (changes && changes.length > 0) {
+      var $__2 = function(change) {
+        if (changes[change].$.ChangeType == "Delete") {
+          var recordId = changes[change]._;
           var isLocal = _.findIndex(tempKeys, function(key) {
-            return key.remoteId == record.id;
+            return key.remoteId == recordId;
           });
           if (isLocal > -1) {
-            record.id = tempKeys[isLocal].localId;
+            recordId = tempKeys[isLocal].localId;
           }
-          return cache[cacheItem].id == record.id;
-        });
-        if (stillExists == -1) {
+          var cacheItem = _.findIndex(cache, function(item) {
+            return item.id == recordId;
+          });
           postMessage({
             event: 'child_removed',
             result: cache[cacheItem]
@@ -18037,16 +18064,16 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
           cache.splice(cacheItem, 1);
         }
       };
-      for (var cacheItem in cache) {
-        $__1(cacheItem);
+      for (var change in changes) {
+        $__2(change);
       }
     }
   }
   function _getResults(result) {
     var arrayOfObjects = [];
     var node = null;
-    if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse) {
-      node = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][0];
+    if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse) {
+      node = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0]["rs:data"][0];
       if (node) {
         if (node.$.ItemCount !== '0') {
           for (var row in node['z:row']) {
@@ -18061,10 +18088,10 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
       if (error == '0x00000000') {
         node = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0];
         if (node) {
-          for (var row$__2 in node.Result) {
-            var raw$__3 = node.Result[row$__2]["z:row"][0].$;
-            var record$__4 = _formatRecord(raw$__3);
-            arrayOfObjects.push(record$__4);
+          for (var row$__3 in node.Result) {
+            var raw$__4 = node.Result[row$__3]["z:row"][0].$;
+            var record$__5 = _formatRecord(raw$__4);
+            arrayOfObjects.push(record$__5);
           }
         }
       }
@@ -18128,9 +18155,9 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
     return {
       url: '',
       service: 'Lists',
-      method: 'GetListItemChanges',
+      method: 'GetListItemChangesSinceToken',
       params: '',
-      headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChanges'], ['Content-Type', 'text/xml']])
+      headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChangesSinceToken'], ['Content-Type', 'text/xml']])
     };
   }
   function _GetListService() {

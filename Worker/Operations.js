@@ -31,7 +31,7 @@ this.onmessage = function (event) {
             _handleInit(settings);
             _refresh();
         }
-        // if we can't initalize. we might as well kill ourselfs.
+            // if we can't initalize. we might as well kill ourselfs.
         catch (exception) {
             postMessage({ event: 'INVALIDSTATE', result: exception });
             self.close();
@@ -67,11 +67,18 @@ function _intializeSettings(args) {
         }
     }
     else {
-        return {
+        let resultconfig = {
             endPoint: newPath + pathParts.join('/'),
             listName: identifiedParts[0],
             itemId: identifiedParts[1]
         };
+
+
+        if (args.query) resultconfig.query = args.query;
+        if (args.limit) resultconfig.limit = args.limit;
+        if (args.orderBy) resultconfig.orderBy = args.orderBy;
+
+        return resultconfig;
     }
 }
 
@@ -93,23 +100,7 @@ function _handleInit(args) {
         'viewFields': {
             'ViewFields': ''
         },
-        'since': new Date(0).toISOString(),
-        /*'query': {
-            'Query': {
-                'Where': {
-                    'Gt': {
-                        'FieldRef': {
-                            '_Name': 'Modified'
-                        },
-                        'Value': {
-                            '_Type': 'DateTime',
-                            '_IncludeTimeValue': 'TRUE',
-                            '__text': new Date(0).toISOString()
-                        }
-                    }
-                }
-            }
-        },*/
+        //'since': new Date(0).toISOString(),
         'queryOptions': {
             'QueryOptions': {
                 'IncludeMandatoryColumns': 'FALSE',
@@ -119,6 +110,35 @@ function _handleInit(args) {
             }
         }
     };
+
+    if (args.query) {
+        retriever.params.query = args.query;
+    }
+
+    if (args.orderBy) {
+        if (retriever.params.query) {
+            retriever.params.query.OrderBy = {
+                "FieldRef": {
+                    "_Ascending": "TRUE",
+                    "_Name": args.orderBy
+                }
+            };
+        }
+        else {
+            retriever.params.query = {
+                OrderBy: {
+                    "FieldRef": {
+                        "_Ascending": "TRUE",
+                        "_Name": args.orderBy
+                    }
+                }
+            };
+        }
+    }
+
+    if (args.limit) {
+        retriever.params.rowLimit = args.limit;
+    }
 }
 
 
@@ -262,41 +282,47 @@ function _handleRemove(record) {
  * @private
  */
 function _updateCache(data) {
+    let counter = 0;
     for (let record in data) {
+        counter++;
 
-        let isLocal = _.findIndex(tempKeys, function(key){
-            return key.remoteId == data.id;
-        });
-
-        if (isLocal>-1) {
-            data[record].id = tempKeys[isLocal].localId;
-        }
-
-        let isCached = _.findIndex(cache, function (item) {
-            return data[record].id == item.id;
-        });
-
-        if (isCached == -1) {
-            cache.push(data[record]);
-
-            let previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
-            postMessage({
-                event: 'child_added',
-                result: data[record],
-                previousSiblingId: previousSiblingId ? previousSiblingId.id : null
+        setTimeout(function(record, data){
+            let isLocal = _.findIndex(tempKeys, function(key){
+                return key.remoteId == data.id;
             });
-        }
-        else {
-            if (!_.isEqual(data[record], cache[isCached])) {
-                cache.splice(isCached, 1, data[record]);
-                let previousSibling = isCached == 0 ? null : cache[isCached - 1];
+
+            if (isLocal>-1) {
+                data[record].id = tempKeys[isLocal].localId;
+            }
+
+            let isCached = _.findIndex(cache, function (item) {
+                return data[record].id == item.id;
+            });
+
+            if (isCached == -1) {
+                cache.push(data[record]);
+
+                let previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
                 postMessage({
-                    event: 'child_changed',
+                    event: 'child_added',
                     result: data[record],
-                    previousSiblingId: previousSibling ? previousSibling.id : null
+                    previousSiblingId: previousSiblingId ? previousSiblingId.id : null
                 });
             }
-        }
+            else {
+                if (!_.isEqual(data[record], cache[isCached])) {
+                    cache.splice(isCached, 1, data[record]);
+                    let previousSibling = isCached == 0 ? null : cache[isCached - 1];
+                    postMessage({
+                        event: 'child_changed',
+                        result: data[record],
+                        previousSiblingId: previousSibling ? previousSibling.id : null
+                    });
+                }
+            }
+        }.bind(this, record, data), 50 * counter);
+
+
     }
 }
 
@@ -306,11 +332,9 @@ function _updateCache(data) {
  * @param newDate
  * @private
  */
-function _setLastUpdated(newDate) {
-    if (newDate) {
-        let dateObject = new Date(newDate);
-        retriever.params.since = dateObject.toISOString();
-    }
+function _setLastUpdated(lastChangeToken) {
+
+    retriever.params.changeToken = lastChangeToken;
 }
 
 
@@ -322,9 +346,12 @@ function _refresh() {
     if (retriever) {
         soapClient.call(retriever)
             .then((result)=> {
+                let changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
+                let lastChangedToken = changes.$.LastChangeToken;
 
-                _setLastUpdated(result.timestamp);
-                _handleDeleted(result.data);
+                _setLastUpdated(lastChangedToken);
+                _handleDeleted(changes);
+
                 let data = _getResults(result.data);
                 _updateCache(data);
 
@@ -340,31 +367,32 @@ function _refresh() {
 
 function _handleDeleted(result) {
 
-    let changes = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][1];
+    let changes = result.Id || null;
 
-    if (changes && changes.$.ItemCount !== '0') {
+    if (changes && changes.length > 0) {
 
-        for (let cacheItem in cache) {
+        for (let change in changes) {
 
-            let stillExists = _.findIndex(changes['z:row'], function(raw) {
-                let record = _formatRecord(raw.$);
+            if (changes[change].$.ChangeType == "Delete") {
+
+                let recordId = changes[change]._;
 
                 let isLocal = _.findIndex(tempKeys, function(key){
-                    return key.remoteId == record.id;
+                    return key.remoteId == recordId;
                 });
 
                 if (isLocal>-1) {
-                    record.id = tempKeys[isLocal].localId;
+                    recordId = tempKeys[isLocal].localId;
                 }
 
-                return cache[cacheItem].id == record.id;
-            });
+                let cacheItem = _.findIndex(cache, function(item) {
+                    return item.id == recordId;
+                });
 
-            if (stillExists == -1) {
                 postMessage({ event: 'child_removed',
                     result: cache[cacheItem]
                 });
-                cache.splice(cacheItem,1);
+                cache.splice(cacheItem, 1);
             }
         }
     }
@@ -383,9 +411,9 @@ function _getResults(result) {
 
 
 
-    if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse) {
+    if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse) {
 
-        node = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesResponse[0].GetListItemChangesResult[0].listitems[0]["rs:data"][0];
+        node = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0]["rs:data"][0];
 
         if (node) {
             if (node.$.ItemCount !== '0') {
@@ -505,10 +533,10 @@ function _GetListItemsDefaultConfiguration() {
     return {
         url: '',
         service: 'Lists',
-        method: 'GetListItemChanges',
+        method: 'GetListItemChangesSinceToken',
         params: '',
         headers: new Map([
-            ['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChanges'],
+            ['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChangesSinceToken'],
             ['Content-Type', 'text/xml']
         ])
     };

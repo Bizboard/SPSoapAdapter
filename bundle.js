@@ -8556,16 +8556,17 @@ System.register("SharePoint.js", ["npm:eventemitter3@1.1.0.js", "npm:lodash@3.9.
           if (!endpoint)
             throw Error('Invalid configuration.');
           this.workerId = endpoint.path;
-          for (var worker in SPWorkers) {
-            if (endpoint.path.indexOf(worker.path) > -1) {
-              this.workerId = worker.path;
-            }
-          }
           if (DEBUG_WORKER) {
             if (!SPWorkers[this.workerId]) {
               SPWorkers[this.workerId] = new Worker('worker.js');
               SPWorkers[this.workerId].onmessage = function(msg) {
-                this.emit(msg.data.event, msg.data.result, msg.data.previousSiblingId);
+                if (msg.data.event === 'INVALIDSTATE') {
+                  console.log("Worker Error:", msg.data.result);
+                  delete SPWorkers[this.workerId];
+                  this.workerId = msg.data.result.endPoint;
+                } else {
+                  this.emit(msg.data.event, msg.data.result, msg.data.previousSiblingId);
+                }
               }.bind(this);
               SPWorkers[this.workerId].postMessage(['init', options]);
             }
@@ -8599,7 +8600,19 @@ System.register("main.js", ["SharePoint.js"], function($__export) {
       SharePoint = $__m.SharePoint;
     }],
     execute: function() {
-      window.spworker1 = new SharePoint({endPoint: 'https://bizboardapps.sharepoint.com/sites/Bizmark01/Offers'});
+      window.spworker1 = new SharePoint({
+        endPoint: 'https://bizboardapps.sharepoint.com/sites/Bizmark02/Offers',
+        query: {'Query': {'Where': {'Eq': {
+                'FieldRef': {
+                  '_Name': 'Category',
+                  "_LookupId": "TRUE"
+                },
+                'Value': {
+                  '_Type': 'Lookup',
+                  '__text': 7
+                }
+              }}}}
+      });
       window.spworker1.on('child_added', function(data) {
         console.log('Added:', data);
       });
