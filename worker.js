@@ -3846,6 +3846,7 @@ System = curSystem; })();
     return function(formatDetect) {
       formatDetect(function() {
         var System = {
+          _nodeRequire: typeof require != 'undefined' && require.resolve && typeof process != 'undefined' && require,
           register: register,
           registerDynamic: registerDynamic,
           get: load, 
@@ -3856,7 +3857,7 @@ System = curSystem; })();
             return module;
           },
           'import': function() {
-            throw new TypeError('Dynamic System.import calls are not supported for SFX bundles.');
+            throw new TypeError('Dynamic System.import calls are not supported for SFX bundles. Rather use a named bundle.');
           }
         };
         System.set('@empty', {});
@@ -17496,7 +17497,7 @@ System.register("github:Bizboard/arva-utils@master/ObjectHelper.js", ["npm:lodas
                 {
                   var value = rootObject[name];
                   if (value !== null && value !== undefined && typeof value !== 'function') {
-                    if (typeof value == 'object') {
+                    if (typeof value === 'object') {
                       result[name] = ObjectHelper.getEnumerableProperties(value);
                     } else {
                       result[name] = value;
@@ -17534,7 +17535,7 @@ System.register("github:Bizboard/arva-utils@master/ObjectHelper.js", ["npm:lodas
                   if (descriptor && descriptor.enumerable) {
                     var value$__16 = rootObject[name$__15];
                     if (value$__16 !== null && value$__16 !== undefined && typeof value$__16 !== 'function') {
-                      if (typeof value$__16 == 'object') {
+                      if (typeof value$__16 === 'object') {
                         result[name$__15] = ObjectHelper.getEnumerableProperties(value$__16);
                       } else {
                         result[name$__15] = value$__16;
@@ -17649,11 +17650,7 @@ System.register("github:Bizboard/arva-utils@master/request/RequestClient.js", []
     var req = new XMLHttpRequest();
     req.open('OPTIONS', url, false);
     req.send();
-    if (req.status !== 404) {
-      return true;
-    } else {
-      return false;
-    }
+    return req.status !== 404;
   }
   $__export("GetRequest", GetRequest);
   $__export("PostRequest", PostRequest);
@@ -17907,13 +17904,17 @@ System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboar
       method = 'New';
     }
     for (var prop in newData) {
-      if (prop == "id" || typeof(newData[prop]) == "undefined")
+      var fieldValue = newData[prop];
+      if (prop == "id" || typeof(fieldValue) == "undefined")
         continue;
       if (prop == "priority" || prop == "_temporary-identifier")
         continue;
+      if (typeof fieldValue === "object" && fieldValue.id && fieldValue.value) {
+        fieldValue = (fieldValue.id + ";#" + fieldValue.value);
+      }
       fieldCollection.push({
         "_Name": prop,
-        "__text": newData[prop]
+        "__text": fieldValue
       });
     }
     configuration.params = {

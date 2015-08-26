@@ -3846,6 +3846,7 @@ System = curSystem; })();
     return function(formatDetect) {
       formatDetect(function() {
         var System = {
+          _nodeRequire: typeof require != 'undefined' && require.resolve && typeof process != 'undefined' && require,
           register: register,
           registerDynamic: registerDynamic,
           get: load, 
@@ -3856,7 +3857,7 @@ System = curSystem; })();
             return module;
           },
           'import': function() {
-            throw new TypeError('Dynamic System.import calls are not supported for SFX bundles.');
+            throw new TypeError('Dynamic System.import calls are not supported for SFX bundles. Rather use a named bundle.');
           }
         };
         System.set('@empty', {});

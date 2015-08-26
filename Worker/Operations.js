@@ -182,12 +182,17 @@ function _handleSet(newData) {
     }
 
     for (var prop in newData) {
-        if (prop == "id" || typeof(newData[prop]) == "undefined") continue;
+        let fieldValue = newData[prop];
+        if (prop == "id" || typeof(fieldValue) == "undefined") continue;
         if (prop == "priority" || prop == "_temporary-identifier") continue;
+        if(typeof fieldValue === "object" && fieldValue.id && fieldValue.value) {
+            /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
+            fieldValue = `${fieldValue.id};#${fieldValue.value}`;
+        }
 
         fieldCollection.push({
             "_Name": prop,
-            "__text": newData[prop]
+            "__text": fieldValue
         });
     }
 
