@@ -7,8 +7,10 @@ import EventEmitter     from 'eventemitter3';
 import {UrlParser}      from 'arva-utils/request/UrlParser';
 import {BlobHelper}     from 'arva-utils/BlobHelper';
 
-var DEBUG_WORKER = true;
-var SPWorker = new Worker('worker.js');
+let DEBUG_WORKER = true;
+let SPWorker = new Worker('worker.js');
+let workerEvents = new EventEmitter();
+SPWorker.onmessage = (messageEvent) => { workerEvents.emit('message', messageEvent); };
 
 /**
  * The SharePoint class will utilize a Web Worker to perform data operations. Running the data interfacing in a
@@ -25,7 +27,7 @@ export class SharePoint extends EventEmitter {
 
         this.path = endpoint.path;
 
-        SPWorker.onmessage = this._onMessage.bind(this);
+        workerEvents.on('message', this._onMessage.bind(this));
 
         /* Initialise the worker */
         options.path = this.path;
