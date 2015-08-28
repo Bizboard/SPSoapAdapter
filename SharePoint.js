@@ -1,16 +1,14 @@
 /**
  * Created by mysim1 on 13/06/15.
  */
-import EventEmitter     from 'eventemitter3';
+
 import _                from 'lodash';
+import EventEmitter     from 'eventemitter3';
 import {UrlParser}      from 'arva-utils/request/UrlParser';
-//import worker           from 'worker!base64';
 import {BlobHelper}     from 'arva-utils/BlobHelper';
 
-// convert the worker role in base64 format to a sourcecodeblob
 var DEBUG_WORKER = true;
 var SPWorkers = {};
-//var SharePointWorkerSourcecodeBlob = BlobHelper.base64toBlob(worker);
 
 /**
  * The SharePoint class will utilize a Web Worker to perform data operations. Running the data interfacing in a
@@ -27,41 +25,25 @@ export class SharePoint extends EventEmitter {
 
         this.workerId = endpoint.path;
 
+        /* If the worker doesn't exist. create it and register the message handlers
+         * once so we can re-use the worker at a later moment. */
+        if (!SPWorkers[this.workerId]) {
+            SPWorkers[this.workerId] = new Worker('worker.js');
 
-        if (DEBUG_WORKER) {
-            // if the worker doesn't exist. create it and register the message handlers
-            // once so we can re-use the worker at a later moment.
+            this._setEventHandlers();
 
-            if (!SPWorkers[this.workerId]) {
-                SPWorkers[this.workerId] = new Worker('worker.js');
-
-                SPWorkers[this.workerId].onmessage = function(msg) {
-                    if (msg.data.event === 'INVALIDSTATE') {
-                        console.log("Worker Error:", msg.data.result);
-                        delete SPWorkers[this.workerId];
-                        this.workerId = msg.data.result.endPoint;
-                    }
-                    else {
-                        this.emit(msg.data.event, msg.data.result, msg.data.previousSiblingId);
-                    }
-                }.bind(this);
-
-                // have the worker initialized
-                SPWorkers[this.workerId].postMessage(['init', options]);
-            }
-            //this.worker = new Worker('worker.js');
-        }
-        else {
-            //let url = window.URL.createObjectURL(SharePointWorkerSourcecodeBlob);
-            //this.worker = new Worker(url);
+            /* Initialise the worker */
+            SPWorkers[this.workerId].postMessage(['init', options]);
+        } else {
+            this._setEventHandlers();
         }
     }
 
     set(model) {
-        // if there is no ID. Make a temporary ID for reference in the main thread for the session scope
+        /* If there is no ID. Make a temporary ID for reference in the main thread for the session scope. */
         let modelId = model.id;
         if (!modelId || modelId === 0) {
-            model['_temporary-identifier'] = btoa(Math.floor((Math.random()*10000000000000000)));
+            model['_temporary-identifier'] = btoa(Math.floor((Math.random() * 10000000000000000)));
         }
 
         SPWorkers[this.workerId].postMessage(['set', model]);
@@ -70,5 +52,18 @@ export class SharePoint extends EventEmitter {
 
     remove(model) {
         SPWorkers[this.workerId].postMessage(['remove', model]);
+    }
+
+    _setEventHandlers() {
+        SPWorkers[this.workerId].onmessage = function (msg) {
+            if (msg.data.event === 'INVALIDSTATE') {
+                console.log("Worker Error:", msg.data.result);
+                delete SPWorkers[this.workerId];
+                this.workerId = msg.data.result.endPoint;
+            }
+            else {
+                this.emit(msg.data.event, msg.data.result, msg.data.previousSiblingId);
+            }
+        }.bind(this);
     }
 }

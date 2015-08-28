@@ -289,7 +289,7 @@ function _handleRemove(record) {
  * @private
  */
 function _updateCache(data) {
-
+    let messages = [];
     for (let record in data) {
 
         let isLocal = _.findIndex(tempKeys, function (key) {
@@ -308,7 +308,7 @@ function _updateCache(data) {
             cache.push(data[record]);
 
             let previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
-            postMessage({
+            messages.push({
                 event: 'child_added',
                 result: data[record],
                 previousSiblingId: previousSiblingId ? previousSiblingId.id : null
@@ -318,7 +318,7 @@ function _updateCache(data) {
             if (!_.isEqual(data[record], cache[isCached])) {
                 cache.splice(isCached, 1, data[record]);
                 let previousSibling = isCached == 0 ? null : cache[isCached - 1];
-                postMessage({
+                messages.push({
                     event: 'child_changed',
                     result: data[record],
                     previousSiblingId: previousSibling ? previousSibling.id : null
@@ -326,6 +326,7 @@ function _updateCache(data) {
             }
         }
     }
+    return messages;
 }
 
 
@@ -352,12 +353,21 @@ function _refresh() {
                 let lastChangedToken = changes.$.LastChangeToken;
 
                 _setLastUpdated(lastChangedToken);
-                _handleDeleted(changes);
+                let hasDeletions = _handleDeleted(changes);
 
                 let data = _getResults(result.data);
-                _updateCache(data);
+                let messages = _updateCache(data);
 
-                postMessage({event: 'value', result: cache});
+                /* If any data was modified, emit a 'value' event. */
+                if(hasDeletions || data.length > 0) {
+                    postMessage({event: 'value', result: cache});
+                }
+
+                /* Emit any added/changed events. */
+                for(let message of messages) {
+                    postMessage(message);
+                }
+
                 setTimeout(_refresh, interval);
 
             }).catch(function (err) {
@@ -398,7 +408,11 @@ function _handleDeleted(result) {
                 cache.splice(cacheItem, 1);
             }
         }
+
+        return true;
     }
+
+    return false;
 }
 
 /**
