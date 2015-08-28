@@ -1,7 +1,7 @@
 {
   "main": false,
   "scripts": {
-    "build": "jspm bundle-sfx Worker/Operations.js worker.js"
+    "build": "jspm bundle-sfx Worker/Manager.js worker.js"
   },
   "jspm": {
     "directories": {},

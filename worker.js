@@ -3884,7 +3884,7 @@ System = curSystem; })();
   // etc UMD / module pattern
 })*/
 
-(['Worker/Operations.js'], function(System) {
+(['Worker/Manager.js'], function(System) {
 
 (function(__global) {
   var loader = System;
@@ -4113,6 +4113,229 @@ System = curSystem; })();
   loader.amdDefine = define;
   loader.amdRequire = require;
 })(typeof self != 'undefined' ? self : global);
+System.registerDynamic("npm:process@0.10.1/browser.js", [], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var process = module.exports = {};
+  var queue = [];
+  var draining = false;
+  function drainQueue() {
+    if (draining) {
+      return;
+    }
+    draining = true;
+    var currentQueue;
+    var len = queue.length;
+    while (len) {
+      currentQueue = queue;
+      queue = [];
+      var i = -1;
+      while (++i < len) {
+        currentQueue[i]();
+      }
+      len = queue.length;
+    }
+    draining = false;
+  }
+  process.nextTick = function(fun) {
+    queue.push(fun);
+    if (!draining) {
+      setTimeout(drainQueue, 0);
+    }
+  };
+  process.title = 'browser';
+  process.browser = true;
+  process.env = {};
+  process.argv = [];
+  process.version = '';
+  process.versions = {};
+  function noop() {}
+  process.on = noop;
+  process.addListener = noop;
+  process.once = noop;
+  process.off = noop;
+  process.removeListener = noop;
+  process.removeAllListeners = noop;
+  process.emit = noop;
+  process.binding = function(name) {
+    throw new Error('process.binding is not supported');
+  };
+  process.cwd = function() {
+    return '/';
+  };
+  process.chdir = function(dir) {
+    throw new Error('process.chdir is not supported');
+  };
+  process.umask = function() {
+    return 0;
+  };
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:eventemitter3@1.1.0/index.js", [], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  'use strict';
+  var prefix = typeof Object.create !== 'function' ? '~' : false;
+  function EE(fn, context, once) {
+    this.fn = fn;
+    this.context = context;
+    this.once = once || false;
+  }
+  function EventEmitter() {}
+  EventEmitter.prototype._events = undefined;
+  EventEmitter.prototype.listeners = function listeners(event, exists) {
+    var evt = prefix ? prefix + event : event,
+        available = this._events && this._events[evt];
+    if (exists)
+      return !!available;
+    if (!available)
+      return [];
+    if (this._events[evt].fn)
+      return [this._events[evt].fn];
+    for (var i = 0,
+        l = this._events[evt].length,
+        ee = new Array(l); i < l; i++) {
+      ee[i] = this._events[evt][i].fn;
+    }
+    return ee;
+  };
+  EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
+    var evt = prefix ? prefix + event : event;
+    if (!this._events || !this._events[evt])
+      return false;
+    var listeners = this._events[evt],
+        len = arguments.length,
+        args,
+        i;
+    if ('function' === typeof listeners.fn) {
+      if (listeners.once)
+        this.removeListener(event, listeners.fn, undefined, true);
+      switch (len) {
+        case 1:
+          return listeners.fn.call(listeners.context), true;
+        case 2:
+          return listeners.fn.call(listeners.context, a1), true;
+        case 3:
+          return listeners.fn.call(listeners.context, a1, a2), true;
+        case 4:
+          return listeners.fn.call(listeners.context, a1, a2, a3), true;
+        case 5:
+          return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+        case 6:
+          return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
+      }
+      for (i = 1, args = new Array(len - 1); i < len; i++) {
+        args[i - 1] = arguments[i];
+      }
+      listeners.fn.apply(listeners.context, args);
+    } else {
+      var length = listeners.length,
+          j;
+      for (i = 0; i < length; i++) {
+        if (listeners[i].once)
+          this.removeListener(event, listeners[i].fn, undefined, true);
+        switch (len) {
+          case 1:
+            listeners[i].fn.call(listeners[i].context);
+            break;
+          case 2:
+            listeners[i].fn.call(listeners[i].context, a1);
+            break;
+          case 3:
+            listeners[i].fn.call(listeners[i].context, a1, a2);
+            break;
+          default:
+            if (!args)
+              for (j = 1, args = new Array(len - 1); j < len; j++) {
+                args[j - 1] = arguments[j];
+              }
+            listeners[i].fn.apply(listeners[i].context, args);
+        }
+      }
+    }
+    return true;
+  };
+  EventEmitter.prototype.on = function on(event, fn, context) {
+    var listener = new EE(fn, context || this),
+        evt = prefix ? prefix + event : event;
+    if (!this._events)
+      this._events = prefix ? {} : Object.create(null);
+    if (!this._events[evt])
+      this._events[evt] = listener;
+    else {
+      if (!this._events[evt].fn)
+        this._events[evt].push(listener);
+      else
+        this._events[evt] = [this._events[evt], listener];
+    }
+    return this;
+  };
+  EventEmitter.prototype.once = function once(event, fn, context) {
+    var listener = new EE(fn, context || this, true),
+        evt = prefix ? prefix + event : event;
+    if (!this._events)
+      this._events = prefix ? {} : Object.create(null);
+    if (!this._events[evt])
+      this._events[evt] = listener;
+    else {
+      if (!this._events[evt].fn)
+        this._events[evt].push(listener);
+      else
+        this._events[evt] = [this._events[evt], listener];
+    }
+    return this;
+  };
+  EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
+    var evt = prefix ? prefix + event : event;
+    if (!this._events || !this._events[evt])
+      return this;
+    var listeners = this._events[evt],
+        events = [];
+    if (fn) {
+      if (listeners.fn) {
+        if (listeners.fn !== fn || (once && !listeners.once) || (context && listeners.context !== context)) {
+          events.push(listeners);
+        }
+      } else {
+        for (var i = 0,
+            length = listeners.length; i < length; i++) {
+          if (listeners[i].fn !== fn || (once && !listeners[i].once) || (context && listeners[i].context !== context)) {
+            events.push(listeners[i]);
+          }
+        }
+      }
+    }
+    if (events.length) {
+      this._events[evt] = events.length === 1 ? events[0] : events;
+    } else {
+      delete this._events[evt];
+    }
+    return this;
+  };
+  EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
+    if (!this._events)
+      return this;
+    if (event)
+      delete this._events[prefix ? prefix + event : event];
+    else
+      this._events = prefix ? {} : Object.create(null);
+    return this;
+  };
+  EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+  EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+  EventEmitter.prototype.setMaxListeners = function setMaxListeners() {
+    return this;
+  };
+  EventEmitter.prefixed = prefix;
+  module.exports = EventEmitter;
+  global.define = __define;
+  return module.exports;
+});
+
 (function() {
 var _removeDefine = System.get("@@amd-helpers").createDefine();
 define("Worker/xmljs.js", ["require"], function(require) {
@@ -5082,63 +5305,293 @@ System.registerDynamic("npm:core-util-is@1.0.1/lib/util.js", ["github:jspm/nodel
   return module.exports;
 });
 
-System.registerDynamic("npm:process@0.10.1/browser.js", [], true, function(require, exports, module) {
+System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_writable.js", ["github:jspm/nodelibs-buffer@0.1.0.js", "npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js", "npm:stream-browserify@1.0.0/index.js", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "github:jspm/nodelibs-buffer@0.1.0.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
   var global = this,
       __define = global.define;
   global.define = undefined;
-  var process = module.exports = {};
-  var queue = [];
-  var draining = false;
-  function drainQueue() {
-    if (draining) {
-      return;
+  (function(Buffer, process) {
+    module.exports = Writable;
+    var Buffer = require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer;
+    Writable.WritableState = WritableState;
+    var util = require("npm:core-util-is@1.0.1.js");
+    util.inherits = require("npm:inherits@2.0.1.js");
+    var Stream = require("npm:stream-browserify@1.0.0/index.js");
+    util.inherits(Writable, Stream);
+    function WriteReq(chunk, encoding, cb) {
+      this.chunk = chunk;
+      this.encoding = encoding;
+      this.callback = cb;
     }
-    draining = true;
-    var currentQueue;
-    var len = queue.length;
-    while (len) {
-      currentQueue = queue;
-      queue = [];
-      var i = -1;
-      while (++i < len) {
-        currentQueue[i]();
+    function WritableState(options, stream) {
+      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
+      options = options || {};
+      var hwm = options.highWaterMark;
+      var defaultHwm = options.objectMode ? 16 : 16 * 1024;
+      this.highWaterMark = (hwm || hwm === 0) ? hwm : defaultHwm;
+      this.objectMode = !!options.objectMode;
+      if (stream instanceof Duplex)
+        this.objectMode = this.objectMode || !!options.writableObjectMode;
+      this.highWaterMark = ~~this.highWaterMark;
+      this.needDrain = false;
+      this.ending = false;
+      this.ended = false;
+      this.finished = false;
+      var noDecode = options.decodeStrings === false;
+      this.decodeStrings = !noDecode;
+      this.defaultEncoding = options.defaultEncoding || 'utf8';
+      this.length = 0;
+      this.writing = false;
+      this.corked = 0;
+      this.sync = true;
+      this.bufferProcessing = false;
+      this.onwrite = function(er) {
+        onwrite(stream, er);
+      };
+      this.writecb = null;
+      this.writelen = 0;
+      this.buffer = [];
+      this.pendingcb = 0;
+      this.prefinished = false;
+      this.errorEmitted = false;
+    }
+    function Writable(options) {
+      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
+      if (!(this instanceof Writable) && !(this instanceof Duplex))
+        return new Writable(options);
+      this._writableState = new WritableState(options, this);
+      this.writable = true;
+      Stream.call(this);
+    }
+    Writable.prototype.pipe = function() {
+      this.emit('error', new Error('Cannot pipe. Not readable.'));
+    };
+    function writeAfterEnd(stream, state, cb) {
+      var er = new Error('write after end');
+      stream.emit('error', er);
+      process.nextTick(function() {
+        cb(er);
+      });
+    }
+    function validChunk(stream, state, chunk, cb) {
+      var valid = true;
+      if (!util.isBuffer(chunk) && !util.isString(chunk) && !util.isNullOrUndefined(chunk) && !state.objectMode) {
+        var er = new TypeError('Invalid non-string/buffer chunk');
+        stream.emit('error', er);
+        process.nextTick(function() {
+          cb(er);
+        });
+        valid = false;
       }
-      len = queue.length;
+      return valid;
     }
-    draining = false;
-  }
-  process.nextTick = function(fun) {
-    queue.push(fun);
-    if (!draining) {
-      setTimeout(drainQueue, 0);
+    Writable.prototype.write = function(chunk, encoding, cb) {
+      var state = this._writableState;
+      var ret = false;
+      if (util.isFunction(encoding)) {
+        cb = encoding;
+        encoding = null;
+      }
+      if (util.isBuffer(chunk))
+        encoding = 'buffer';
+      else if (!encoding)
+        encoding = state.defaultEncoding;
+      if (!util.isFunction(cb))
+        cb = function() {};
+      if (state.ended)
+        writeAfterEnd(this, state, cb);
+      else if (validChunk(this, state, chunk, cb)) {
+        state.pendingcb++;
+        ret = writeOrBuffer(this, state, chunk, encoding, cb);
+      }
+      return ret;
+    };
+    Writable.prototype.cork = function() {
+      var state = this._writableState;
+      state.corked++;
+    };
+    Writable.prototype.uncork = function() {
+      var state = this._writableState;
+      if (state.corked) {
+        state.corked--;
+        if (!state.writing && !state.corked && !state.finished && !state.bufferProcessing && state.buffer.length)
+          clearBuffer(this, state);
+      }
+    };
+    function decodeChunk(state, chunk, encoding) {
+      if (!state.objectMode && state.decodeStrings !== false && util.isString(chunk)) {
+        chunk = new Buffer(chunk, encoding);
+      }
+      return chunk;
     }
-  };
-  process.title = 'browser';
-  process.browser = true;
-  process.env = {};
-  process.argv = [];
-  process.version = '';
-  process.versions = {};
-  function noop() {}
-  process.on = noop;
-  process.addListener = noop;
-  process.once = noop;
-  process.off = noop;
-  process.removeListener = noop;
-  process.removeAllListeners = noop;
-  process.emit = noop;
-  process.binding = function(name) {
-    throw new Error('process.binding is not supported');
-  };
-  process.cwd = function() {
-    return '/';
-  };
-  process.chdir = function(dir) {
-    throw new Error('process.chdir is not supported');
-  };
-  process.umask = function() {
-    return 0;
-  };
+    function writeOrBuffer(stream, state, chunk, encoding, cb) {
+      chunk = decodeChunk(state, chunk, encoding);
+      if (util.isBuffer(chunk))
+        encoding = 'buffer';
+      var len = state.objectMode ? 1 : chunk.length;
+      state.length += len;
+      var ret = state.length < state.highWaterMark;
+      if (!ret)
+        state.needDrain = true;
+      if (state.writing || state.corked)
+        state.buffer.push(new WriteReq(chunk, encoding, cb));
+      else
+        doWrite(stream, state, false, len, chunk, encoding, cb);
+      return ret;
+    }
+    function doWrite(stream, state, writev, len, chunk, encoding, cb) {
+      state.writelen = len;
+      state.writecb = cb;
+      state.writing = true;
+      state.sync = true;
+      if (writev)
+        stream._writev(chunk, state.onwrite);
+      else
+        stream._write(chunk, encoding, state.onwrite);
+      state.sync = false;
+    }
+    function onwriteError(stream, state, sync, er, cb) {
+      if (sync)
+        process.nextTick(function() {
+          state.pendingcb--;
+          cb(er);
+        });
+      else {
+        state.pendingcb--;
+        cb(er);
+      }
+      stream._writableState.errorEmitted = true;
+      stream.emit('error', er);
+    }
+    function onwriteStateUpdate(state) {
+      state.writing = false;
+      state.writecb = null;
+      state.length -= state.writelen;
+      state.writelen = 0;
+    }
+    function onwrite(stream, er) {
+      var state = stream._writableState;
+      var sync = state.sync;
+      var cb = state.writecb;
+      onwriteStateUpdate(state);
+      if (er)
+        onwriteError(stream, state, sync, er, cb);
+      else {
+        var finished = needFinish(stream, state);
+        if (!finished && !state.corked && !state.bufferProcessing && state.buffer.length) {
+          clearBuffer(stream, state);
+        }
+        if (sync) {
+          process.nextTick(function() {
+            afterWrite(stream, state, finished, cb);
+          });
+        } else {
+          afterWrite(stream, state, finished, cb);
+        }
+      }
+    }
+    function afterWrite(stream, state, finished, cb) {
+      if (!finished)
+        onwriteDrain(stream, state);
+      state.pendingcb--;
+      cb();
+      finishMaybe(stream, state);
+    }
+    function onwriteDrain(stream, state) {
+      if (state.length === 0 && state.needDrain) {
+        state.needDrain = false;
+        stream.emit('drain');
+      }
+    }
+    function clearBuffer(stream, state) {
+      state.bufferProcessing = true;
+      if (stream._writev && state.buffer.length > 1) {
+        var cbs = [];
+        for (var c = 0; c < state.buffer.length; c++)
+          cbs.push(state.buffer[c].callback);
+        state.pendingcb++;
+        doWrite(stream, state, true, state.length, state.buffer, '', function(err) {
+          for (var i = 0; i < cbs.length; i++) {
+            state.pendingcb--;
+            cbs[i](err);
+          }
+        });
+        state.buffer = [];
+      } else {
+        for (var c = 0; c < state.buffer.length; c++) {
+          var entry = state.buffer[c];
+          var chunk = entry.chunk;
+          var encoding = entry.encoding;
+          var cb = entry.callback;
+          var len = state.objectMode ? 1 : chunk.length;
+          doWrite(stream, state, false, len, chunk, encoding, cb);
+          if (state.writing) {
+            c++;
+            break;
+          }
+        }
+        if (c < state.buffer.length)
+          state.buffer = state.buffer.slice(c);
+        else
+          state.buffer.length = 0;
+      }
+      state.bufferProcessing = false;
+    }
+    Writable.prototype._write = function(chunk, encoding, cb) {
+      cb(new Error('not implemented'));
+    };
+    Writable.prototype._writev = null;
+    Writable.prototype.end = function(chunk, encoding, cb) {
+      var state = this._writableState;
+      if (util.isFunction(chunk)) {
+        cb = chunk;
+        chunk = null;
+        encoding = null;
+      } else if (util.isFunction(encoding)) {
+        cb = encoding;
+        encoding = null;
+      }
+      if (!util.isNullOrUndefined(chunk))
+        this.write(chunk, encoding);
+      if (state.corked) {
+        state.corked = 1;
+        this.uncork();
+      }
+      if (!state.ending && !state.finished)
+        endWritable(this, state, cb);
+    };
+    function needFinish(stream, state) {
+      return (state.ending && state.length === 0 && !state.finished && !state.writing);
+    }
+    function prefinish(stream, state) {
+      if (!state.prefinished) {
+        state.prefinished = true;
+        stream.emit('prefinish');
+      }
+    }
+    function finishMaybe(stream, state) {
+      var need = needFinish(stream, state);
+      if (need) {
+        if (state.pendingcb === 0) {
+          prefinish(stream, state);
+          state.finished = true;
+          stream.emit('finish');
+        } else
+          prefinish(stream, state);
+      }
+      return need;
+    }
+    function endWritable(stream, state, cb) {
+      state.ending = true;
+      finishMaybe(stream, state);
+      if (cb) {
+        if (state.finished)
+          process.nextTick(cb);
+        else
+          stream.once('finish', cb);
+      }
+      state.ended = true;
+    }
+  })(require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer, require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
@@ -7016,6 +7469,2105 @@ System.registerDynamic("npm:xml2js@0.4.9/lib/processors.js", [], true, function(
       return str;
     };
   }).call(this);
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:process@0.10.1.js", ["npm:process@0.10.1/browser.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:process@0.10.1/browser.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:eventemitter3@1.1.0.js", ["npm:eventemitter3@1.1.0/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:eventemitter3@1.1.0/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:events@1.0.2.js", ["npm:events@1.0.2/events.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:events@1.0.2/events.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:inherits@2.0.1.js", ["npm:inherits@2.0.1/inherits_browser.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:inherits@2.0.1/inherits_browser.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:isarray@0.0.1.js", ["npm:isarray@0.0.1/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:isarray@0.0.1/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:base64-js@0.0.8.js", ["npm:base64-js@0.0.8/lib/b64.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:base64-js@0.0.8/lib/b64.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:ieee754@1.1.6.js", ["npm:ieee754@1.1.6/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:ieee754@1.1.6/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:is-array@1.0.1.js", ["npm:is-array@1.0.1/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:is-array@1.0.1/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:core-util-is@1.0.1.js", ["npm:core-util-is@1.0.1/lib/util.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:core-util-is@1.0.1/lib/util.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_duplex.js", ["npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js", "npm:readable-stream@1.1.13/lib/_stream_readable.js", "npm:readable-stream@1.1.13/lib/_stream_writable.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  (function(process) {
+    module.exports = Duplex;
+    var objectKeys = Object.keys || function(obj) {
+      var keys = [];
+      for (var key in obj)
+        keys.push(key);
+      return keys;
+    };
+    var util = require("npm:core-util-is@1.0.1.js");
+    util.inherits = require("npm:inherits@2.0.1.js");
+    var Readable = require("npm:readable-stream@1.1.13/lib/_stream_readable.js");
+    var Writable = require("npm:readable-stream@1.1.13/lib/_stream_writable.js");
+    util.inherits(Duplex, Readable);
+    forEach(objectKeys(Writable.prototype), function(method) {
+      if (!Duplex.prototype[method])
+        Duplex.prototype[method] = Writable.prototype[method];
+    });
+    function Duplex(options) {
+      if (!(this instanceof Duplex))
+        return new Duplex(options);
+      Readable.call(this, options);
+      Writable.call(this, options);
+      if (options && options.readable === false)
+        this.readable = false;
+      if (options && options.writable === false)
+        this.writable = false;
+      this.allowHalfOpen = true;
+      if (options && options.allowHalfOpen === false)
+        this.allowHalfOpen = false;
+      this.once('end', onend);
+    }
+    function onend() {
+      if (this.allowHalfOpen || this._writableState.ended)
+        return;
+      process.nextTick(this.end.bind(this));
+    }
+    function forEach(xs, f) {
+      for (var i = 0,
+          l = xs.length; i < l; i++) {
+        f(xs[i], i);
+      }
+    }
+  })(require("github:jspm/nodelibs-process@0.1.1.js"));
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:string_decoder@0.10.31.js", ["npm:string_decoder@0.10.31/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:string_decoder@0.10.31/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("github:jspm/nodelibs-string_decoder@0.1.0.js", ["github:jspm/nodelibs-string_decoder@0.1.0/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("github:jspm/nodelibs-string_decoder@0.1.0/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/string/escapeRegExp.js", ["npm:lodash@3.9.3/internal/baseToString.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseToString = require("npm:lodash@3.9.3/internal/baseToString.js");
+  var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
+      reHasRegExpChars = RegExp(reRegExpChars.source);
+  function escapeRegExp(string) {
+    string = baseToString(string);
+    return (string && reHasRegExpChars.test(string)) ? string.replace(reRegExpChars, '\\$&') : string;
+  }
+  module.exports = escapeRegExp;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/getLength.js", ["npm:lodash@3.9.3/internal/baseProperty.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseProperty = require("npm:lodash@3.9.3/internal/baseProperty.js");
+  var getLength = baseProperty('length');
+  module.exports = getLength;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/shimKeys.js", ["npm:lodash@3.9.3/lang/isArguments.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isIndex.js", "npm:lodash@3.9.3/internal/isLength.js", "npm:lodash@3.9.3/object/keysIn.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var isArguments = require("npm:lodash@3.9.3/lang/isArguments.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isIndex = require("npm:lodash@3.9.3/internal/isIndex.js"),
+      isLength = require("npm:lodash@3.9.3/internal/isLength.js"),
+      keysIn = require("npm:lodash@3.9.3/object/keysIn.js");
+  var objectProto = Object.prototype;
+  var hasOwnProperty = objectProto.hasOwnProperty;
+  function shimKeys(object) {
+    var props = keysIn(object),
+        propsLength = props.length,
+        length = propsLength && object.length;
+    var allowIndexes = !!length && isLength(length) && (isArray(object) || isArguments(object));
+    var index = -1,
+        result = [];
+    while (++index < propsLength) {
+      var key = props[index];
+      if ((allowIndexes && isIndex(key, length)) || hasOwnProperty.call(object, key)) {
+        result.push(key);
+      }
+    }
+    return result;
+  }
+  module.exports = shimKeys;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/baseAssign.js", ["npm:lodash@3.9.3/internal/baseCopy.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseCopy = require("npm:lodash@3.9.3/internal/baseCopy.js"),
+      keys = require("npm:lodash@3.9.3/object/keys.js");
+  function baseAssign(object, source) {
+    return source == null ? object : baseCopy(source, keys(source), object);
+  }
+  module.exports = baseAssign;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/bindCallback.js", ["npm:lodash@3.9.3/utility/identity.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var identity = require("npm:lodash@3.9.3/utility/identity.js");
+  function bindCallback(func, thisArg, argCount) {
+    if (typeof func != 'function') {
+      return identity;
+    }
+    if (thisArg === undefined) {
+      return func;
+    }
+    switch (argCount) {
+      case 1:
+        return function(value) {
+          return func.call(thisArg, value);
+        };
+      case 3:
+        return function(value, index, collection) {
+          return func.call(thisArg, value, index, collection);
+        };
+      case 4:
+        return function(accumulator, value, index, collection) {
+          return func.call(thisArg, accumulator, value, index, collection);
+        };
+      case 5:
+        return function(value, other, key, object, source) {
+          return func.call(thisArg, value, other, key, object, source);
+        };
+    }
+    return function() {
+      return func.apply(thisArg, arguments);
+    };
+  }
+  module.exports = bindCallback;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/object/create.js", ["npm:lodash@3.9.3/internal/baseAssign.js", "npm:lodash@3.9.3/internal/baseCreate.js", "npm:lodash@3.9.3/internal/isIterateeCall.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseAssign = require("npm:lodash@3.9.3/internal/baseAssign.js"),
+      baseCreate = require("npm:lodash@3.9.3/internal/baseCreate.js"),
+      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall.js");
+  function create(prototype, properties, guard) {
+    var result = baseCreate(prototype);
+    if (guard && isIterateeCall(prototype, properties, guard)) {
+      properties = null;
+    }
+    return properties ? baseAssign(result, properties) : result;
+  }
+  module.exports = create;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/lang/isFunction.js", ["npm:lodash@3.9.3/internal/baseIsFunction.js", "npm:lodash@3.9.3/internal/getNative.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseIsFunction = require("npm:lodash@3.9.3/internal/baseIsFunction.js"),
+      getNative = require("npm:lodash@3.9.3/internal/getNative.js");
+  var funcTag = '[object Function]';
+  var objectProto = Object.prototype;
+  var objToString = objectProto.toString;
+  var Uint8Array = getNative(global, 'Uint8Array');
+  var isFunction = !(baseIsFunction(/x/) || (Uint8Array && !baseIsFunction(Uint8Array))) ? baseIsFunction : function(value) {
+    return objToString.call(value) == funcTag;
+  };
+  module.exports = isFunction;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/lang/isEmpty.js", ["npm:lodash@3.9.3/lang/isArguments.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isArrayLike.js", "npm:lodash@3.9.3/lang/isFunction.js", "npm:lodash@3.9.3/internal/isObjectLike.js", "npm:lodash@3.9.3/lang/isString.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var isArguments = require("npm:lodash@3.9.3/lang/isArguments.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike.js"),
+      isFunction = require("npm:lodash@3.9.3/lang/isFunction.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js"),
+      isString = require("npm:lodash@3.9.3/lang/isString.js"),
+      keys = require("npm:lodash@3.9.3/object/keys.js");
+  function isEmpty(value) {
+    if (value == null) {
+      return true;
+    }
+    if (isArrayLike(value) && (isArray(value) || isString(value) || isArguments(value) || (isObjectLike(value) && isFunction(value.splice)))) {
+      return !value.length;
+    }
+    return !keys(value).length;
+  }
+  module.exports = isEmpty;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/equalArrays.js", ["npm:lodash@3.9.3/internal/arraySome.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var arraySome = require("npm:lodash@3.9.3/internal/arraySome.js");
+  function equalArrays(array, other, equalFunc, customizer, isLoose, stackA, stackB) {
+    var index = -1,
+        arrLength = array.length,
+        othLength = other.length;
+    if (arrLength != othLength && !(isLoose && othLength > arrLength)) {
+      return false;
+    }
+    while (++index < arrLength) {
+      var arrValue = array[index],
+          othValue = other[index],
+          result = customizer ? customizer(isLoose ? othValue : arrValue, isLoose ? arrValue : othValue, index) : undefined;
+      if (result !== undefined) {
+        if (result) {
+          continue;
+        }
+        return false;
+      }
+      if (isLoose) {
+        if (!arraySome(other, function(othValue) {
+          return arrValue === othValue || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB);
+        })) {
+          return false;
+        }
+      } else if (!(arrValue === othValue || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB))) {
+        return false;
+      }
+    }
+    return true;
+  }
+  module.exports = equalArrays;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/getMatchData.js", ["npm:lodash@3.9.3/internal/isStrictComparable.js", "npm:lodash@3.9.3/object/pairs.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var isStrictComparable = require("npm:lodash@3.9.3/internal/isStrictComparable.js"),
+      pairs = require("npm:lodash@3.9.3/object/pairs.js");
+  function getMatchData(object) {
+    var result = pairs(object),
+        length = result.length;
+    while (length--) {
+      result[length][2] = isStrictComparable(result[length][1]);
+    }
+    return result;
+  }
+  module.exports = getMatchData;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/baseMatchesProperty.js", ["npm:lodash@3.9.3/internal/baseGet.js", "npm:lodash@3.9.3/internal/baseIsEqual.js", "npm:lodash@3.9.3/internal/baseSlice.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isKey.js", "npm:lodash@3.9.3/internal/isStrictComparable.js", "npm:lodash@3.9.3/array/last.js", "npm:lodash@3.9.3/internal/toObject.js", "npm:lodash@3.9.3/internal/toPath.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseGet = require("npm:lodash@3.9.3/internal/baseGet.js"),
+      baseIsEqual = require("npm:lodash@3.9.3/internal/baseIsEqual.js"),
+      baseSlice = require("npm:lodash@3.9.3/internal/baseSlice.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isKey = require("npm:lodash@3.9.3/internal/isKey.js"),
+      isStrictComparable = require("npm:lodash@3.9.3/internal/isStrictComparable.js"),
+      last = require("npm:lodash@3.9.3/array/last.js"),
+      toObject = require("npm:lodash@3.9.3/internal/toObject.js"),
+      toPath = require("npm:lodash@3.9.3/internal/toPath.js");
+  function baseMatchesProperty(path, srcValue) {
+    var isArr = isArray(path),
+        isCommon = isKey(path) && isStrictComparable(srcValue),
+        pathKey = (path + '');
+    path = toPath(path);
+    return function(object) {
+      if (object == null) {
+        return false;
+      }
+      var key = pathKey;
+      object = toObject(object);
+      if ((isArr || !isCommon) && !(key in object)) {
+        object = path.length == 1 ? object : baseGet(object, baseSlice(path, 0, -1));
+        if (object == null) {
+          return false;
+        }
+        key = last(path);
+        object = toObject(object);
+      }
+      return object[key] === srcValue ? (srcValue !== undefined || (key in object)) : baseIsEqual(srcValue, object[key], undefined, true);
+    };
+  }
+  module.exports = baseMatchesProperty;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/utility/property.js", ["npm:lodash@3.9.3/internal/baseProperty.js", "npm:lodash@3.9.3/internal/basePropertyDeep.js", "npm:lodash@3.9.3/internal/isKey.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseProperty = require("npm:lodash@3.9.3/internal/baseProperty.js"),
+      basePropertyDeep = require("npm:lodash@3.9.3/internal/basePropertyDeep.js"),
+      isKey = require("npm:lodash@3.9.3/internal/isKey.js");
+  function property(path) {
+    return isKey(path) ? baseProperty(path) : basePropertyDeep(path);
+  }
+  module.exports = property;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/baseFor.js", ["npm:lodash@3.9.3/internal/createBaseFor.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var createBaseFor = require("npm:lodash@3.9.3/internal/createBaseFor.js");
+  var baseFor = createBaseFor();
+  module.exports = baseFor;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLDocType.js", ["npm:lodash@3.9.3/object/create.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:xmlbuilder@2.6.4/lib/XMLCData.js", "npm:xmlbuilder@2.6.4/lib/XMLComment.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDAttList.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDEntity.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDElement.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDNotation.js", "npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  (function() {
+    var XMLCData,
+        XMLComment,
+        XMLDTDAttList,
+        XMLDTDElement,
+        XMLDTDEntity,
+        XMLDTDNotation,
+        XMLDocType,
+        XMLProcessingInstruction,
+        create,
+        isObject;
+    create = require("npm:lodash@3.9.3/object/create.js");
+    isObject = require("npm:lodash@3.9.3/lang/isObject.js");
+    XMLCData = require("npm:xmlbuilder@2.6.4/lib/XMLCData.js");
+    XMLComment = require("npm:xmlbuilder@2.6.4/lib/XMLComment.js");
+    XMLDTDAttList = require("npm:xmlbuilder@2.6.4/lib/XMLDTDAttList.js");
+    XMLDTDEntity = require("npm:xmlbuilder@2.6.4/lib/XMLDTDEntity.js");
+    XMLDTDElement = require("npm:xmlbuilder@2.6.4/lib/XMLDTDElement.js");
+    XMLDTDNotation = require("npm:xmlbuilder@2.6.4/lib/XMLDTDNotation.js");
+    XMLProcessingInstruction = require("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js");
+    module.exports = XMLDocType = (function() {
+      function XMLDocType(parent, pubID, sysID) {
+        var ref,
+            ref1;
+        this.documentObject = parent;
+        this.stringify = this.documentObject.stringify;
+        this.children = [];
+        if (isObject(pubID)) {
+          ref = pubID, pubID = ref.pubID, sysID = ref.sysID;
+        }
+        if (sysID == null) {
+          ref1 = [pubID, sysID], sysID = ref1[0], pubID = ref1[1];
+        }
+        if (pubID != null) {
+          this.pubID = this.stringify.dtdPubID(pubID);
+        }
+        if (sysID != null) {
+          this.sysID = this.stringify.dtdSysID(sysID);
+        }
+      }
+      XMLDocType.prototype.clone = function() {
+        return create(XMLDocType.prototype, this);
+      };
+      XMLDocType.prototype.element = function(name, value) {
+        var child;
+        child = new XMLDTDElement(this, name, value);
+        this.children.push(child);
+        return this;
+      };
+      XMLDocType.prototype.attList = function(elementName, attributeName, attributeType, defaultValueType, defaultValue) {
+        var child;
+        child = new XMLDTDAttList(this, elementName, attributeName, attributeType, defaultValueType, defaultValue);
+        this.children.push(child);
+        return this;
+      };
+      XMLDocType.prototype.entity = function(name, value) {
+        var child;
+        child = new XMLDTDEntity(this, false, name, value);
+        this.children.push(child);
+        return this;
+      };
+      XMLDocType.prototype.pEntity = function(name, value) {
+        var child;
+        child = new XMLDTDEntity(this, true, name, value);
+        this.children.push(child);
+        return this;
+      };
+      XMLDocType.prototype.notation = function(name, value) {
+        var child;
+        child = new XMLDTDNotation(this, name, value);
+        this.children.push(child);
+        return this;
+      };
+      XMLDocType.prototype.cdata = function(value) {
+        var child;
+        child = new XMLCData(this, value);
+        this.children.push(child);
+        return this;
+      };
+      XMLDocType.prototype.comment = function(value) {
+        var child;
+        child = new XMLComment(this, value);
+        this.children.push(child);
+        return this;
+      };
+      XMLDocType.prototype.instruction = function(target, value) {
+        var child;
+        child = new XMLProcessingInstruction(this, target, value);
+        this.children.push(child);
+        return this;
+      };
+      XMLDocType.prototype.root = function() {
+        return this.documentObject.root();
+      };
+      XMLDocType.prototype.document = function() {
+        return this.documentObject;
+      };
+      XMLDocType.prototype.toString = function(options, level) {
+        var child,
+            i,
+            indent,
+            len,
+            newline,
+            offset,
+            pretty,
+            r,
+            ref,
+            ref1,
+            ref2,
+            ref3,
+            space;
+        pretty = (options != null ? options.pretty : void 0) || false;
+        indent = (ref = options != null ? options.indent : void 0) != null ? ref : '  ';
+        offset = (ref1 = options != null ? options.offset : void 0) != null ? ref1 : 0;
+        newline = (ref2 = options != null ? options.newline : void 0) != null ? ref2 : '\n';
+        level || (level = 0);
+        space = new Array(level + offset + 1).join(indent);
+        r = '';
+        if (pretty) {
+          r += space;
+        }
+        r += '<!DOCTYPE ' + this.root().name;
+        if (this.pubID && this.sysID) {
+          r += ' PUBLIC "' + this.pubID + '" "' + this.sysID + '"';
+        } else if (this.sysID) {
+          r += ' SYSTEM "' + this.sysID + '"';
+        }
+        if (this.children.length > 0) {
+          r += ' [';
+          if (pretty) {
+            r += newline;
+          }
+          ref3 = this.children;
+          for (i = 0, len = ref3.length; i < len; i++) {
+            child = ref3[i];
+            r += child.toString(options, level + 1);
+          }
+          r += ']';
+        }
+        r += '>';
+        if (pretty) {
+          r += newline;
+        }
+        return r;
+      };
+      XMLDocType.prototype.ele = function(name, value) {
+        return this.element(name, value);
+      };
+      XMLDocType.prototype.att = function(elementName, attributeName, attributeType, defaultValueType, defaultValue) {
+        return this.attList(elementName, attributeName, attributeType, defaultValueType, defaultValue);
+      };
+      XMLDocType.prototype.ent = function(name, value) {
+        return this.entity(name, value);
+      };
+      XMLDocType.prototype.pent = function(name, value) {
+        return this.pEntity(name, value);
+      };
+      XMLDocType.prototype.not = function(name, value) {
+        return this.notation(name, value);
+      };
+      XMLDocType.prototype.dat = function(value) {
+        return this.cdata(value);
+      };
+      XMLDocType.prototype.com = function(value) {
+        return this.comment(value);
+      };
+      XMLDocType.prototype.ins = function(target, value) {
+        return this.instruction(target, value);
+      };
+      XMLDocType.prototype.up = function() {
+        return this.root();
+      };
+      XMLDocType.prototype.doc = function() {
+        return this.document();
+      };
+      return XMLDocType;
+    })();
+  }).call(this);
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("github:jspm/nodelibs-process@0.1.1/index.js", ["npm:process@0.10.1.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = System._nodeRequire ? process : require("npm:process@0.10.1.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("github:jspm/nodelibs-events@0.1.1/index.js", ["npm:events@1.0.2.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = System._nodeRequire ? System._nodeRequire('events') : require("npm:events@1.0.2.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:buffer@3.2.2/index.js", ["npm:base64-js@0.0.8.js", "npm:ieee754@1.1.6.js", "npm:is-array@1.0.1.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var base64 = require("npm:base64-js@0.0.8.js");
+  var ieee754 = require("npm:ieee754@1.1.6.js");
+  var isArray = require("npm:is-array@1.0.1.js");
+  exports.Buffer = Buffer;
+  exports.SlowBuffer = SlowBuffer;
+  exports.INSPECT_MAX_BYTES = 50;
+  Buffer.poolSize = 8192;
+  var kMaxLength = 0x3fffffff;
+  var rootParent = {};
+  Buffer.TYPED_ARRAY_SUPPORT = (function() {
+    try {
+      var buf = new ArrayBuffer(0);
+      var arr = new Uint8Array(buf);
+      arr.foo = function() {
+        return 42;
+      };
+      return arr.foo() === 42 && typeof arr.subarray === 'function' && new Uint8Array(1).subarray(1, 1).byteLength === 0;
+    } catch (e) {
+      return false;
+    }
+  })();
+  function Buffer(arg) {
+    if (!(this instanceof Buffer)) {
+      if (arguments.length > 1)
+        return new Buffer(arg, arguments[1]);
+      return new Buffer(arg);
+    }
+    this.length = 0;
+    this.parent = undefined;
+    if (typeof arg === 'number') {
+      return fromNumber(this, arg);
+    }
+    if (typeof arg === 'string') {
+      return fromString(this, arg, arguments.length > 1 ? arguments[1] : 'utf8');
+    }
+    return fromObject(this, arg);
+  }
+  function fromNumber(that, length) {
+    that = allocate(that, length < 0 ? 0 : checked(length) | 0);
+    if (!Buffer.TYPED_ARRAY_SUPPORT) {
+      for (var i = 0; i < length; i++) {
+        that[i] = 0;
+      }
+    }
+    return that;
+  }
+  function fromString(that, string, encoding) {
+    if (typeof encoding !== 'string' || encoding === '')
+      encoding = 'utf8';
+    var length = byteLength(string, encoding) | 0;
+    that = allocate(that, length);
+    that.write(string, encoding);
+    return that;
+  }
+  function fromObject(that, object) {
+    if (Buffer.isBuffer(object))
+      return fromBuffer(that, object);
+    if (isArray(object))
+      return fromArray(that, object);
+    if (object == null) {
+      throw new TypeError('must start with number, buffer, array or string');
+    }
+    if (typeof ArrayBuffer !== 'undefined' && object.buffer instanceof ArrayBuffer) {
+      return fromTypedArray(that, object);
+    }
+    if (object.length)
+      return fromArrayLike(that, object);
+    return fromJsonObject(that, object);
+  }
+  function fromBuffer(that, buffer) {
+    var length = checked(buffer.length) | 0;
+    that = allocate(that, length);
+    buffer.copy(that, 0, 0, length);
+    return that;
+  }
+  function fromArray(that, array) {
+    var length = checked(array.length) | 0;
+    that = allocate(that, length);
+    for (var i = 0; i < length; i += 1) {
+      that[i] = array[i] & 255;
+    }
+    return that;
+  }
+  function fromTypedArray(that, array) {
+    var length = checked(array.length) | 0;
+    that = allocate(that, length);
+    for (var i = 0; i < length; i += 1) {
+      that[i] = array[i] & 255;
+    }
+    return that;
+  }
+  function fromArrayLike(that, array) {
+    var length = checked(array.length) | 0;
+    that = allocate(that, length);
+    for (var i = 0; i < length; i += 1) {
+      that[i] = array[i] & 255;
+    }
+    return that;
+  }
+  function fromJsonObject(that, object) {
+    var array;
+    var length = 0;
+    if (object.type === 'Buffer' && isArray(object.data)) {
+      array = object.data;
+      length = checked(array.length) | 0;
+    }
+    that = allocate(that, length);
+    for (var i = 0; i < length; i += 1) {
+      that[i] = array[i] & 255;
+    }
+    return that;
+  }
+  function allocate(that, length) {
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      that = Buffer._augment(new Uint8Array(length));
+    } else {
+      that.length = length;
+      that._isBuffer = true;
+    }
+    var fromPool = length !== 0 && length <= Buffer.poolSize >>> 1;
+    if (fromPool)
+      that.parent = rootParent;
+    return that;
+  }
+  function checked(length) {
+    if (length >= kMaxLength) {
+      throw new RangeError('Attempt to allocate Buffer larger than maximum ' + 'size: 0x' + kMaxLength.toString(16) + ' bytes');
+    }
+    return length | 0;
+  }
+  function SlowBuffer(subject, encoding) {
+    if (!(this instanceof SlowBuffer))
+      return new SlowBuffer(subject, encoding);
+    var buf = new Buffer(subject, encoding);
+    delete buf.parent;
+    return buf;
+  }
+  Buffer.isBuffer = function isBuffer(b) {
+    return !!(b != null && b._isBuffer);
+  };
+  Buffer.compare = function compare(a, b) {
+    if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
+      throw new TypeError('Arguments must be Buffers');
+    }
+    if (a === b)
+      return 0;
+    var x = a.length;
+    var y = b.length;
+    var i = 0;
+    var len = Math.min(x, y);
+    while (i < len) {
+      if (a[i] !== b[i])
+        break;
+      ++i;
+    }
+    if (i !== len) {
+      x = a[i];
+      y = b[i];
+    }
+    if (x < y)
+      return -1;
+    if (y < x)
+      return 1;
+    return 0;
+  };
+  Buffer.isEncoding = function isEncoding(encoding) {
+    switch (String(encoding).toLowerCase()) {
+      case 'hex':
+      case 'utf8':
+      case 'utf-8':
+      case 'ascii':
+      case 'binary':
+      case 'base64':
+      case 'raw':
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return true;
+      default:
+        return false;
+    }
+  };
+  Buffer.concat = function concat(list, length) {
+    if (!isArray(list))
+      throw new TypeError('list argument must be an Array of Buffers.');
+    if (list.length === 0) {
+      return new Buffer(0);
+    } else if (list.length === 1) {
+      return list[0];
+    }
+    var i;
+    if (length === undefined) {
+      length = 0;
+      for (i = 0; i < list.length; i++) {
+        length += list[i].length;
+      }
+    }
+    var buf = new Buffer(length);
+    var pos = 0;
+    for (i = 0; i < list.length; i++) {
+      var item = list[i];
+      item.copy(buf, pos);
+      pos += item.length;
+    }
+    return buf;
+  };
+  function byteLength(string, encoding) {
+    if (typeof string !== 'string')
+      string = String(string);
+    if (string.length === 0)
+      return 0;
+    switch (encoding || 'utf8') {
+      case 'ascii':
+      case 'binary':
+      case 'raw':
+        return string.length;
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return string.length * 2;
+      case 'hex':
+        return string.length >>> 1;
+      case 'utf8':
+      case 'utf-8':
+        return utf8ToBytes(string).length;
+      case 'base64':
+        return base64ToBytes(string).length;
+      default:
+        return string.length;
+    }
+  }
+  Buffer.byteLength = byteLength;
+  Buffer.prototype.length = undefined;
+  Buffer.prototype.parent = undefined;
+  Buffer.prototype.toString = function toString(encoding, start, end) {
+    var loweredCase = false;
+    start = start | 0;
+    end = end === undefined || end === Infinity ? this.length : end | 0;
+    if (!encoding)
+      encoding = 'utf8';
+    if (start < 0)
+      start = 0;
+    if (end > this.length)
+      end = this.length;
+    if (end <= start)
+      return '';
+    while (true) {
+      switch (encoding) {
+        case 'hex':
+          return hexSlice(this, start, end);
+        case 'utf8':
+        case 'utf-8':
+          return utf8Slice(this, start, end);
+        case 'ascii':
+          return asciiSlice(this, start, end);
+        case 'binary':
+          return binarySlice(this, start, end);
+        case 'base64':
+          return base64Slice(this, start, end);
+        case 'ucs2':
+        case 'ucs-2':
+        case 'utf16le':
+        case 'utf-16le':
+          return utf16leSlice(this, start, end);
+        default:
+          if (loweredCase)
+            throw new TypeError('Unknown encoding: ' + encoding);
+          encoding = (encoding + '').toLowerCase();
+          loweredCase = true;
+      }
+    }
+  };
+  Buffer.prototype.equals = function equals(b) {
+    if (!Buffer.isBuffer(b))
+      throw new TypeError('Argument must be a Buffer');
+    if (this === b)
+      return true;
+    return Buffer.compare(this, b) === 0;
+  };
+  Buffer.prototype.inspect = function inspect() {
+    var str = '';
+    var max = exports.INSPECT_MAX_BYTES;
+    if (this.length > 0) {
+      str = this.toString('hex', 0, max).match(/.{2}/g).join(' ');
+      if (this.length > max)
+        str += ' ... ';
+    }
+    return '<Buffer ' + str + '>';
+  };
+  Buffer.prototype.compare = function compare(b) {
+    if (!Buffer.isBuffer(b))
+      throw new TypeError('Argument must be a Buffer');
+    if (this === b)
+      return 0;
+    return Buffer.compare(this, b);
+  };
+  Buffer.prototype.indexOf = function indexOf(val, byteOffset) {
+    if (byteOffset > 0x7fffffff)
+      byteOffset = 0x7fffffff;
+    else if (byteOffset < -0x80000000)
+      byteOffset = -0x80000000;
+    byteOffset >>= 0;
+    if (this.length === 0)
+      return -1;
+    if (byteOffset >= this.length)
+      return -1;
+    if (byteOffset < 0)
+      byteOffset = Math.max(this.length + byteOffset, 0);
+    if (typeof val === 'string') {
+      if (val.length === 0)
+        return -1;
+      return String.prototype.indexOf.call(this, val, byteOffset);
+    }
+    if (Buffer.isBuffer(val)) {
+      return arrayIndexOf(this, val, byteOffset);
+    }
+    if (typeof val === 'number') {
+      if (Buffer.TYPED_ARRAY_SUPPORT && Uint8Array.prototype.indexOf === 'function') {
+        return Uint8Array.prototype.indexOf.call(this, val, byteOffset);
+      }
+      return arrayIndexOf(this, [val], byteOffset);
+    }
+    function arrayIndexOf(arr, val, byteOffset) {
+      var foundIndex = -1;
+      for (var i = 0; byteOffset + i < arr.length; i++) {
+        if (arr[byteOffset + i] === val[foundIndex === -1 ? 0 : i - foundIndex]) {
+          if (foundIndex === -1)
+            foundIndex = i;
+          if (i - foundIndex + 1 === val.length)
+            return byteOffset + foundIndex;
+        } else {
+          foundIndex = -1;
+        }
+      }
+      return -1;
+    }
+    throw new TypeError('val must be string, number or Buffer');
+  };
+  Buffer.prototype.get = function get(offset) {
+    console.log('.get() is deprecated. Access using array indexes instead.');
+    return this.readUInt8(offset);
+  };
+  Buffer.prototype.set = function set(v, offset) {
+    console.log('.set() is deprecated. Access using array indexes instead.');
+    return this.writeUInt8(v, offset);
+  };
+  function hexWrite(buf, string, offset, length) {
+    offset = Number(offset) || 0;
+    var remaining = buf.length - offset;
+    if (!length) {
+      length = remaining;
+    } else {
+      length = Number(length);
+      if (length > remaining) {
+        length = remaining;
+      }
+    }
+    var strLen = string.length;
+    if (strLen % 2 !== 0)
+      throw new Error('Invalid hex string');
+    if (length > strLen / 2) {
+      length = strLen / 2;
+    }
+    for (var i = 0; i < length; i++) {
+      var parsed = parseInt(string.substr(i * 2, 2), 16);
+      if (isNaN(parsed))
+        throw new Error('Invalid hex string');
+      buf[offset + i] = parsed;
+    }
+    return i;
+  }
+  function utf8Write(buf, string, offset, length) {
+    return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length);
+  }
+  function asciiWrite(buf, string, offset, length) {
+    return blitBuffer(asciiToBytes(string), buf, offset, length);
+  }
+  function binaryWrite(buf, string, offset, length) {
+    return asciiWrite(buf, string, offset, length);
+  }
+  function base64Write(buf, string, offset, length) {
+    return blitBuffer(base64ToBytes(string), buf, offset, length);
+  }
+  function ucs2Write(buf, string, offset, length) {
+    return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length);
+  }
+  Buffer.prototype.write = function write(string, offset, length, encoding) {
+    if (offset === undefined) {
+      encoding = 'utf8';
+      length = this.length;
+      offset = 0;
+    } else if (length === undefined && typeof offset === 'string') {
+      encoding = offset;
+      length = this.length;
+      offset = 0;
+    } else if (isFinite(offset)) {
+      offset = offset | 0;
+      if (isFinite(length)) {
+        length = length | 0;
+        if (encoding === undefined)
+          encoding = 'utf8';
+      } else {
+        encoding = length;
+        length = undefined;
+      }
+    } else {
+      var swap = encoding;
+      encoding = offset;
+      offset = length | 0;
+      length = swap;
+    }
+    var remaining = this.length - offset;
+    if (length === undefined || length > remaining)
+      length = remaining;
+    if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
+      throw new RangeError('attempt to write outside buffer bounds');
+    }
+    if (!encoding)
+      encoding = 'utf8';
+    var loweredCase = false;
+    for (; ; ) {
+      switch (encoding) {
+        case 'hex':
+          return hexWrite(this, string, offset, length);
+        case 'utf8':
+        case 'utf-8':
+          return utf8Write(this, string, offset, length);
+        case 'ascii':
+          return asciiWrite(this, string, offset, length);
+        case 'binary':
+          return binaryWrite(this, string, offset, length);
+        case 'base64':
+          return base64Write(this, string, offset, length);
+        case 'ucs2':
+        case 'ucs-2':
+        case 'utf16le':
+        case 'utf-16le':
+          return ucs2Write(this, string, offset, length);
+        default:
+          if (loweredCase)
+            throw new TypeError('Unknown encoding: ' + encoding);
+          encoding = ('' + encoding).toLowerCase();
+          loweredCase = true;
+      }
+    }
+  };
+  Buffer.prototype.toJSON = function toJSON() {
+    return {
+      type: 'Buffer',
+      data: Array.prototype.slice.call(this._arr || this, 0)
+    };
+  };
+  function base64Slice(buf, start, end) {
+    if (start === 0 && end === buf.length) {
+      return base64.fromByteArray(buf);
+    } else {
+      return base64.fromByteArray(buf.slice(start, end));
+    }
+  }
+  function utf8Slice(buf, start, end) {
+    var res = '';
+    var tmp = '';
+    end = Math.min(buf.length, end);
+    for (var i = start; i < end; i++) {
+      if (buf[i] <= 0x7F) {
+        res += decodeUtf8Char(tmp) + String.fromCharCode(buf[i]);
+        tmp = '';
+      } else {
+        tmp += '%' + buf[i].toString(16);
+      }
+    }
+    return res + decodeUtf8Char(tmp);
+  }
+  function asciiSlice(buf, start, end) {
+    var ret = '';
+    end = Math.min(buf.length, end);
+    for (var i = start; i < end; i++) {
+      ret += String.fromCharCode(buf[i] & 0x7F);
+    }
+    return ret;
+  }
+  function binarySlice(buf, start, end) {
+    var ret = '';
+    end = Math.min(buf.length, end);
+    for (var i = start; i < end; i++) {
+      ret += String.fromCharCode(buf[i]);
+    }
+    return ret;
+  }
+  function hexSlice(buf, start, end) {
+    var len = buf.length;
+    if (!start || start < 0)
+      start = 0;
+    if (!end || end < 0 || end > len)
+      end = len;
+    var out = '';
+    for (var i = start; i < end; i++) {
+      out += toHex(buf[i]);
+    }
+    return out;
+  }
+  function utf16leSlice(buf, start, end) {
+    var bytes = buf.slice(start, end);
+    var res = '';
+    for (var i = 0; i < bytes.length; i += 2) {
+      res += String.fromCharCode(bytes[i] + bytes[i + 1] * 256);
+    }
+    return res;
+  }
+  Buffer.prototype.slice = function slice(start, end) {
+    var len = this.length;
+    start = ~~start;
+    end = end === undefined ? len : ~~end;
+    if (start < 0) {
+      start += len;
+      if (start < 0)
+        start = 0;
+    } else if (start > len) {
+      start = len;
+    }
+    if (end < 0) {
+      end += len;
+      if (end < 0)
+        end = 0;
+    } else if (end > len) {
+      end = len;
+    }
+    if (end < start)
+      end = start;
+    var newBuf;
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      newBuf = Buffer._augment(this.subarray(start, end));
+    } else {
+      var sliceLen = end - start;
+      newBuf = new Buffer(sliceLen, undefined);
+      for (var i = 0; i < sliceLen; i++) {
+        newBuf[i] = this[i + start];
+      }
+    }
+    if (newBuf.length)
+      newBuf.parent = this.parent || this;
+    return newBuf;
+  };
+  function checkOffset(offset, ext, length) {
+    if ((offset % 1) !== 0 || offset < 0)
+      throw new RangeError('offset is not uint');
+    if (offset + ext > length)
+      throw new RangeError('Trying to access beyond buffer length');
+  }
+  Buffer.prototype.readUIntLE = function readUIntLE(offset, byteLength, noAssert) {
+    offset = offset | 0;
+    byteLength = byteLength | 0;
+    if (!noAssert)
+      checkOffset(offset, byteLength, this.length);
+    var val = this[offset];
+    var mul = 1;
+    var i = 0;
+    while (++i < byteLength && (mul *= 0x100)) {
+      val += this[offset + i] * mul;
+    }
+    return val;
+  };
+  Buffer.prototype.readUIntBE = function readUIntBE(offset, byteLength, noAssert) {
+    offset = offset | 0;
+    byteLength = byteLength | 0;
+    if (!noAssert) {
+      checkOffset(offset, byteLength, this.length);
+    }
+    var val = this[offset + --byteLength];
+    var mul = 1;
+    while (byteLength > 0 && (mul *= 0x100)) {
+      val += this[offset + --byteLength] * mul;
+    }
+    return val;
+  };
+  Buffer.prototype.readUInt8 = function readUInt8(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 1, this.length);
+    return this[offset];
+  };
+  Buffer.prototype.readUInt16LE = function readUInt16LE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 2, this.length);
+    return this[offset] | (this[offset + 1] << 8);
+  };
+  Buffer.prototype.readUInt16BE = function readUInt16BE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 2, this.length);
+    return (this[offset] << 8) | this[offset + 1];
+  };
+  Buffer.prototype.readUInt32LE = function readUInt32LE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 4, this.length);
+    return ((this[offset]) | (this[offset + 1] << 8) | (this[offset + 2] << 16)) + (this[offset + 3] * 0x1000000);
+  };
+  Buffer.prototype.readUInt32BE = function readUInt32BE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 4, this.length);
+    return (this[offset] * 0x1000000) + ((this[offset + 1] << 16) | (this[offset + 2] << 8) | this[offset + 3]);
+  };
+  Buffer.prototype.readIntLE = function readIntLE(offset, byteLength, noAssert) {
+    offset = offset | 0;
+    byteLength = byteLength | 0;
+    if (!noAssert)
+      checkOffset(offset, byteLength, this.length);
+    var val = this[offset];
+    var mul = 1;
+    var i = 0;
+    while (++i < byteLength && (mul *= 0x100)) {
+      val += this[offset + i] * mul;
+    }
+    mul *= 0x80;
+    if (val >= mul)
+      val -= Math.pow(2, 8 * byteLength);
+    return val;
+  };
+  Buffer.prototype.readIntBE = function readIntBE(offset, byteLength, noAssert) {
+    offset = offset | 0;
+    byteLength = byteLength | 0;
+    if (!noAssert)
+      checkOffset(offset, byteLength, this.length);
+    var i = byteLength;
+    var mul = 1;
+    var val = this[offset + --i];
+    while (i > 0 && (mul *= 0x100)) {
+      val += this[offset + --i] * mul;
+    }
+    mul *= 0x80;
+    if (val >= mul)
+      val -= Math.pow(2, 8 * byteLength);
+    return val;
+  };
+  Buffer.prototype.readInt8 = function readInt8(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 1, this.length);
+    if (!(this[offset] & 0x80))
+      return (this[offset]);
+    return ((0xff - this[offset] + 1) * -1);
+  };
+  Buffer.prototype.readInt16LE = function readInt16LE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 2, this.length);
+    var val = this[offset] | (this[offset + 1] << 8);
+    return (val & 0x8000) ? val | 0xFFFF0000 : val;
+  };
+  Buffer.prototype.readInt16BE = function readInt16BE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 2, this.length);
+    var val = this[offset + 1] | (this[offset] << 8);
+    return (val & 0x8000) ? val | 0xFFFF0000 : val;
+  };
+  Buffer.prototype.readInt32LE = function readInt32LE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 4, this.length);
+    return (this[offset]) | (this[offset + 1] << 8) | (this[offset + 2] << 16) | (this[offset + 3] << 24);
+  };
+  Buffer.prototype.readInt32BE = function readInt32BE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 4, this.length);
+    return (this[offset] << 24) | (this[offset + 1] << 16) | (this[offset + 2] << 8) | (this[offset + 3]);
+  };
+  Buffer.prototype.readFloatLE = function readFloatLE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 4, this.length);
+    return ieee754.read(this, offset, true, 23, 4);
+  };
+  Buffer.prototype.readFloatBE = function readFloatBE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 4, this.length);
+    return ieee754.read(this, offset, false, 23, 4);
+  };
+  Buffer.prototype.readDoubleLE = function readDoubleLE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 8, this.length);
+    return ieee754.read(this, offset, true, 52, 8);
+  };
+  Buffer.prototype.readDoubleBE = function readDoubleBE(offset, noAssert) {
+    if (!noAssert)
+      checkOffset(offset, 8, this.length);
+    return ieee754.read(this, offset, false, 52, 8);
+  };
+  function checkInt(buf, value, offset, ext, max, min) {
+    if (!Buffer.isBuffer(buf))
+      throw new TypeError('buffer must be a Buffer instance');
+    if (value > max || value < min)
+      throw new RangeError('value is out of bounds');
+    if (offset + ext > buf.length)
+      throw new RangeError('index out of range');
+  }
+  Buffer.prototype.writeUIntLE = function writeUIntLE(value, offset, byteLength, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    byteLength = byteLength | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, byteLength, Math.pow(2, 8 * byteLength), 0);
+    var mul = 1;
+    var i = 0;
+    this[offset] = value & 0xFF;
+    while (++i < byteLength && (mul *= 0x100)) {
+      this[offset + i] = (value / mul) & 0xFF;
+    }
+    return offset + byteLength;
+  };
+  Buffer.prototype.writeUIntBE = function writeUIntBE(value, offset, byteLength, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    byteLength = byteLength | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, byteLength, Math.pow(2, 8 * byteLength), 0);
+    var i = byteLength - 1;
+    var mul = 1;
+    this[offset + i] = value & 0xFF;
+    while (--i >= 0 && (mul *= 0x100)) {
+      this[offset + i] = (value / mul) & 0xFF;
+    }
+    return offset + byteLength;
+  };
+  Buffer.prototype.writeUInt8 = function writeUInt8(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 1, 0xff, 0);
+    if (!Buffer.TYPED_ARRAY_SUPPORT)
+      value = Math.floor(value);
+    this[offset] = value;
+    return offset + 1;
+  };
+  function objectWriteUInt16(buf, value, offset, littleEndian) {
+    if (value < 0)
+      value = 0xffff + value + 1;
+    for (var i = 0,
+        j = Math.min(buf.length - offset, 2); i < j; i++) {
+      buf[offset + i] = (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>> (littleEndian ? i : 1 - i) * 8;
+    }
+  }
+  Buffer.prototype.writeUInt16LE = function writeUInt16LE(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 2, 0xffff, 0);
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      this[offset] = value;
+      this[offset + 1] = (value >>> 8);
+    } else {
+      objectWriteUInt16(this, value, offset, true);
+    }
+    return offset + 2;
+  };
+  Buffer.prototype.writeUInt16BE = function writeUInt16BE(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 2, 0xffff, 0);
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      this[offset] = (value >>> 8);
+      this[offset + 1] = value;
+    } else {
+      objectWriteUInt16(this, value, offset, false);
+    }
+    return offset + 2;
+  };
+  function objectWriteUInt32(buf, value, offset, littleEndian) {
+    if (value < 0)
+      value = 0xffffffff + value + 1;
+    for (var i = 0,
+        j = Math.min(buf.length - offset, 4); i < j; i++) {
+      buf[offset + i] = (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff;
+    }
+  }
+  Buffer.prototype.writeUInt32LE = function writeUInt32LE(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 4, 0xffffffff, 0);
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      this[offset + 3] = (value >>> 24);
+      this[offset + 2] = (value >>> 16);
+      this[offset + 1] = (value >>> 8);
+      this[offset] = value;
+    } else {
+      objectWriteUInt32(this, value, offset, true);
+    }
+    return offset + 4;
+  };
+  Buffer.prototype.writeUInt32BE = function writeUInt32BE(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 4, 0xffffffff, 0);
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      this[offset] = (value >>> 24);
+      this[offset + 1] = (value >>> 16);
+      this[offset + 2] = (value >>> 8);
+      this[offset + 3] = value;
+    } else {
+      objectWriteUInt32(this, value, offset, false);
+    }
+    return offset + 4;
+  };
+  Buffer.prototype.writeIntLE = function writeIntLE(value, offset, byteLength, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert) {
+      var limit = Math.pow(2, 8 * byteLength - 1);
+      checkInt(this, value, offset, byteLength, limit - 1, -limit);
+    }
+    var i = 0;
+    var mul = 1;
+    var sub = value < 0 ? 1 : 0;
+    this[offset] = value & 0xFF;
+    while (++i < byteLength && (mul *= 0x100)) {
+      this[offset + i] = ((value / mul) >> 0) - sub & 0xFF;
+    }
+    return offset + byteLength;
+  };
+  Buffer.prototype.writeIntBE = function writeIntBE(value, offset, byteLength, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert) {
+      var limit = Math.pow(2, 8 * byteLength - 1);
+      checkInt(this, value, offset, byteLength, limit - 1, -limit);
+    }
+    var i = byteLength - 1;
+    var mul = 1;
+    var sub = value < 0 ? 1 : 0;
+    this[offset + i] = value & 0xFF;
+    while (--i >= 0 && (mul *= 0x100)) {
+      this[offset + i] = ((value / mul) >> 0) - sub & 0xFF;
+    }
+    return offset + byteLength;
+  };
+  Buffer.prototype.writeInt8 = function writeInt8(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 1, 0x7f, -0x80);
+    if (!Buffer.TYPED_ARRAY_SUPPORT)
+      value = Math.floor(value);
+    if (value < 0)
+      value = 0xff + value + 1;
+    this[offset] = value;
+    return offset + 1;
+  };
+  Buffer.prototype.writeInt16LE = function writeInt16LE(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 2, 0x7fff, -0x8000);
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      this[offset] = value;
+      this[offset + 1] = (value >>> 8);
+    } else {
+      objectWriteUInt16(this, value, offset, true);
+    }
+    return offset + 2;
+  };
+  Buffer.prototype.writeInt16BE = function writeInt16BE(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 2, 0x7fff, -0x8000);
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      this[offset] = (value >>> 8);
+      this[offset + 1] = value;
+    } else {
+      objectWriteUInt16(this, value, offset, false);
+    }
+    return offset + 2;
+  };
+  Buffer.prototype.writeInt32LE = function writeInt32LE(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      this[offset] = value;
+      this[offset + 1] = (value >>> 8);
+      this[offset + 2] = (value >>> 16);
+      this[offset + 3] = (value >>> 24);
+    } else {
+      objectWriteUInt32(this, value, offset, true);
+    }
+    return offset + 4;
+  };
+  Buffer.prototype.writeInt32BE = function writeInt32BE(value, offset, noAssert) {
+    value = +value;
+    offset = offset | 0;
+    if (!noAssert)
+      checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
+    if (value < 0)
+      value = 0xffffffff + value + 1;
+    if (Buffer.TYPED_ARRAY_SUPPORT) {
+      this[offset] = (value >>> 24);
+      this[offset + 1] = (value >>> 16);
+      this[offset + 2] = (value >>> 8);
+      this[offset + 3] = value;
+    } else {
+      objectWriteUInt32(this, value, offset, false);
+    }
+    return offset + 4;
+  };
+  function checkIEEE754(buf, value, offset, ext, max, min) {
+    if (value > max || value < min)
+      throw new RangeError('value is out of bounds');
+    if (offset + ext > buf.length)
+      throw new RangeError('index out of range');
+    if (offset < 0)
+      throw new RangeError('index out of range');
+  }
+  function writeFloat(buf, value, offset, littleEndian, noAssert) {
+    if (!noAssert) {
+      checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38);
+    }
+    ieee754.write(buf, value, offset, littleEndian, 23, 4);
+    return offset + 4;
+  }
+  Buffer.prototype.writeFloatLE = function writeFloatLE(value, offset, noAssert) {
+    return writeFloat(this, value, offset, true, noAssert);
+  };
+  Buffer.prototype.writeFloatBE = function writeFloatBE(value, offset, noAssert) {
+    return writeFloat(this, value, offset, false, noAssert);
+  };
+  function writeDouble(buf, value, offset, littleEndian, noAssert) {
+    if (!noAssert) {
+      checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308);
+    }
+    ieee754.write(buf, value, offset, littleEndian, 52, 8);
+    return offset + 8;
+  }
+  Buffer.prototype.writeDoubleLE = function writeDoubleLE(value, offset, noAssert) {
+    return writeDouble(this, value, offset, true, noAssert);
+  };
+  Buffer.prototype.writeDoubleBE = function writeDoubleBE(value, offset, noAssert) {
+    return writeDouble(this, value, offset, false, noAssert);
+  };
+  Buffer.prototype.copy = function copy(target, targetStart, start, end) {
+    if (!start)
+      start = 0;
+    if (!end && end !== 0)
+      end = this.length;
+    if (targetStart >= target.length)
+      targetStart = target.length;
+    if (!targetStart)
+      targetStart = 0;
+    if (end > 0 && end < start)
+      end = start;
+    if (end === start)
+      return 0;
+    if (target.length === 0 || this.length === 0)
+      return 0;
+    if (targetStart < 0) {
+      throw new RangeError('targetStart out of bounds');
+    }
+    if (start < 0 || start >= this.length)
+      throw new RangeError('sourceStart out of bounds');
+    if (end < 0)
+      throw new RangeError('sourceEnd out of bounds');
+    if (end > this.length)
+      end = this.length;
+    if (target.length - targetStart < end - start) {
+      end = target.length - targetStart + start;
+    }
+    var len = end - start;
+    if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
+      for (var i = 0; i < len; i++) {
+        target[i + targetStart] = this[i + start];
+      }
+    } else {
+      target._set(this.subarray(start, start + len), targetStart);
+    }
+    return len;
+  };
+  Buffer.prototype.fill = function fill(value, start, end) {
+    if (!value)
+      value = 0;
+    if (!start)
+      start = 0;
+    if (!end)
+      end = this.length;
+    if (end < start)
+      throw new RangeError('end < start');
+    if (end === start)
+      return;
+    if (this.length === 0)
+      return;
+    if (start < 0 || start >= this.length)
+      throw new RangeError('start out of bounds');
+    if (end < 0 || end > this.length)
+      throw new RangeError('end out of bounds');
+    var i;
+    if (typeof value === 'number') {
+      for (i = start; i < end; i++) {
+        this[i] = value;
+      }
+    } else {
+      var bytes = utf8ToBytes(value.toString());
+      var len = bytes.length;
+      for (i = start; i < end; i++) {
+        this[i] = bytes[i % len];
+      }
+    }
+    return this;
+  };
+  Buffer.prototype.toArrayBuffer = function toArrayBuffer() {
+    if (typeof Uint8Array !== 'undefined') {
+      if (Buffer.TYPED_ARRAY_SUPPORT) {
+        return (new Buffer(this)).buffer;
+      } else {
+        var buf = new Uint8Array(this.length);
+        for (var i = 0,
+            len = buf.length; i < len; i += 1) {
+          buf[i] = this[i];
+        }
+        return buf.buffer;
+      }
+    } else {
+      throw new TypeError('Buffer.toArrayBuffer not supported in this browser');
+    }
+  };
+  var BP = Buffer.prototype;
+  Buffer._augment = function _augment(arr) {
+    arr.constructor = Buffer;
+    arr._isBuffer = true;
+    arr._set = arr.set;
+    arr.get = BP.get;
+    arr.set = BP.set;
+    arr.write = BP.write;
+    arr.toString = BP.toString;
+    arr.toLocaleString = BP.toString;
+    arr.toJSON = BP.toJSON;
+    arr.equals = BP.equals;
+    arr.compare = BP.compare;
+    arr.indexOf = BP.indexOf;
+    arr.copy = BP.copy;
+    arr.slice = BP.slice;
+    arr.readUIntLE = BP.readUIntLE;
+    arr.readUIntBE = BP.readUIntBE;
+    arr.readUInt8 = BP.readUInt8;
+    arr.readUInt16LE = BP.readUInt16LE;
+    arr.readUInt16BE = BP.readUInt16BE;
+    arr.readUInt32LE = BP.readUInt32LE;
+    arr.readUInt32BE = BP.readUInt32BE;
+    arr.readIntLE = BP.readIntLE;
+    arr.readIntBE = BP.readIntBE;
+    arr.readInt8 = BP.readInt8;
+    arr.readInt16LE = BP.readInt16LE;
+    arr.readInt16BE = BP.readInt16BE;
+    arr.readInt32LE = BP.readInt32LE;
+    arr.readInt32BE = BP.readInt32BE;
+    arr.readFloatLE = BP.readFloatLE;
+    arr.readFloatBE = BP.readFloatBE;
+    arr.readDoubleLE = BP.readDoubleLE;
+    arr.readDoubleBE = BP.readDoubleBE;
+    arr.writeUInt8 = BP.writeUInt8;
+    arr.writeUIntLE = BP.writeUIntLE;
+    arr.writeUIntBE = BP.writeUIntBE;
+    arr.writeUInt16LE = BP.writeUInt16LE;
+    arr.writeUInt16BE = BP.writeUInt16BE;
+    arr.writeUInt32LE = BP.writeUInt32LE;
+    arr.writeUInt32BE = BP.writeUInt32BE;
+    arr.writeIntLE = BP.writeIntLE;
+    arr.writeIntBE = BP.writeIntBE;
+    arr.writeInt8 = BP.writeInt8;
+    arr.writeInt16LE = BP.writeInt16LE;
+    arr.writeInt16BE = BP.writeInt16BE;
+    arr.writeInt32LE = BP.writeInt32LE;
+    arr.writeInt32BE = BP.writeInt32BE;
+    arr.writeFloatLE = BP.writeFloatLE;
+    arr.writeFloatBE = BP.writeFloatBE;
+    arr.writeDoubleLE = BP.writeDoubleLE;
+    arr.writeDoubleBE = BP.writeDoubleBE;
+    arr.fill = BP.fill;
+    arr.inspect = BP.inspect;
+    arr.toArrayBuffer = BP.toArrayBuffer;
+    return arr;
+  };
+  var INVALID_BASE64_RE = /[^+\/0-9A-z\-]/g;
+  function base64clean(str) {
+    str = stringtrim(str).replace(INVALID_BASE64_RE, '');
+    if (str.length < 2)
+      return '';
+    while (str.length % 4 !== 0) {
+      str = str + '=';
+    }
+    return str;
+  }
+  function stringtrim(str) {
+    if (str.trim)
+      return str.trim();
+    return str.replace(/^\s+|\s+$/g, '');
+  }
+  function toHex(n) {
+    if (n < 16)
+      return '0' + n.toString(16);
+    return n.toString(16);
+  }
+  function utf8ToBytes(string, units) {
+    units = units || Infinity;
+    var codePoint;
+    var length = string.length;
+    var leadSurrogate = null;
+    var bytes = [];
+    var i = 0;
+    for (; i < length; i++) {
+      codePoint = string.charCodeAt(i);
+      if (codePoint > 0xD7FF && codePoint < 0xE000) {
+        if (leadSurrogate) {
+          if (codePoint < 0xDC00) {
+            if ((units -= 3) > -1)
+              bytes.push(0xEF, 0xBF, 0xBD);
+            leadSurrogate = codePoint;
+            continue;
+          } else {
+            codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000;
+            leadSurrogate = null;
+          }
+        } else {
+          if (codePoint > 0xDBFF) {
+            if ((units -= 3) > -1)
+              bytes.push(0xEF, 0xBF, 0xBD);
+            continue;
+          } else if (i + 1 === length) {
+            if ((units -= 3) > -1)
+              bytes.push(0xEF, 0xBF, 0xBD);
+            continue;
+          } else {
+            leadSurrogate = codePoint;
+            continue;
+          }
+        }
+      } else if (leadSurrogate) {
+        if ((units -= 3) > -1)
+          bytes.push(0xEF, 0xBF, 0xBD);
+        leadSurrogate = null;
+      }
+      if (codePoint < 0x80) {
+        if ((units -= 1) < 0)
+          break;
+        bytes.push(codePoint);
+      } else if (codePoint < 0x800) {
+        if ((units -= 2) < 0)
+          break;
+        bytes.push(codePoint >> 0x6 | 0xC0, codePoint & 0x3F | 0x80);
+      } else if (codePoint < 0x10000) {
+        if ((units -= 3) < 0)
+          break;
+        bytes.push(codePoint >> 0xC | 0xE0, codePoint >> 0x6 & 0x3F | 0x80, codePoint & 0x3F | 0x80);
+      } else if (codePoint < 0x200000) {
+        if ((units -= 4) < 0)
+          break;
+        bytes.push(codePoint >> 0x12 | 0xF0, codePoint >> 0xC & 0x3F | 0x80, codePoint >> 0x6 & 0x3F | 0x80, codePoint & 0x3F | 0x80);
+      } else {
+        throw new Error('Invalid code point');
+      }
+    }
+    return bytes;
+  }
+  function asciiToBytes(str) {
+    var byteArray = [];
+    for (var i = 0; i < str.length; i++) {
+      byteArray.push(str.charCodeAt(i) & 0xFF);
+    }
+    return byteArray;
+  }
+  function utf16leToBytes(str, units) {
+    var c,
+        hi,
+        lo;
+    var byteArray = [];
+    for (var i = 0; i < str.length; i++) {
+      if ((units -= 2) < 0)
+        break;
+      c = str.charCodeAt(i);
+      hi = c >> 8;
+      lo = c % 256;
+      byteArray.push(lo);
+      byteArray.push(hi);
+    }
+    return byteArray;
+  }
+  function base64ToBytes(str) {
+    return base64.toByteArray(base64clean(str));
+  }
+  function blitBuffer(src, dst, offset, length) {
+    for (var i = 0; i < length; i++) {
+      if ((i + offset >= dst.length) || (i >= src.length))
+        break;
+      dst[i + offset] = src[i];
+    }
+    return i;
+  }
+  function decodeUtf8Char(str) {
+    try {
+      return decodeURIComponent(str);
+    } catch (err) {
+      return String.fromCharCode(0xFFFD);
+    }
+  }
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/lang/isNative.js", ["npm:lodash@3.9.3/string/escapeRegExp.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var escapeRegExp = require("npm:lodash@3.9.3/string/escapeRegExp.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
+  var funcTag = '[object Function]';
+  var reIsHostCtor = /^\[object .+?Constructor\]$/;
+  var objectProto = Object.prototype;
+  var fnToString = Function.prototype.toString;
+  var hasOwnProperty = objectProto.hasOwnProperty;
+  var objToString = objectProto.toString;
+  var reIsNative = RegExp('^' + escapeRegExp(fnToString.call(hasOwnProperty)).replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$');
+  function isNative(value) {
+    if (value == null) {
+      return false;
+    }
+    if (objToString.call(value) == funcTag) {
+      return reIsNative.test(fnToString.call(value));
+    }
+    return isObjectLike(value) && reIsHostCtor.test(value);
+  }
+  module.exports = isNative;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/isArrayLike.js", ["npm:lodash@3.9.3/internal/getLength.js", "npm:lodash@3.9.3/internal/isLength.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var getLength = require("npm:lodash@3.9.3/internal/getLength.js"),
+      isLength = require("npm:lodash@3.9.3/internal/isLength.js");
+  function isArrayLike(value) {
+    return value != null && isLength(getLength(value));
+  }
+  module.exports = isArrayLike;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/createAssigner.js", ["npm:lodash@3.9.3/internal/bindCallback.js", "npm:lodash@3.9.3/internal/isIterateeCall.js", "npm:lodash@3.9.3/function/restParam.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var bindCallback = require("npm:lodash@3.9.3/internal/bindCallback.js"),
+      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall.js"),
+      restParam = require("npm:lodash@3.9.3/function/restParam.js");
+  function createAssigner(assigner) {
+    return restParam(function(object, sources) {
+      var index = -1,
+          length = object == null ? 0 : sources.length,
+          customizer = length > 2 ? sources[length - 2] : undefined,
+          guard = length > 2 ? sources[2] : undefined,
+          thisArg = length > 1 ? sources[length - 1] : undefined;
+      if (typeof customizer == 'function') {
+        customizer = bindCallback(customizer, thisArg, 5);
+        length -= 2;
+      } else {
+        customizer = typeof thisArg == 'function' ? thisArg : undefined;
+        length -= (customizer ? 1 : 0);
+      }
+      if (guard && isIterateeCall(sources[0], sources[1], guard)) {
+        customizer = length < 3 ? undefined : customizer;
+        length = 1;
+      }
+      while (++index < length) {
+        var source = sources[index];
+        if (source) {
+          assigner(object, source, customizer);
+        }
+      }
+      return object;
+    });
+  }
+  module.exports = createAssigner;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/baseIsEqualDeep.js", ["npm:lodash@3.9.3/internal/equalArrays.js", "npm:lodash@3.9.3/internal/equalByTag.js", "npm:lodash@3.9.3/internal/equalObjects.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/lang/isTypedArray.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var equalArrays = require("npm:lodash@3.9.3/internal/equalArrays.js"),
+      equalByTag = require("npm:lodash@3.9.3/internal/equalByTag.js"),
+      equalObjects = require("npm:lodash@3.9.3/internal/equalObjects.js"),
+      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
+      isTypedArray = require("npm:lodash@3.9.3/lang/isTypedArray.js");
+  var argsTag = '[object Arguments]',
+      arrayTag = '[object Array]',
+      objectTag = '[object Object]';
+  var objectProto = Object.prototype;
+  var hasOwnProperty = objectProto.hasOwnProperty;
+  var objToString = objectProto.toString;
+  function baseIsEqualDeep(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
+    var objIsArr = isArray(object),
+        othIsArr = isArray(other),
+        objTag = arrayTag,
+        othTag = arrayTag;
+    if (!objIsArr) {
+      objTag = objToString.call(object);
+      if (objTag == argsTag) {
+        objTag = objectTag;
+      } else if (objTag != objectTag) {
+        objIsArr = isTypedArray(object);
+      }
+    }
+    if (!othIsArr) {
+      othTag = objToString.call(other);
+      if (othTag == argsTag) {
+        othTag = objectTag;
+      } else if (othTag != objectTag) {
+        othIsArr = isTypedArray(other);
+      }
+    }
+    var objIsObj = objTag == objectTag,
+        othIsObj = othTag == objectTag,
+        isSameTag = objTag == othTag;
+    if (isSameTag && !(objIsArr || objIsObj)) {
+      return equalByTag(object, other, objTag);
+    }
+    if (!isLoose) {
+      var objIsWrapped = objIsObj && hasOwnProperty.call(object, '__wrapped__'),
+          othIsWrapped = othIsObj && hasOwnProperty.call(other, '__wrapped__');
+      if (objIsWrapped || othIsWrapped) {
+        return equalFunc(objIsWrapped ? object.value() : object, othIsWrapped ? other.value() : other, customizer, isLoose, stackA, stackB);
+      }
+    }
+    if (!isSameTag) {
+      return false;
+    }
+    stackA || (stackA = []);
+    stackB || (stackB = []);
+    var length = stackA.length;
+    while (length--) {
+      if (stackA[length] == object) {
+        return stackB[length] == other;
+      }
+    }
+    stackA.push(object);
+    stackB.push(other);
+    var result = (objIsArr ? equalArrays : equalObjects)(object, other, equalFunc, customizer, isLoose, stackA, stackB);
+    stackA.pop();
+    stackB.pop();
+    return result;
+  }
+  module.exports = baseIsEqualDeep;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/baseForOwn.js", ["npm:lodash@3.9.3/internal/baseFor.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseFor = require("npm:lodash@3.9.3/internal/baseFor.js"),
+      keys = require("npm:lodash@3.9.3/object/keys.js");
+  function baseForOwn(object, iteratee) {
+    return baseFor(object, iteratee, keys);
+  }
+  module.exports = baseForOwn;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("github:jspm/nodelibs-process@0.1.1.js", ["github:jspm/nodelibs-process@0.1.1/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("github:jspm/nodelibs-process@0.1.1/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("github:jspm/nodelibs-events@0.1.1.js", ["github:jspm/nodelibs-events@0.1.1/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("github:jspm/nodelibs-events@0.1.1/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:buffer@3.2.2.js", ["npm:buffer@3.2.2/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:buffer@3.2.2/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/getNative.js", ["npm:lodash@3.9.3/lang/isNative.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var isNative = require("npm:lodash@3.9.3/lang/isNative.js");
+  function getNative(object, key) {
+    var value = object == null ? undefined : object[key];
+    return isNative(value) ? value : undefined;
+  }
+  module.exports = getNative;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/baseIsEqual.js", ["npm:lodash@3.9.3/internal/baseIsEqualDeep.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseIsEqualDeep = require("npm:lodash@3.9.3/internal/baseIsEqualDeep.js"),
+      isObject = require("npm:lodash@3.9.3/lang/isObject.js"),
+      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
+  function baseIsEqual(value, other, customizer, isLoose, stackA, stackB) {
+    if (value === other) {
+      return true;
+    }
+    if (value == null || other == null || (!isObject(value) && !isObjectLike(other))) {
+      return value !== value && other !== other;
+    }
+    return baseIsEqualDeep(value, other, baseIsEqual, customizer, isLoose, stackA, stackB);
+  }
+  module.exports = baseIsEqual;
+  global.define = __define;
+  return module.exports;
+});
+
+System.registerDynamic("npm:lodash@3.9.3/internal/baseEach.js", ["npm:lodash@3.9.3/internal/baseForOwn.js", "npm:lodash@3.9.3/internal/createBaseEach.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var baseForOwn = require("npm:lodash@3.9.3/internal/baseForOwn.js"),
+      createBaseEach = require("npm:lodash@3.9.3/internal/createBaseEach.js");
+  var baseEach = createBaseEach(baseForOwn);
+  module.exports = baseEach;
   global.define = __define;
   return module.exports;
 });
@@ -11333,2350 +13885,11 @@ System.registerDynamic("npm:lodash@3.9.3/index.js", ["github:jspm/nodelibs-proce
   return module.exports;
 });
 
-System.registerDynamic("npm:events@1.0.2.js", ["npm:events@1.0.2/events.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:events@1.0.2/events.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:inherits@2.0.1.js", ["npm:inherits@2.0.1/inherits_browser.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:inherits@2.0.1/inherits_browser.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:isarray@0.0.1.js", ["npm:isarray@0.0.1/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:isarray@0.0.1/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:base64-js@0.0.8.js", ["npm:base64-js@0.0.8/lib/b64.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:base64-js@0.0.8/lib/b64.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:ieee754@1.1.6.js", ["npm:ieee754@1.1.6/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:ieee754@1.1.6/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:is-array@1.0.1.js", ["npm:is-array@1.0.1/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:is-array@1.0.1/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:core-util-is@1.0.1.js", ["npm:core-util-is@1.0.1/lib/util.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:core-util-is@1.0.1/lib/util.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:process@0.10.1.js", ["npm:process@0.10.1/browser.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:process@0.10.1/browser.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:string_decoder@0.10.31.js", ["npm:string_decoder@0.10.31/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:string_decoder@0.10.31/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("github:jspm/nodelibs-string_decoder@0.1.0.js", ["github:jspm/nodelibs-string_decoder@0.1.0/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("github:jspm/nodelibs-string_decoder@0.1.0/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/string/escapeRegExp.js", ["npm:lodash@3.9.3/internal/baseToString.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseToString = require("npm:lodash@3.9.3/internal/baseToString.js");
-  var reRegExpChars = /[.*+?^${}()|[\]\/\\]/g,
-      reHasRegExpChars = RegExp(reRegExpChars.source);
-  function escapeRegExp(string) {
-    string = baseToString(string);
-    return (string && reHasRegExpChars.test(string)) ? string.replace(reRegExpChars, '\\$&') : string;
-  }
-  module.exports = escapeRegExp;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/getLength.js", ["npm:lodash@3.9.3/internal/baseProperty.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseProperty = require("npm:lodash@3.9.3/internal/baseProperty.js");
-  var getLength = baseProperty('length');
-  module.exports = getLength;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/shimKeys.js", ["npm:lodash@3.9.3/lang/isArguments.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isIndex.js", "npm:lodash@3.9.3/internal/isLength.js", "npm:lodash@3.9.3/object/keysIn.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var isArguments = require("npm:lodash@3.9.3/lang/isArguments.js"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
-      isIndex = require("npm:lodash@3.9.3/internal/isIndex.js"),
-      isLength = require("npm:lodash@3.9.3/internal/isLength.js"),
-      keysIn = require("npm:lodash@3.9.3/object/keysIn.js");
-  var objectProto = Object.prototype;
-  var hasOwnProperty = objectProto.hasOwnProperty;
-  function shimKeys(object) {
-    var props = keysIn(object),
-        propsLength = props.length,
-        length = propsLength && object.length;
-    var allowIndexes = !!length && isLength(length) && (isArray(object) || isArguments(object));
-    var index = -1,
-        result = [];
-    while (++index < propsLength) {
-      var key = props[index];
-      if ((allowIndexes && isIndex(key, length)) || hasOwnProperty.call(object, key)) {
-        result.push(key);
-      }
-    }
-    return result;
-  }
-  module.exports = shimKeys;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/baseAssign.js", ["npm:lodash@3.9.3/internal/baseCopy.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseCopy = require("npm:lodash@3.9.3/internal/baseCopy.js"),
-      keys = require("npm:lodash@3.9.3/object/keys.js");
-  function baseAssign(object, source) {
-    return source == null ? object : baseCopy(source, keys(source), object);
-  }
-  module.exports = baseAssign;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/bindCallback.js", ["npm:lodash@3.9.3/utility/identity.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var identity = require("npm:lodash@3.9.3/utility/identity.js");
-  function bindCallback(func, thisArg, argCount) {
-    if (typeof func != 'function') {
-      return identity;
-    }
-    if (thisArg === undefined) {
-      return func;
-    }
-    switch (argCount) {
-      case 1:
-        return function(value) {
-          return func.call(thisArg, value);
-        };
-      case 3:
-        return function(value, index, collection) {
-          return func.call(thisArg, value, index, collection);
-        };
-      case 4:
-        return function(accumulator, value, index, collection) {
-          return func.call(thisArg, accumulator, value, index, collection);
-        };
-      case 5:
-        return function(value, other, key, object, source) {
-          return func.call(thisArg, value, other, key, object, source);
-        };
-    }
-    return function() {
-      return func.apply(thisArg, arguments);
-    };
-  }
-  module.exports = bindCallback;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/object/create.js", ["npm:lodash@3.9.3/internal/baseAssign.js", "npm:lodash@3.9.3/internal/baseCreate.js", "npm:lodash@3.9.3/internal/isIterateeCall.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseAssign = require("npm:lodash@3.9.3/internal/baseAssign.js"),
-      baseCreate = require("npm:lodash@3.9.3/internal/baseCreate.js"),
-      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall.js");
-  function create(prototype, properties, guard) {
-    var result = baseCreate(prototype);
-    if (guard && isIterateeCall(prototype, properties, guard)) {
-      properties = null;
-    }
-    return properties ? baseAssign(result, properties) : result;
-  }
-  module.exports = create;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/lang/isFunction.js", ["npm:lodash@3.9.3/internal/baseIsFunction.js", "npm:lodash@3.9.3/internal/getNative.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseIsFunction = require("npm:lodash@3.9.3/internal/baseIsFunction.js"),
-      getNative = require("npm:lodash@3.9.3/internal/getNative.js");
-  var funcTag = '[object Function]';
-  var objectProto = Object.prototype;
-  var objToString = objectProto.toString;
-  var Uint8Array = getNative(global, 'Uint8Array');
-  var isFunction = !(baseIsFunction(/x/) || (Uint8Array && !baseIsFunction(Uint8Array))) ? baseIsFunction : function(value) {
-    return objToString.call(value) == funcTag;
-  };
-  module.exports = isFunction;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/lang/isEmpty.js", ["npm:lodash@3.9.3/lang/isArguments.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isArrayLike.js", "npm:lodash@3.9.3/lang/isFunction.js", "npm:lodash@3.9.3/internal/isObjectLike.js", "npm:lodash@3.9.3/lang/isString.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var isArguments = require("npm:lodash@3.9.3/lang/isArguments.js"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
-      isArrayLike = require("npm:lodash@3.9.3/internal/isArrayLike.js"),
-      isFunction = require("npm:lodash@3.9.3/lang/isFunction.js"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js"),
-      isString = require("npm:lodash@3.9.3/lang/isString.js"),
-      keys = require("npm:lodash@3.9.3/object/keys.js");
-  function isEmpty(value) {
-    if (value == null) {
-      return true;
-    }
-    if (isArrayLike(value) && (isArray(value) || isString(value) || isArguments(value) || (isObjectLike(value) && isFunction(value.splice)))) {
-      return !value.length;
-    }
-    return !keys(value).length;
-  }
-  module.exports = isEmpty;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/equalArrays.js", ["npm:lodash@3.9.3/internal/arraySome.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var arraySome = require("npm:lodash@3.9.3/internal/arraySome.js");
-  function equalArrays(array, other, equalFunc, customizer, isLoose, stackA, stackB) {
-    var index = -1,
-        arrLength = array.length,
-        othLength = other.length;
-    if (arrLength != othLength && !(isLoose && othLength > arrLength)) {
-      return false;
-    }
-    while (++index < arrLength) {
-      var arrValue = array[index],
-          othValue = other[index],
-          result = customizer ? customizer(isLoose ? othValue : arrValue, isLoose ? arrValue : othValue, index) : undefined;
-      if (result !== undefined) {
-        if (result) {
-          continue;
-        }
-        return false;
-      }
-      if (isLoose) {
-        if (!arraySome(other, function(othValue) {
-          return arrValue === othValue || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB);
-        })) {
-          return false;
-        }
-      } else if (!(arrValue === othValue || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB))) {
-        return false;
-      }
-    }
-    return true;
-  }
-  module.exports = equalArrays;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/getMatchData.js", ["npm:lodash@3.9.3/internal/isStrictComparable.js", "npm:lodash@3.9.3/object/pairs.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var isStrictComparable = require("npm:lodash@3.9.3/internal/isStrictComparable.js"),
-      pairs = require("npm:lodash@3.9.3/object/pairs.js");
-  function getMatchData(object) {
-    var result = pairs(object),
-        length = result.length;
-    while (length--) {
-      result[length][2] = isStrictComparable(result[length][1]);
-    }
-    return result;
-  }
-  module.exports = getMatchData;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/baseMatchesProperty.js", ["npm:lodash@3.9.3/internal/baseGet.js", "npm:lodash@3.9.3/internal/baseIsEqual.js", "npm:lodash@3.9.3/internal/baseSlice.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/internal/isKey.js", "npm:lodash@3.9.3/internal/isStrictComparable.js", "npm:lodash@3.9.3/array/last.js", "npm:lodash@3.9.3/internal/toObject.js", "npm:lodash@3.9.3/internal/toPath.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseGet = require("npm:lodash@3.9.3/internal/baseGet.js"),
-      baseIsEqual = require("npm:lodash@3.9.3/internal/baseIsEqual.js"),
-      baseSlice = require("npm:lodash@3.9.3/internal/baseSlice.js"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
-      isKey = require("npm:lodash@3.9.3/internal/isKey.js"),
-      isStrictComparable = require("npm:lodash@3.9.3/internal/isStrictComparable.js"),
-      last = require("npm:lodash@3.9.3/array/last.js"),
-      toObject = require("npm:lodash@3.9.3/internal/toObject.js"),
-      toPath = require("npm:lodash@3.9.3/internal/toPath.js");
-  function baseMatchesProperty(path, srcValue) {
-    var isArr = isArray(path),
-        isCommon = isKey(path) && isStrictComparable(srcValue),
-        pathKey = (path + '');
-    path = toPath(path);
-    return function(object) {
-      if (object == null) {
-        return false;
-      }
-      var key = pathKey;
-      object = toObject(object);
-      if ((isArr || !isCommon) && !(key in object)) {
-        object = path.length == 1 ? object : baseGet(object, baseSlice(path, 0, -1));
-        if (object == null) {
-          return false;
-        }
-        key = last(path);
-        object = toObject(object);
-      }
-      return object[key] === srcValue ? (srcValue !== undefined || (key in object)) : baseIsEqual(srcValue, object[key], undefined, true);
-    };
-  }
-  module.exports = baseMatchesProperty;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/utility/property.js", ["npm:lodash@3.9.3/internal/baseProperty.js", "npm:lodash@3.9.3/internal/basePropertyDeep.js", "npm:lodash@3.9.3/internal/isKey.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseProperty = require("npm:lodash@3.9.3/internal/baseProperty.js"),
-      basePropertyDeep = require("npm:lodash@3.9.3/internal/basePropertyDeep.js"),
-      isKey = require("npm:lodash@3.9.3/internal/isKey.js");
-  function property(path) {
-    return isKey(path) ? baseProperty(path) : basePropertyDeep(path);
-  }
-  module.exports = property;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/baseFor.js", ["npm:lodash@3.9.3/internal/createBaseFor.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var createBaseFor = require("npm:lodash@3.9.3/internal/createBaseFor.js");
-  var baseFor = createBaseFor();
-  module.exports = baseFor;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:xmlbuilder@2.6.4/lib/XMLDocType.js", ["npm:lodash@3.9.3/object/create.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:xmlbuilder@2.6.4/lib/XMLCData.js", "npm:xmlbuilder@2.6.4/lib/XMLComment.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDAttList.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDEntity.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDElement.js", "npm:xmlbuilder@2.6.4/lib/XMLDTDNotation.js", "npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  (function() {
-    var XMLCData,
-        XMLComment,
-        XMLDTDAttList,
-        XMLDTDElement,
-        XMLDTDEntity,
-        XMLDTDNotation,
-        XMLDocType,
-        XMLProcessingInstruction,
-        create,
-        isObject;
-    create = require("npm:lodash@3.9.3/object/create.js");
-    isObject = require("npm:lodash@3.9.3/lang/isObject.js");
-    XMLCData = require("npm:xmlbuilder@2.6.4/lib/XMLCData.js");
-    XMLComment = require("npm:xmlbuilder@2.6.4/lib/XMLComment.js");
-    XMLDTDAttList = require("npm:xmlbuilder@2.6.4/lib/XMLDTDAttList.js");
-    XMLDTDEntity = require("npm:xmlbuilder@2.6.4/lib/XMLDTDEntity.js");
-    XMLDTDElement = require("npm:xmlbuilder@2.6.4/lib/XMLDTDElement.js");
-    XMLDTDNotation = require("npm:xmlbuilder@2.6.4/lib/XMLDTDNotation.js");
-    XMLProcessingInstruction = require("npm:xmlbuilder@2.6.4/lib/XMLProcessingInstruction.js");
-    module.exports = XMLDocType = (function() {
-      function XMLDocType(parent, pubID, sysID) {
-        var ref,
-            ref1;
-        this.documentObject = parent;
-        this.stringify = this.documentObject.stringify;
-        this.children = [];
-        if (isObject(pubID)) {
-          ref = pubID, pubID = ref.pubID, sysID = ref.sysID;
-        }
-        if (sysID == null) {
-          ref1 = [pubID, sysID], sysID = ref1[0], pubID = ref1[1];
-        }
-        if (pubID != null) {
-          this.pubID = this.stringify.dtdPubID(pubID);
-        }
-        if (sysID != null) {
-          this.sysID = this.stringify.dtdSysID(sysID);
-        }
-      }
-      XMLDocType.prototype.clone = function() {
-        return create(XMLDocType.prototype, this);
-      };
-      XMLDocType.prototype.element = function(name, value) {
-        var child;
-        child = new XMLDTDElement(this, name, value);
-        this.children.push(child);
-        return this;
-      };
-      XMLDocType.prototype.attList = function(elementName, attributeName, attributeType, defaultValueType, defaultValue) {
-        var child;
-        child = new XMLDTDAttList(this, elementName, attributeName, attributeType, defaultValueType, defaultValue);
-        this.children.push(child);
-        return this;
-      };
-      XMLDocType.prototype.entity = function(name, value) {
-        var child;
-        child = new XMLDTDEntity(this, false, name, value);
-        this.children.push(child);
-        return this;
-      };
-      XMLDocType.prototype.pEntity = function(name, value) {
-        var child;
-        child = new XMLDTDEntity(this, true, name, value);
-        this.children.push(child);
-        return this;
-      };
-      XMLDocType.prototype.notation = function(name, value) {
-        var child;
-        child = new XMLDTDNotation(this, name, value);
-        this.children.push(child);
-        return this;
-      };
-      XMLDocType.prototype.cdata = function(value) {
-        var child;
-        child = new XMLCData(this, value);
-        this.children.push(child);
-        return this;
-      };
-      XMLDocType.prototype.comment = function(value) {
-        var child;
-        child = new XMLComment(this, value);
-        this.children.push(child);
-        return this;
-      };
-      XMLDocType.prototype.instruction = function(target, value) {
-        var child;
-        child = new XMLProcessingInstruction(this, target, value);
-        this.children.push(child);
-        return this;
-      };
-      XMLDocType.prototype.root = function() {
-        return this.documentObject.root();
-      };
-      XMLDocType.prototype.document = function() {
-        return this.documentObject;
-      };
-      XMLDocType.prototype.toString = function(options, level) {
-        var child,
-            i,
-            indent,
-            len,
-            newline,
-            offset,
-            pretty,
-            r,
-            ref,
-            ref1,
-            ref2,
-            ref3,
-            space;
-        pretty = (options != null ? options.pretty : void 0) || false;
-        indent = (ref = options != null ? options.indent : void 0) != null ? ref : '  ';
-        offset = (ref1 = options != null ? options.offset : void 0) != null ? ref1 : 0;
-        newline = (ref2 = options != null ? options.newline : void 0) != null ? ref2 : '\n';
-        level || (level = 0);
-        space = new Array(level + offset + 1).join(indent);
-        r = '';
-        if (pretty) {
-          r += space;
-        }
-        r += '<!DOCTYPE ' + this.root().name;
-        if (this.pubID && this.sysID) {
-          r += ' PUBLIC "' + this.pubID + '" "' + this.sysID + '"';
-        } else if (this.sysID) {
-          r += ' SYSTEM "' + this.sysID + '"';
-        }
-        if (this.children.length > 0) {
-          r += ' [';
-          if (pretty) {
-            r += newline;
-          }
-          ref3 = this.children;
-          for (i = 0, len = ref3.length; i < len; i++) {
-            child = ref3[i];
-            r += child.toString(options, level + 1);
-          }
-          r += ']';
-        }
-        r += '>';
-        if (pretty) {
-          r += newline;
-        }
-        return r;
-      };
-      XMLDocType.prototype.ele = function(name, value) {
-        return this.element(name, value);
-      };
-      XMLDocType.prototype.att = function(elementName, attributeName, attributeType, defaultValueType, defaultValue) {
-        return this.attList(elementName, attributeName, attributeType, defaultValueType, defaultValue);
-      };
-      XMLDocType.prototype.ent = function(name, value) {
-        return this.entity(name, value);
-      };
-      XMLDocType.prototype.pent = function(name, value) {
-        return this.pEntity(name, value);
-      };
-      XMLDocType.prototype.not = function(name, value) {
-        return this.notation(name, value);
-      };
-      XMLDocType.prototype.dat = function(value) {
-        return this.cdata(value);
-      };
-      XMLDocType.prototype.com = function(value) {
-        return this.comment(value);
-      };
-      XMLDocType.prototype.ins = function(target, value) {
-        return this.instruction(target, value);
-      };
-      XMLDocType.prototype.up = function() {
-        return this.root();
-      };
-      XMLDocType.prototype.doc = function() {
-        return this.document();
-      };
-      return XMLDocType;
-    })();
-  }).call(this);
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3.js", ["npm:lodash@3.9.3/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:lodash@3.9.3/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("github:jspm/nodelibs-events@0.1.1/index.js", ["npm:events@1.0.2.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = System._nodeRequire ? System._nodeRequire('events') : require("npm:events@1.0.2.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:buffer@3.2.2/index.js", ["npm:base64-js@0.0.8.js", "npm:ieee754@1.1.6.js", "npm:is-array@1.0.1.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var base64 = require("npm:base64-js@0.0.8.js");
-  var ieee754 = require("npm:ieee754@1.1.6.js");
-  var isArray = require("npm:is-array@1.0.1.js");
-  exports.Buffer = Buffer;
-  exports.SlowBuffer = SlowBuffer;
-  exports.INSPECT_MAX_BYTES = 50;
-  Buffer.poolSize = 8192;
-  var kMaxLength = 0x3fffffff;
-  var rootParent = {};
-  Buffer.TYPED_ARRAY_SUPPORT = (function() {
-    try {
-      var buf = new ArrayBuffer(0);
-      var arr = new Uint8Array(buf);
-      arr.foo = function() {
-        return 42;
-      };
-      return arr.foo() === 42 && typeof arr.subarray === 'function' && new Uint8Array(1).subarray(1, 1).byteLength === 0;
-    } catch (e) {
-      return false;
-    }
-  })();
-  function Buffer(arg) {
-    if (!(this instanceof Buffer)) {
-      if (arguments.length > 1)
-        return new Buffer(arg, arguments[1]);
-      return new Buffer(arg);
-    }
-    this.length = 0;
-    this.parent = undefined;
-    if (typeof arg === 'number') {
-      return fromNumber(this, arg);
-    }
-    if (typeof arg === 'string') {
-      return fromString(this, arg, arguments.length > 1 ? arguments[1] : 'utf8');
-    }
-    return fromObject(this, arg);
-  }
-  function fromNumber(that, length) {
-    that = allocate(that, length < 0 ? 0 : checked(length) | 0);
-    if (!Buffer.TYPED_ARRAY_SUPPORT) {
-      for (var i = 0; i < length; i++) {
-        that[i] = 0;
-      }
-    }
-    return that;
-  }
-  function fromString(that, string, encoding) {
-    if (typeof encoding !== 'string' || encoding === '')
-      encoding = 'utf8';
-    var length = byteLength(string, encoding) | 0;
-    that = allocate(that, length);
-    that.write(string, encoding);
-    return that;
-  }
-  function fromObject(that, object) {
-    if (Buffer.isBuffer(object))
-      return fromBuffer(that, object);
-    if (isArray(object))
-      return fromArray(that, object);
-    if (object == null) {
-      throw new TypeError('must start with number, buffer, array or string');
-    }
-    if (typeof ArrayBuffer !== 'undefined' && object.buffer instanceof ArrayBuffer) {
-      return fromTypedArray(that, object);
-    }
-    if (object.length)
-      return fromArrayLike(that, object);
-    return fromJsonObject(that, object);
-  }
-  function fromBuffer(that, buffer) {
-    var length = checked(buffer.length) | 0;
-    that = allocate(that, length);
-    buffer.copy(that, 0, 0, length);
-    return that;
-  }
-  function fromArray(that, array) {
-    var length = checked(array.length) | 0;
-    that = allocate(that, length);
-    for (var i = 0; i < length; i += 1) {
-      that[i] = array[i] & 255;
-    }
-    return that;
-  }
-  function fromTypedArray(that, array) {
-    var length = checked(array.length) | 0;
-    that = allocate(that, length);
-    for (var i = 0; i < length; i += 1) {
-      that[i] = array[i] & 255;
-    }
-    return that;
-  }
-  function fromArrayLike(that, array) {
-    var length = checked(array.length) | 0;
-    that = allocate(that, length);
-    for (var i = 0; i < length; i += 1) {
-      that[i] = array[i] & 255;
-    }
-    return that;
-  }
-  function fromJsonObject(that, object) {
-    var array;
-    var length = 0;
-    if (object.type === 'Buffer' && isArray(object.data)) {
-      array = object.data;
-      length = checked(array.length) | 0;
-    }
-    that = allocate(that, length);
-    for (var i = 0; i < length; i += 1) {
-      that[i] = array[i] & 255;
-    }
-    return that;
-  }
-  function allocate(that, length) {
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      that = Buffer._augment(new Uint8Array(length));
-    } else {
-      that.length = length;
-      that._isBuffer = true;
-    }
-    var fromPool = length !== 0 && length <= Buffer.poolSize >>> 1;
-    if (fromPool)
-      that.parent = rootParent;
-    return that;
-  }
-  function checked(length) {
-    if (length >= kMaxLength) {
-      throw new RangeError('Attempt to allocate Buffer larger than maximum ' + 'size: 0x' + kMaxLength.toString(16) + ' bytes');
-    }
-    return length | 0;
-  }
-  function SlowBuffer(subject, encoding) {
-    if (!(this instanceof SlowBuffer))
-      return new SlowBuffer(subject, encoding);
-    var buf = new Buffer(subject, encoding);
-    delete buf.parent;
-    return buf;
-  }
-  Buffer.isBuffer = function isBuffer(b) {
-    return !!(b != null && b._isBuffer);
-  };
-  Buffer.compare = function compare(a, b) {
-    if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
-      throw new TypeError('Arguments must be Buffers');
-    }
-    if (a === b)
-      return 0;
-    var x = a.length;
-    var y = b.length;
-    var i = 0;
-    var len = Math.min(x, y);
-    while (i < len) {
-      if (a[i] !== b[i])
-        break;
-      ++i;
-    }
-    if (i !== len) {
-      x = a[i];
-      y = b[i];
-    }
-    if (x < y)
-      return -1;
-    if (y < x)
-      return 1;
-    return 0;
-  };
-  Buffer.isEncoding = function isEncoding(encoding) {
-    switch (String(encoding).toLowerCase()) {
-      case 'hex':
-      case 'utf8':
-      case 'utf-8':
-      case 'ascii':
-      case 'binary':
-      case 'base64':
-      case 'raw':
-      case 'ucs2':
-      case 'ucs-2':
-      case 'utf16le':
-      case 'utf-16le':
-        return true;
-      default:
-        return false;
-    }
-  };
-  Buffer.concat = function concat(list, length) {
-    if (!isArray(list))
-      throw new TypeError('list argument must be an Array of Buffers.');
-    if (list.length === 0) {
-      return new Buffer(0);
-    } else if (list.length === 1) {
-      return list[0];
-    }
-    var i;
-    if (length === undefined) {
-      length = 0;
-      for (i = 0; i < list.length; i++) {
-        length += list[i].length;
-      }
-    }
-    var buf = new Buffer(length);
-    var pos = 0;
-    for (i = 0; i < list.length; i++) {
-      var item = list[i];
-      item.copy(buf, pos);
-      pos += item.length;
-    }
-    return buf;
-  };
-  function byteLength(string, encoding) {
-    if (typeof string !== 'string')
-      string = String(string);
-    if (string.length === 0)
-      return 0;
-    switch (encoding || 'utf8') {
-      case 'ascii':
-      case 'binary':
-      case 'raw':
-        return string.length;
-      case 'ucs2':
-      case 'ucs-2':
-      case 'utf16le':
-      case 'utf-16le':
-        return string.length * 2;
-      case 'hex':
-        return string.length >>> 1;
-      case 'utf8':
-      case 'utf-8':
-        return utf8ToBytes(string).length;
-      case 'base64':
-        return base64ToBytes(string).length;
-      default:
-        return string.length;
-    }
-  }
-  Buffer.byteLength = byteLength;
-  Buffer.prototype.length = undefined;
-  Buffer.prototype.parent = undefined;
-  Buffer.prototype.toString = function toString(encoding, start, end) {
-    var loweredCase = false;
-    start = start | 0;
-    end = end === undefined || end === Infinity ? this.length : end | 0;
-    if (!encoding)
-      encoding = 'utf8';
-    if (start < 0)
-      start = 0;
-    if (end > this.length)
-      end = this.length;
-    if (end <= start)
-      return '';
-    while (true) {
-      switch (encoding) {
-        case 'hex':
-          return hexSlice(this, start, end);
-        case 'utf8':
-        case 'utf-8':
-          return utf8Slice(this, start, end);
-        case 'ascii':
-          return asciiSlice(this, start, end);
-        case 'binary':
-          return binarySlice(this, start, end);
-        case 'base64':
-          return base64Slice(this, start, end);
-        case 'ucs2':
-        case 'ucs-2':
-        case 'utf16le':
-        case 'utf-16le':
-          return utf16leSlice(this, start, end);
-        default:
-          if (loweredCase)
-            throw new TypeError('Unknown encoding: ' + encoding);
-          encoding = (encoding + '').toLowerCase();
-          loweredCase = true;
-      }
-    }
-  };
-  Buffer.prototype.equals = function equals(b) {
-    if (!Buffer.isBuffer(b))
-      throw new TypeError('Argument must be a Buffer');
-    if (this === b)
-      return true;
-    return Buffer.compare(this, b) === 0;
-  };
-  Buffer.prototype.inspect = function inspect() {
-    var str = '';
-    var max = exports.INSPECT_MAX_BYTES;
-    if (this.length > 0) {
-      str = this.toString('hex', 0, max).match(/.{2}/g).join(' ');
-      if (this.length > max)
-        str += ' ... ';
-    }
-    return '<Buffer ' + str + '>';
-  };
-  Buffer.prototype.compare = function compare(b) {
-    if (!Buffer.isBuffer(b))
-      throw new TypeError('Argument must be a Buffer');
-    if (this === b)
-      return 0;
-    return Buffer.compare(this, b);
-  };
-  Buffer.prototype.indexOf = function indexOf(val, byteOffset) {
-    if (byteOffset > 0x7fffffff)
-      byteOffset = 0x7fffffff;
-    else if (byteOffset < -0x80000000)
-      byteOffset = -0x80000000;
-    byteOffset >>= 0;
-    if (this.length === 0)
-      return -1;
-    if (byteOffset >= this.length)
-      return -1;
-    if (byteOffset < 0)
-      byteOffset = Math.max(this.length + byteOffset, 0);
-    if (typeof val === 'string') {
-      if (val.length === 0)
-        return -1;
-      return String.prototype.indexOf.call(this, val, byteOffset);
-    }
-    if (Buffer.isBuffer(val)) {
-      return arrayIndexOf(this, val, byteOffset);
-    }
-    if (typeof val === 'number') {
-      if (Buffer.TYPED_ARRAY_SUPPORT && Uint8Array.prototype.indexOf === 'function') {
-        return Uint8Array.prototype.indexOf.call(this, val, byteOffset);
-      }
-      return arrayIndexOf(this, [val], byteOffset);
-    }
-    function arrayIndexOf(arr, val, byteOffset) {
-      var foundIndex = -1;
-      for (var i = 0; byteOffset + i < arr.length; i++) {
-        if (arr[byteOffset + i] === val[foundIndex === -1 ? 0 : i - foundIndex]) {
-          if (foundIndex === -1)
-            foundIndex = i;
-          if (i - foundIndex + 1 === val.length)
-            return byteOffset + foundIndex;
-        } else {
-          foundIndex = -1;
-        }
-      }
-      return -1;
-    }
-    throw new TypeError('val must be string, number or Buffer');
-  };
-  Buffer.prototype.get = function get(offset) {
-    console.log('.get() is deprecated. Access using array indexes instead.');
-    return this.readUInt8(offset);
-  };
-  Buffer.prototype.set = function set(v, offset) {
-    console.log('.set() is deprecated. Access using array indexes instead.');
-    return this.writeUInt8(v, offset);
-  };
-  function hexWrite(buf, string, offset, length) {
-    offset = Number(offset) || 0;
-    var remaining = buf.length - offset;
-    if (!length) {
-      length = remaining;
-    } else {
-      length = Number(length);
-      if (length > remaining) {
-        length = remaining;
-      }
-    }
-    var strLen = string.length;
-    if (strLen % 2 !== 0)
-      throw new Error('Invalid hex string');
-    if (length > strLen / 2) {
-      length = strLen / 2;
-    }
-    for (var i = 0; i < length; i++) {
-      var parsed = parseInt(string.substr(i * 2, 2), 16);
-      if (isNaN(parsed))
-        throw new Error('Invalid hex string');
-      buf[offset + i] = parsed;
-    }
-    return i;
-  }
-  function utf8Write(buf, string, offset, length) {
-    return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length);
-  }
-  function asciiWrite(buf, string, offset, length) {
-    return blitBuffer(asciiToBytes(string), buf, offset, length);
-  }
-  function binaryWrite(buf, string, offset, length) {
-    return asciiWrite(buf, string, offset, length);
-  }
-  function base64Write(buf, string, offset, length) {
-    return blitBuffer(base64ToBytes(string), buf, offset, length);
-  }
-  function ucs2Write(buf, string, offset, length) {
-    return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length);
-  }
-  Buffer.prototype.write = function write(string, offset, length, encoding) {
-    if (offset === undefined) {
-      encoding = 'utf8';
-      length = this.length;
-      offset = 0;
-    } else if (length === undefined && typeof offset === 'string') {
-      encoding = offset;
-      length = this.length;
-      offset = 0;
-    } else if (isFinite(offset)) {
-      offset = offset | 0;
-      if (isFinite(length)) {
-        length = length | 0;
-        if (encoding === undefined)
-          encoding = 'utf8';
-      } else {
-        encoding = length;
-        length = undefined;
-      }
-    } else {
-      var swap = encoding;
-      encoding = offset;
-      offset = length | 0;
-      length = swap;
-    }
-    var remaining = this.length - offset;
-    if (length === undefined || length > remaining)
-      length = remaining;
-    if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
-      throw new RangeError('attempt to write outside buffer bounds');
-    }
-    if (!encoding)
-      encoding = 'utf8';
-    var loweredCase = false;
-    for (; ; ) {
-      switch (encoding) {
-        case 'hex':
-          return hexWrite(this, string, offset, length);
-        case 'utf8':
-        case 'utf-8':
-          return utf8Write(this, string, offset, length);
-        case 'ascii':
-          return asciiWrite(this, string, offset, length);
-        case 'binary':
-          return binaryWrite(this, string, offset, length);
-        case 'base64':
-          return base64Write(this, string, offset, length);
-        case 'ucs2':
-        case 'ucs-2':
-        case 'utf16le':
-        case 'utf-16le':
-          return ucs2Write(this, string, offset, length);
-        default:
-          if (loweredCase)
-            throw new TypeError('Unknown encoding: ' + encoding);
-          encoding = ('' + encoding).toLowerCase();
-          loweredCase = true;
-      }
-    }
-  };
-  Buffer.prototype.toJSON = function toJSON() {
-    return {
-      type: 'Buffer',
-      data: Array.prototype.slice.call(this._arr || this, 0)
-    };
-  };
-  function base64Slice(buf, start, end) {
-    if (start === 0 && end === buf.length) {
-      return base64.fromByteArray(buf);
-    } else {
-      return base64.fromByteArray(buf.slice(start, end));
-    }
-  }
-  function utf8Slice(buf, start, end) {
-    var res = '';
-    var tmp = '';
-    end = Math.min(buf.length, end);
-    for (var i = start; i < end; i++) {
-      if (buf[i] <= 0x7F) {
-        res += decodeUtf8Char(tmp) + String.fromCharCode(buf[i]);
-        tmp = '';
-      } else {
-        tmp += '%' + buf[i].toString(16);
-      }
-    }
-    return res + decodeUtf8Char(tmp);
-  }
-  function asciiSlice(buf, start, end) {
-    var ret = '';
-    end = Math.min(buf.length, end);
-    for (var i = start; i < end; i++) {
-      ret += String.fromCharCode(buf[i] & 0x7F);
-    }
-    return ret;
-  }
-  function binarySlice(buf, start, end) {
-    var ret = '';
-    end = Math.min(buf.length, end);
-    for (var i = start; i < end; i++) {
-      ret += String.fromCharCode(buf[i]);
-    }
-    return ret;
-  }
-  function hexSlice(buf, start, end) {
-    var len = buf.length;
-    if (!start || start < 0)
-      start = 0;
-    if (!end || end < 0 || end > len)
-      end = len;
-    var out = '';
-    for (var i = start; i < end; i++) {
-      out += toHex(buf[i]);
-    }
-    return out;
-  }
-  function utf16leSlice(buf, start, end) {
-    var bytes = buf.slice(start, end);
-    var res = '';
-    for (var i = 0; i < bytes.length; i += 2) {
-      res += String.fromCharCode(bytes[i] + bytes[i + 1] * 256);
-    }
-    return res;
-  }
-  Buffer.prototype.slice = function slice(start, end) {
-    var len = this.length;
-    start = ~~start;
-    end = end === undefined ? len : ~~end;
-    if (start < 0) {
-      start += len;
-      if (start < 0)
-        start = 0;
-    } else if (start > len) {
-      start = len;
-    }
-    if (end < 0) {
-      end += len;
-      if (end < 0)
-        end = 0;
-    } else if (end > len) {
-      end = len;
-    }
-    if (end < start)
-      end = start;
-    var newBuf;
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      newBuf = Buffer._augment(this.subarray(start, end));
-    } else {
-      var sliceLen = end - start;
-      newBuf = new Buffer(sliceLen, undefined);
-      for (var i = 0; i < sliceLen; i++) {
-        newBuf[i] = this[i + start];
-      }
-    }
-    if (newBuf.length)
-      newBuf.parent = this.parent || this;
-    return newBuf;
-  };
-  function checkOffset(offset, ext, length) {
-    if ((offset % 1) !== 0 || offset < 0)
-      throw new RangeError('offset is not uint');
-    if (offset + ext > length)
-      throw new RangeError('Trying to access beyond buffer length');
-  }
-  Buffer.prototype.readUIntLE = function readUIntLE(offset, byteLength, noAssert) {
-    offset = offset | 0;
-    byteLength = byteLength | 0;
-    if (!noAssert)
-      checkOffset(offset, byteLength, this.length);
-    var val = this[offset];
-    var mul = 1;
-    var i = 0;
-    while (++i < byteLength && (mul *= 0x100)) {
-      val += this[offset + i] * mul;
-    }
-    return val;
-  };
-  Buffer.prototype.readUIntBE = function readUIntBE(offset, byteLength, noAssert) {
-    offset = offset | 0;
-    byteLength = byteLength | 0;
-    if (!noAssert) {
-      checkOffset(offset, byteLength, this.length);
-    }
-    var val = this[offset + --byteLength];
-    var mul = 1;
-    while (byteLength > 0 && (mul *= 0x100)) {
-      val += this[offset + --byteLength] * mul;
-    }
-    return val;
-  };
-  Buffer.prototype.readUInt8 = function readUInt8(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 1, this.length);
-    return this[offset];
-  };
-  Buffer.prototype.readUInt16LE = function readUInt16LE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 2, this.length);
-    return this[offset] | (this[offset + 1] << 8);
-  };
-  Buffer.prototype.readUInt16BE = function readUInt16BE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 2, this.length);
-    return (this[offset] << 8) | this[offset + 1];
-  };
-  Buffer.prototype.readUInt32LE = function readUInt32LE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 4, this.length);
-    return ((this[offset]) | (this[offset + 1] << 8) | (this[offset + 2] << 16)) + (this[offset + 3] * 0x1000000);
-  };
-  Buffer.prototype.readUInt32BE = function readUInt32BE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 4, this.length);
-    return (this[offset] * 0x1000000) + ((this[offset + 1] << 16) | (this[offset + 2] << 8) | this[offset + 3]);
-  };
-  Buffer.prototype.readIntLE = function readIntLE(offset, byteLength, noAssert) {
-    offset = offset | 0;
-    byteLength = byteLength | 0;
-    if (!noAssert)
-      checkOffset(offset, byteLength, this.length);
-    var val = this[offset];
-    var mul = 1;
-    var i = 0;
-    while (++i < byteLength && (mul *= 0x100)) {
-      val += this[offset + i] * mul;
-    }
-    mul *= 0x80;
-    if (val >= mul)
-      val -= Math.pow(2, 8 * byteLength);
-    return val;
-  };
-  Buffer.prototype.readIntBE = function readIntBE(offset, byteLength, noAssert) {
-    offset = offset | 0;
-    byteLength = byteLength | 0;
-    if (!noAssert)
-      checkOffset(offset, byteLength, this.length);
-    var i = byteLength;
-    var mul = 1;
-    var val = this[offset + --i];
-    while (i > 0 && (mul *= 0x100)) {
-      val += this[offset + --i] * mul;
-    }
-    mul *= 0x80;
-    if (val >= mul)
-      val -= Math.pow(2, 8 * byteLength);
-    return val;
-  };
-  Buffer.prototype.readInt8 = function readInt8(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 1, this.length);
-    if (!(this[offset] & 0x80))
-      return (this[offset]);
-    return ((0xff - this[offset] + 1) * -1);
-  };
-  Buffer.prototype.readInt16LE = function readInt16LE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 2, this.length);
-    var val = this[offset] | (this[offset + 1] << 8);
-    return (val & 0x8000) ? val | 0xFFFF0000 : val;
-  };
-  Buffer.prototype.readInt16BE = function readInt16BE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 2, this.length);
-    var val = this[offset + 1] | (this[offset] << 8);
-    return (val & 0x8000) ? val | 0xFFFF0000 : val;
-  };
-  Buffer.prototype.readInt32LE = function readInt32LE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 4, this.length);
-    return (this[offset]) | (this[offset + 1] << 8) | (this[offset + 2] << 16) | (this[offset + 3] << 24);
-  };
-  Buffer.prototype.readInt32BE = function readInt32BE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 4, this.length);
-    return (this[offset] << 24) | (this[offset + 1] << 16) | (this[offset + 2] << 8) | (this[offset + 3]);
-  };
-  Buffer.prototype.readFloatLE = function readFloatLE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 4, this.length);
-    return ieee754.read(this, offset, true, 23, 4);
-  };
-  Buffer.prototype.readFloatBE = function readFloatBE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 4, this.length);
-    return ieee754.read(this, offset, false, 23, 4);
-  };
-  Buffer.prototype.readDoubleLE = function readDoubleLE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 8, this.length);
-    return ieee754.read(this, offset, true, 52, 8);
-  };
-  Buffer.prototype.readDoubleBE = function readDoubleBE(offset, noAssert) {
-    if (!noAssert)
-      checkOffset(offset, 8, this.length);
-    return ieee754.read(this, offset, false, 52, 8);
-  };
-  function checkInt(buf, value, offset, ext, max, min) {
-    if (!Buffer.isBuffer(buf))
-      throw new TypeError('buffer must be a Buffer instance');
-    if (value > max || value < min)
-      throw new RangeError('value is out of bounds');
-    if (offset + ext > buf.length)
-      throw new RangeError('index out of range');
-  }
-  Buffer.prototype.writeUIntLE = function writeUIntLE(value, offset, byteLength, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    byteLength = byteLength | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, byteLength, Math.pow(2, 8 * byteLength), 0);
-    var mul = 1;
-    var i = 0;
-    this[offset] = value & 0xFF;
-    while (++i < byteLength && (mul *= 0x100)) {
-      this[offset + i] = (value / mul) & 0xFF;
-    }
-    return offset + byteLength;
-  };
-  Buffer.prototype.writeUIntBE = function writeUIntBE(value, offset, byteLength, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    byteLength = byteLength | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, byteLength, Math.pow(2, 8 * byteLength), 0);
-    var i = byteLength - 1;
-    var mul = 1;
-    this[offset + i] = value & 0xFF;
-    while (--i >= 0 && (mul *= 0x100)) {
-      this[offset + i] = (value / mul) & 0xFF;
-    }
-    return offset + byteLength;
-  };
-  Buffer.prototype.writeUInt8 = function writeUInt8(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 1, 0xff, 0);
-    if (!Buffer.TYPED_ARRAY_SUPPORT)
-      value = Math.floor(value);
-    this[offset] = value;
-    return offset + 1;
-  };
-  function objectWriteUInt16(buf, value, offset, littleEndian) {
-    if (value < 0)
-      value = 0xffff + value + 1;
-    for (var i = 0,
-        j = Math.min(buf.length - offset, 2); i < j; i++) {
-      buf[offset + i] = (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>> (littleEndian ? i : 1 - i) * 8;
-    }
-  }
-  Buffer.prototype.writeUInt16LE = function writeUInt16LE(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 2, 0xffff, 0);
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      this[offset] = value;
-      this[offset + 1] = (value >>> 8);
-    } else {
-      objectWriteUInt16(this, value, offset, true);
-    }
-    return offset + 2;
-  };
-  Buffer.prototype.writeUInt16BE = function writeUInt16BE(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 2, 0xffff, 0);
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      this[offset] = (value >>> 8);
-      this[offset + 1] = value;
-    } else {
-      objectWriteUInt16(this, value, offset, false);
-    }
-    return offset + 2;
-  };
-  function objectWriteUInt32(buf, value, offset, littleEndian) {
-    if (value < 0)
-      value = 0xffffffff + value + 1;
-    for (var i = 0,
-        j = Math.min(buf.length - offset, 4); i < j; i++) {
-      buf[offset + i] = (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff;
-    }
-  }
-  Buffer.prototype.writeUInt32LE = function writeUInt32LE(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 4, 0xffffffff, 0);
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      this[offset + 3] = (value >>> 24);
-      this[offset + 2] = (value >>> 16);
-      this[offset + 1] = (value >>> 8);
-      this[offset] = value;
-    } else {
-      objectWriteUInt32(this, value, offset, true);
-    }
-    return offset + 4;
-  };
-  Buffer.prototype.writeUInt32BE = function writeUInt32BE(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 4, 0xffffffff, 0);
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      this[offset] = (value >>> 24);
-      this[offset + 1] = (value >>> 16);
-      this[offset + 2] = (value >>> 8);
-      this[offset + 3] = value;
-    } else {
-      objectWriteUInt32(this, value, offset, false);
-    }
-    return offset + 4;
-  };
-  Buffer.prototype.writeIntLE = function writeIntLE(value, offset, byteLength, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert) {
-      var limit = Math.pow(2, 8 * byteLength - 1);
-      checkInt(this, value, offset, byteLength, limit - 1, -limit);
-    }
-    var i = 0;
-    var mul = 1;
-    var sub = value < 0 ? 1 : 0;
-    this[offset] = value & 0xFF;
-    while (++i < byteLength && (mul *= 0x100)) {
-      this[offset + i] = ((value / mul) >> 0) - sub & 0xFF;
-    }
-    return offset + byteLength;
-  };
-  Buffer.prototype.writeIntBE = function writeIntBE(value, offset, byteLength, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert) {
-      var limit = Math.pow(2, 8 * byteLength - 1);
-      checkInt(this, value, offset, byteLength, limit - 1, -limit);
-    }
-    var i = byteLength - 1;
-    var mul = 1;
-    var sub = value < 0 ? 1 : 0;
-    this[offset + i] = value & 0xFF;
-    while (--i >= 0 && (mul *= 0x100)) {
-      this[offset + i] = ((value / mul) >> 0) - sub & 0xFF;
-    }
-    return offset + byteLength;
-  };
-  Buffer.prototype.writeInt8 = function writeInt8(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 1, 0x7f, -0x80);
-    if (!Buffer.TYPED_ARRAY_SUPPORT)
-      value = Math.floor(value);
-    if (value < 0)
-      value = 0xff + value + 1;
-    this[offset] = value;
-    return offset + 1;
-  };
-  Buffer.prototype.writeInt16LE = function writeInt16LE(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 2, 0x7fff, -0x8000);
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      this[offset] = value;
-      this[offset + 1] = (value >>> 8);
-    } else {
-      objectWriteUInt16(this, value, offset, true);
-    }
-    return offset + 2;
-  };
-  Buffer.prototype.writeInt16BE = function writeInt16BE(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 2, 0x7fff, -0x8000);
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      this[offset] = (value >>> 8);
-      this[offset + 1] = value;
-    } else {
-      objectWriteUInt16(this, value, offset, false);
-    }
-    return offset + 2;
-  };
-  Buffer.prototype.writeInt32LE = function writeInt32LE(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      this[offset] = value;
-      this[offset + 1] = (value >>> 8);
-      this[offset + 2] = (value >>> 16);
-      this[offset + 3] = (value >>> 24);
-    } else {
-      objectWriteUInt32(this, value, offset, true);
-    }
-    return offset + 4;
-  };
-  Buffer.prototype.writeInt32BE = function writeInt32BE(value, offset, noAssert) {
-    value = +value;
-    offset = offset | 0;
-    if (!noAssert)
-      checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
-    if (value < 0)
-      value = 0xffffffff + value + 1;
-    if (Buffer.TYPED_ARRAY_SUPPORT) {
-      this[offset] = (value >>> 24);
-      this[offset + 1] = (value >>> 16);
-      this[offset + 2] = (value >>> 8);
-      this[offset + 3] = value;
-    } else {
-      objectWriteUInt32(this, value, offset, false);
-    }
-    return offset + 4;
-  };
-  function checkIEEE754(buf, value, offset, ext, max, min) {
-    if (value > max || value < min)
-      throw new RangeError('value is out of bounds');
-    if (offset + ext > buf.length)
-      throw new RangeError('index out of range');
-    if (offset < 0)
-      throw new RangeError('index out of range');
-  }
-  function writeFloat(buf, value, offset, littleEndian, noAssert) {
-    if (!noAssert) {
-      checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38);
-    }
-    ieee754.write(buf, value, offset, littleEndian, 23, 4);
-    return offset + 4;
-  }
-  Buffer.prototype.writeFloatLE = function writeFloatLE(value, offset, noAssert) {
-    return writeFloat(this, value, offset, true, noAssert);
-  };
-  Buffer.prototype.writeFloatBE = function writeFloatBE(value, offset, noAssert) {
-    return writeFloat(this, value, offset, false, noAssert);
-  };
-  function writeDouble(buf, value, offset, littleEndian, noAssert) {
-    if (!noAssert) {
-      checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308);
-    }
-    ieee754.write(buf, value, offset, littleEndian, 52, 8);
-    return offset + 8;
-  }
-  Buffer.prototype.writeDoubleLE = function writeDoubleLE(value, offset, noAssert) {
-    return writeDouble(this, value, offset, true, noAssert);
-  };
-  Buffer.prototype.writeDoubleBE = function writeDoubleBE(value, offset, noAssert) {
-    return writeDouble(this, value, offset, false, noAssert);
-  };
-  Buffer.prototype.copy = function copy(target, targetStart, start, end) {
-    if (!start)
-      start = 0;
-    if (!end && end !== 0)
-      end = this.length;
-    if (targetStart >= target.length)
-      targetStart = target.length;
-    if (!targetStart)
-      targetStart = 0;
-    if (end > 0 && end < start)
-      end = start;
-    if (end === start)
-      return 0;
-    if (target.length === 0 || this.length === 0)
-      return 0;
-    if (targetStart < 0) {
-      throw new RangeError('targetStart out of bounds');
-    }
-    if (start < 0 || start >= this.length)
-      throw new RangeError('sourceStart out of bounds');
-    if (end < 0)
-      throw new RangeError('sourceEnd out of bounds');
-    if (end > this.length)
-      end = this.length;
-    if (target.length - targetStart < end - start) {
-      end = target.length - targetStart + start;
-    }
-    var len = end - start;
-    if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
-      for (var i = 0; i < len; i++) {
-        target[i + targetStart] = this[i + start];
-      }
-    } else {
-      target._set(this.subarray(start, start + len), targetStart);
-    }
-    return len;
-  };
-  Buffer.prototype.fill = function fill(value, start, end) {
-    if (!value)
-      value = 0;
-    if (!start)
-      start = 0;
-    if (!end)
-      end = this.length;
-    if (end < start)
-      throw new RangeError('end < start');
-    if (end === start)
-      return;
-    if (this.length === 0)
-      return;
-    if (start < 0 || start >= this.length)
-      throw new RangeError('start out of bounds');
-    if (end < 0 || end > this.length)
-      throw new RangeError('end out of bounds');
-    var i;
-    if (typeof value === 'number') {
-      for (i = start; i < end; i++) {
-        this[i] = value;
-      }
-    } else {
-      var bytes = utf8ToBytes(value.toString());
-      var len = bytes.length;
-      for (i = start; i < end; i++) {
-        this[i] = bytes[i % len];
-      }
-    }
-    return this;
-  };
-  Buffer.prototype.toArrayBuffer = function toArrayBuffer() {
-    if (typeof Uint8Array !== 'undefined') {
-      if (Buffer.TYPED_ARRAY_SUPPORT) {
-        return (new Buffer(this)).buffer;
-      } else {
-        var buf = new Uint8Array(this.length);
-        for (var i = 0,
-            len = buf.length; i < len; i += 1) {
-          buf[i] = this[i];
-        }
-        return buf.buffer;
-      }
-    } else {
-      throw new TypeError('Buffer.toArrayBuffer not supported in this browser');
-    }
-  };
-  var BP = Buffer.prototype;
-  Buffer._augment = function _augment(arr) {
-    arr.constructor = Buffer;
-    arr._isBuffer = true;
-    arr._set = arr.set;
-    arr.get = BP.get;
-    arr.set = BP.set;
-    arr.write = BP.write;
-    arr.toString = BP.toString;
-    arr.toLocaleString = BP.toString;
-    arr.toJSON = BP.toJSON;
-    arr.equals = BP.equals;
-    arr.compare = BP.compare;
-    arr.indexOf = BP.indexOf;
-    arr.copy = BP.copy;
-    arr.slice = BP.slice;
-    arr.readUIntLE = BP.readUIntLE;
-    arr.readUIntBE = BP.readUIntBE;
-    arr.readUInt8 = BP.readUInt8;
-    arr.readUInt16LE = BP.readUInt16LE;
-    arr.readUInt16BE = BP.readUInt16BE;
-    arr.readUInt32LE = BP.readUInt32LE;
-    arr.readUInt32BE = BP.readUInt32BE;
-    arr.readIntLE = BP.readIntLE;
-    arr.readIntBE = BP.readIntBE;
-    arr.readInt8 = BP.readInt8;
-    arr.readInt16LE = BP.readInt16LE;
-    arr.readInt16BE = BP.readInt16BE;
-    arr.readInt32LE = BP.readInt32LE;
-    arr.readInt32BE = BP.readInt32BE;
-    arr.readFloatLE = BP.readFloatLE;
-    arr.readFloatBE = BP.readFloatBE;
-    arr.readDoubleLE = BP.readDoubleLE;
-    arr.readDoubleBE = BP.readDoubleBE;
-    arr.writeUInt8 = BP.writeUInt8;
-    arr.writeUIntLE = BP.writeUIntLE;
-    arr.writeUIntBE = BP.writeUIntBE;
-    arr.writeUInt16LE = BP.writeUInt16LE;
-    arr.writeUInt16BE = BP.writeUInt16BE;
-    arr.writeUInt32LE = BP.writeUInt32LE;
-    arr.writeUInt32BE = BP.writeUInt32BE;
-    arr.writeIntLE = BP.writeIntLE;
-    arr.writeIntBE = BP.writeIntBE;
-    arr.writeInt8 = BP.writeInt8;
-    arr.writeInt16LE = BP.writeInt16LE;
-    arr.writeInt16BE = BP.writeInt16BE;
-    arr.writeInt32LE = BP.writeInt32LE;
-    arr.writeInt32BE = BP.writeInt32BE;
-    arr.writeFloatLE = BP.writeFloatLE;
-    arr.writeFloatBE = BP.writeFloatBE;
-    arr.writeDoubleLE = BP.writeDoubleLE;
-    arr.writeDoubleBE = BP.writeDoubleBE;
-    arr.fill = BP.fill;
-    arr.inspect = BP.inspect;
-    arr.toArrayBuffer = BP.toArrayBuffer;
-    return arr;
-  };
-  var INVALID_BASE64_RE = /[^+\/0-9A-z\-]/g;
-  function base64clean(str) {
-    str = stringtrim(str).replace(INVALID_BASE64_RE, '');
-    if (str.length < 2)
-      return '';
-    while (str.length % 4 !== 0) {
-      str = str + '=';
-    }
-    return str;
-  }
-  function stringtrim(str) {
-    if (str.trim)
-      return str.trim();
-    return str.replace(/^\s+|\s+$/g, '');
-  }
-  function toHex(n) {
-    if (n < 16)
-      return '0' + n.toString(16);
-    return n.toString(16);
-  }
-  function utf8ToBytes(string, units) {
-    units = units || Infinity;
-    var codePoint;
-    var length = string.length;
-    var leadSurrogate = null;
-    var bytes = [];
-    var i = 0;
-    for (; i < length; i++) {
-      codePoint = string.charCodeAt(i);
-      if (codePoint > 0xD7FF && codePoint < 0xE000) {
-        if (leadSurrogate) {
-          if (codePoint < 0xDC00) {
-            if ((units -= 3) > -1)
-              bytes.push(0xEF, 0xBF, 0xBD);
-            leadSurrogate = codePoint;
-            continue;
-          } else {
-            codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000;
-            leadSurrogate = null;
-          }
-        } else {
-          if (codePoint > 0xDBFF) {
-            if ((units -= 3) > -1)
-              bytes.push(0xEF, 0xBF, 0xBD);
-            continue;
-          } else if (i + 1 === length) {
-            if ((units -= 3) > -1)
-              bytes.push(0xEF, 0xBF, 0xBD);
-            continue;
-          } else {
-            leadSurrogate = codePoint;
-            continue;
-          }
-        }
-      } else if (leadSurrogate) {
-        if ((units -= 3) > -1)
-          bytes.push(0xEF, 0xBF, 0xBD);
-        leadSurrogate = null;
-      }
-      if (codePoint < 0x80) {
-        if ((units -= 1) < 0)
-          break;
-        bytes.push(codePoint);
-      } else if (codePoint < 0x800) {
-        if ((units -= 2) < 0)
-          break;
-        bytes.push(codePoint >> 0x6 | 0xC0, codePoint & 0x3F | 0x80);
-      } else if (codePoint < 0x10000) {
-        if ((units -= 3) < 0)
-          break;
-        bytes.push(codePoint >> 0xC | 0xE0, codePoint >> 0x6 & 0x3F | 0x80, codePoint & 0x3F | 0x80);
-      } else if (codePoint < 0x200000) {
-        if ((units -= 4) < 0)
-          break;
-        bytes.push(codePoint >> 0x12 | 0xF0, codePoint >> 0xC & 0x3F | 0x80, codePoint >> 0x6 & 0x3F | 0x80, codePoint & 0x3F | 0x80);
-      } else {
-        throw new Error('Invalid code point');
-      }
-    }
-    return bytes;
-  }
-  function asciiToBytes(str) {
-    var byteArray = [];
-    for (var i = 0; i < str.length; i++) {
-      byteArray.push(str.charCodeAt(i) & 0xFF);
-    }
-    return byteArray;
-  }
-  function utf16leToBytes(str, units) {
-    var c,
-        hi,
-        lo;
-    var byteArray = [];
-    for (var i = 0; i < str.length; i++) {
-      if ((units -= 2) < 0)
-        break;
-      c = str.charCodeAt(i);
-      hi = c >> 8;
-      lo = c % 256;
-      byteArray.push(lo);
-      byteArray.push(hi);
-    }
-    return byteArray;
-  }
-  function base64ToBytes(str) {
-    return base64.toByteArray(base64clean(str));
-  }
-  function blitBuffer(src, dst, offset, length) {
-    for (var i = 0; i < length; i++) {
-      if ((i + offset >= dst.length) || (i >= src.length))
-        break;
-      dst[i + offset] = src[i];
-    }
-    return i;
-  }
-  function decodeUtf8Char(str) {
-    try {
-      return decodeURIComponent(str);
-    } catch (err) {
-      return String.fromCharCode(0xFFFD);
-    }
-  }
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("github:jspm/nodelibs-process@0.1.1/index.js", ["npm:process@0.10.1.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = System._nodeRequire ? process : require("npm:process@0.10.1.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/lang/isNative.js", ["npm:lodash@3.9.3/string/escapeRegExp.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var escapeRegExp = require("npm:lodash@3.9.3/string/escapeRegExp.js"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
-  var funcTag = '[object Function]';
-  var reIsHostCtor = /^\[object .+?Constructor\]$/;
-  var objectProto = Object.prototype;
-  var fnToString = Function.prototype.toString;
-  var hasOwnProperty = objectProto.hasOwnProperty;
-  var objToString = objectProto.toString;
-  var reIsNative = RegExp('^' + escapeRegExp(fnToString.call(hasOwnProperty)).replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$');
-  function isNative(value) {
-    if (value == null) {
-      return false;
-    }
-    if (objToString.call(value) == funcTag) {
-      return reIsNative.test(fnToString.call(value));
-    }
-    return isObjectLike(value) && reIsHostCtor.test(value);
-  }
-  module.exports = isNative;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/isArrayLike.js", ["npm:lodash@3.9.3/internal/getLength.js", "npm:lodash@3.9.3/internal/isLength.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var getLength = require("npm:lodash@3.9.3/internal/getLength.js"),
-      isLength = require("npm:lodash@3.9.3/internal/isLength.js");
-  function isArrayLike(value) {
-    return value != null && isLength(getLength(value));
-  }
-  module.exports = isArrayLike;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/createAssigner.js", ["npm:lodash@3.9.3/internal/bindCallback.js", "npm:lodash@3.9.3/internal/isIterateeCall.js", "npm:lodash@3.9.3/function/restParam.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var bindCallback = require("npm:lodash@3.9.3/internal/bindCallback.js"),
-      isIterateeCall = require("npm:lodash@3.9.3/internal/isIterateeCall.js"),
-      restParam = require("npm:lodash@3.9.3/function/restParam.js");
-  function createAssigner(assigner) {
-    return restParam(function(object, sources) {
-      var index = -1,
-          length = object == null ? 0 : sources.length,
-          customizer = length > 2 ? sources[length - 2] : undefined,
-          guard = length > 2 ? sources[2] : undefined,
-          thisArg = length > 1 ? sources[length - 1] : undefined;
-      if (typeof customizer == 'function') {
-        customizer = bindCallback(customizer, thisArg, 5);
-        length -= 2;
-      } else {
-        customizer = typeof thisArg == 'function' ? thisArg : undefined;
-        length -= (customizer ? 1 : 0);
-      }
-      if (guard && isIterateeCall(sources[0], sources[1], guard)) {
-        customizer = length < 3 ? undefined : customizer;
-        length = 1;
-      }
-      while (++index < length) {
-        var source = sources[index];
-        if (source) {
-          assigner(object, source, customizer);
-        }
-      }
-      return object;
-    });
-  }
-  module.exports = createAssigner;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/baseIsEqualDeep.js", ["npm:lodash@3.9.3/internal/equalArrays.js", "npm:lodash@3.9.3/internal/equalByTag.js", "npm:lodash@3.9.3/internal/equalObjects.js", "npm:lodash@3.9.3/lang/isArray.js", "npm:lodash@3.9.3/lang/isTypedArray.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var equalArrays = require("npm:lodash@3.9.3/internal/equalArrays.js"),
-      equalByTag = require("npm:lodash@3.9.3/internal/equalByTag.js"),
-      equalObjects = require("npm:lodash@3.9.3/internal/equalObjects.js"),
-      isArray = require("npm:lodash@3.9.3/lang/isArray.js"),
-      isTypedArray = require("npm:lodash@3.9.3/lang/isTypedArray.js");
-  var argsTag = '[object Arguments]',
-      arrayTag = '[object Array]',
-      objectTag = '[object Object]';
-  var objectProto = Object.prototype;
-  var hasOwnProperty = objectProto.hasOwnProperty;
-  var objToString = objectProto.toString;
-  function baseIsEqualDeep(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
-    var objIsArr = isArray(object),
-        othIsArr = isArray(other),
-        objTag = arrayTag,
-        othTag = arrayTag;
-    if (!objIsArr) {
-      objTag = objToString.call(object);
-      if (objTag == argsTag) {
-        objTag = objectTag;
-      } else if (objTag != objectTag) {
-        objIsArr = isTypedArray(object);
-      }
-    }
-    if (!othIsArr) {
-      othTag = objToString.call(other);
-      if (othTag == argsTag) {
-        othTag = objectTag;
-      } else if (othTag != objectTag) {
-        othIsArr = isTypedArray(other);
-      }
-    }
-    var objIsObj = objTag == objectTag,
-        othIsObj = othTag == objectTag,
-        isSameTag = objTag == othTag;
-    if (isSameTag && !(objIsArr || objIsObj)) {
-      return equalByTag(object, other, objTag);
-    }
-    if (!isLoose) {
-      var objIsWrapped = objIsObj && hasOwnProperty.call(object, '__wrapped__'),
-          othIsWrapped = othIsObj && hasOwnProperty.call(other, '__wrapped__');
-      if (objIsWrapped || othIsWrapped) {
-        return equalFunc(objIsWrapped ? object.value() : object, othIsWrapped ? other.value() : other, customizer, isLoose, stackA, stackB);
-      }
-    }
-    if (!isSameTag) {
-      return false;
-    }
-    stackA || (stackA = []);
-    stackB || (stackB = []);
-    var length = stackA.length;
-    while (length--) {
-      if (stackA[length] == object) {
-        return stackB[length] == other;
-      }
-    }
-    stackA.push(object);
-    stackB.push(other);
-    var result = (objIsArr ? equalArrays : equalObjects)(object, other, equalFunc, customizer, isLoose, stackA, stackB);
-    stackA.pop();
-    stackB.pop();
-    return result;
-  }
-  module.exports = baseIsEqualDeep;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/baseForOwn.js", ["npm:lodash@3.9.3/internal/baseFor.js", "npm:lodash@3.9.3/object/keys.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseFor = require("npm:lodash@3.9.3/internal/baseFor.js"),
-      keys = require("npm:lodash@3.9.3/object/keys.js");
-  function baseForOwn(object, iteratee) {
-    return baseFor(object, iteratee, keys);
-  }
-  module.exports = baseForOwn;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("github:jspm/nodelibs-events@0.1.1.js", ["github:jspm/nodelibs-events@0.1.1/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("github:jspm/nodelibs-events@0.1.1/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:buffer@3.2.2.js", ["npm:buffer@3.2.2/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:buffer@3.2.2/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("github:jspm/nodelibs-process@0.1.1.js", ["github:jspm/nodelibs-process@0.1.1/index.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("github:jspm/nodelibs-process@0.1.1/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/getNative.js", ["npm:lodash@3.9.3/lang/isNative.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var isNative = require("npm:lodash@3.9.3/lang/isNative.js");
-  function getNative(object, key) {
-    var value = object == null ? undefined : object[key];
-    return isNative(value) ? value : undefined;
-  }
-  module.exports = getNative;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/baseIsEqual.js", ["npm:lodash@3.9.3/internal/baseIsEqualDeep.js", "npm:lodash@3.9.3/lang/isObject.js", "npm:lodash@3.9.3/internal/isObjectLike.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseIsEqualDeep = require("npm:lodash@3.9.3/internal/baseIsEqualDeep.js"),
-      isObject = require("npm:lodash@3.9.3/lang/isObject.js"),
-      isObjectLike = require("npm:lodash@3.9.3/internal/isObjectLike.js");
-  function baseIsEqual(value, other, customizer, isLoose, stackA, stackB) {
-    if (value === other) {
-      return true;
-    }
-    if (value == null || other == null || (!isObject(value) && !isObjectLike(other))) {
-      return value !== value && other !== other;
-    }
-    return baseIsEqualDeep(value, other, baseIsEqual, customizer, isLoose, stackA, stackB);
-  }
-  module.exports = baseIsEqual;
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:lodash@3.9.3/internal/baseEach.js", ["npm:lodash@3.9.3/internal/baseForOwn.js", "npm:lodash@3.9.3/internal/createBaseEach.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  var baseForOwn = require("npm:lodash@3.9.3/internal/baseForOwn.js"),
-      createBaseEach = require("npm:lodash@3.9.3/internal/createBaseEach.js");
-  var baseEach = createBaseEach(baseForOwn);
-  module.exports = baseEach;
-  global.define = __define;
-  return module.exports;
-});
-
 System.registerDynamic("github:jspm/nodelibs-buffer@0.1.0/index.js", ["npm:buffer@3.2.2.js"], true, function(require, exports, module) {
   var global = this,
       __define = global.define;
   global.define = undefined;
   module.exports = System._nodeRequire ? System._nodeRequire('buffer') : require("npm:buffer@3.2.2.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_writable.js", ["github:jspm/nodelibs-buffer@0.1.0.js", "npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js", "npm:stream-browserify@1.0.0/index.js", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "npm:readable-stream@1.1.13/lib/_stream_duplex.js", "github:jspm/nodelibs-buffer@0.1.0.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  (function(Buffer, process) {
-    module.exports = Writable;
-    var Buffer = require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer;
-    Writable.WritableState = WritableState;
-    var util = require("npm:core-util-is@1.0.1.js");
-    util.inherits = require("npm:inherits@2.0.1.js");
-    var Stream = require("npm:stream-browserify@1.0.0/index.js");
-    util.inherits(Writable, Stream);
-    function WriteReq(chunk, encoding, cb) {
-      this.chunk = chunk;
-      this.encoding = encoding;
-      this.callback = cb;
-    }
-    function WritableState(options, stream) {
-      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
-      options = options || {};
-      var hwm = options.highWaterMark;
-      var defaultHwm = options.objectMode ? 16 : 16 * 1024;
-      this.highWaterMark = (hwm || hwm === 0) ? hwm : defaultHwm;
-      this.objectMode = !!options.objectMode;
-      if (stream instanceof Duplex)
-        this.objectMode = this.objectMode || !!options.writableObjectMode;
-      this.highWaterMark = ~~this.highWaterMark;
-      this.needDrain = false;
-      this.ending = false;
-      this.ended = false;
-      this.finished = false;
-      var noDecode = options.decodeStrings === false;
-      this.decodeStrings = !noDecode;
-      this.defaultEncoding = options.defaultEncoding || 'utf8';
-      this.length = 0;
-      this.writing = false;
-      this.corked = 0;
-      this.sync = true;
-      this.bufferProcessing = false;
-      this.onwrite = function(er) {
-        onwrite(stream, er);
-      };
-      this.writecb = null;
-      this.writelen = 0;
-      this.buffer = [];
-      this.pendingcb = 0;
-      this.prefinished = false;
-      this.errorEmitted = false;
-    }
-    function Writable(options) {
-      var Duplex = require("npm:readable-stream@1.1.13/lib/_stream_duplex.js");
-      if (!(this instanceof Writable) && !(this instanceof Duplex))
-        return new Writable(options);
-      this._writableState = new WritableState(options, this);
-      this.writable = true;
-      Stream.call(this);
-    }
-    Writable.prototype.pipe = function() {
-      this.emit('error', new Error('Cannot pipe. Not readable.'));
-    };
-    function writeAfterEnd(stream, state, cb) {
-      var er = new Error('write after end');
-      stream.emit('error', er);
-      process.nextTick(function() {
-        cb(er);
-      });
-    }
-    function validChunk(stream, state, chunk, cb) {
-      var valid = true;
-      if (!util.isBuffer(chunk) && !util.isString(chunk) && !util.isNullOrUndefined(chunk) && !state.objectMode) {
-        var er = new TypeError('Invalid non-string/buffer chunk');
-        stream.emit('error', er);
-        process.nextTick(function() {
-          cb(er);
-        });
-        valid = false;
-      }
-      return valid;
-    }
-    Writable.prototype.write = function(chunk, encoding, cb) {
-      var state = this._writableState;
-      var ret = false;
-      if (util.isFunction(encoding)) {
-        cb = encoding;
-        encoding = null;
-      }
-      if (util.isBuffer(chunk))
-        encoding = 'buffer';
-      else if (!encoding)
-        encoding = state.defaultEncoding;
-      if (!util.isFunction(cb))
-        cb = function() {};
-      if (state.ended)
-        writeAfterEnd(this, state, cb);
-      else if (validChunk(this, state, chunk, cb)) {
-        state.pendingcb++;
-        ret = writeOrBuffer(this, state, chunk, encoding, cb);
-      }
-      return ret;
-    };
-    Writable.prototype.cork = function() {
-      var state = this._writableState;
-      state.corked++;
-    };
-    Writable.prototype.uncork = function() {
-      var state = this._writableState;
-      if (state.corked) {
-        state.corked--;
-        if (!state.writing && !state.corked && !state.finished && !state.bufferProcessing && state.buffer.length)
-          clearBuffer(this, state);
-      }
-    };
-    function decodeChunk(state, chunk, encoding) {
-      if (!state.objectMode && state.decodeStrings !== false && util.isString(chunk)) {
-        chunk = new Buffer(chunk, encoding);
-      }
-      return chunk;
-    }
-    function writeOrBuffer(stream, state, chunk, encoding, cb) {
-      chunk = decodeChunk(state, chunk, encoding);
-      if (util.isBuffer(chunk))
-        encoding = 'buffer';
-      var len = state.objectMode ? 1 : chunk.length;
-      state.length += len;
-      var ret = state.length < state.highWaterMark;
-      if (!ret)
-        state.needDrain = true;
-      if (state.writing || state.corked)
-        state.buffer.push(new WriteReq(chunk, encoding, cb));
-      else
-        doWrite(stream, state, false, len, chunk, encoding, cb);
-      return ret;
-    }
-    function doWrite(stream, state, writev, len, chunk, encoding, cb) {
-      state.writelen = len;
-      state.writecb = cb;
-      state.writing = true;
-      state.sync = true;
-      if (writev)
-        stream._writev(chunk, state.onwrite);
-      else
-        stream._write(chunk, encoding, state.onwrite);
-      state.sync = false;
-    }
-    function onwriteError(stream, state, sync, er, cb) {
-      if (sync)
-        process.nextTick(function() {
-          state.pendingcb--;
-          cb(er);
-        });
-      else {
-        state.pendingcb--;
-        cb(er);
-      }
-      stream._writableState.errorEmitted = true;
-      stream.emit('error', er);
-    }
-    function onwriteStateUpdate(state) {
-      state.writing = false;
-      state.writecb = null;
-      state.length -= state.writelen;
-      state.writelen = 0;
-    }
-    function onwrite(stream, er) {
-      var state = stream._writableState;
-      var sync = state.sync;
-      var cb = state.writecb;
-      onwriteStateUpdate(state);
-      if (er)
-        onwriteError(stream, state, sync, er, cb);
-      else {
-        var finished = needFinish(stream, state);
-        if (!finished && !state.corked && !state.bufferProcessing && state.buffer.length) {
-          clearBuffer(stream, state);
-        }
-        if (sync) {
-          process.nextTick(function() {
-            afterWrite(stream, state, finished, cb);
-          });
-        } else {
-          afterWrite(stream, state, finished, cb);
-        }
-      }
-    }
-    function afterWrite(stream, state, finished, cb) {
-      if (!finished)
-        onwriteDrain(stream, state);
-      state.pendingcb--;
-      cb();
-      finishMaybe(stream, state);
-    }
-    function onwriteDrain(stream, state) {
-      if (state.length === 0 && state.needDrain) {
-        state.needDrain = false;
-        stream.emit('drain');
-      }
-    }
-    function clearBuffer(stream, state) {
-      state.bufferProcessing = true;
-      if (stream._writev && state.buffer.length > 1) {
-        var cbs = [];
-        for (var c = 0; c < state.buffer.length; c++)
-          cbs.push(state.buffer[c].callback);
-        state.pendingcb++;
-        doWrite(stream, state, true, state.length, state.buffer, '', function(err) {
-          for (var i = 0; i < cbs.length; i++) {
-            state.pendingcb--;
-            cbs[i](err);
-          }
-        });
-        state.buffer = [];
-      } else {
-        for (var c = 0; c < state.buffer.length; c++) {
-          var entry = state.buffer[c];
-          var chunk = entry.chunk;
-          var encoding = entry.encoding;
-          var cb = entry.callback;
-          var len = state.objectMode ? 1 : chunk.length;
-          doWrite(stream, state, false, len, chunk, encoding, cb);
-          if (state.writing) {
-            c++;
-            break;
-          }
-        }
-        if (c < state.buffer.length)
-          state.buffer = state.buffer.slice(c);
-        else
-          state.buffer.length = 0;
-      }
-      state.bufferProcessing = false;
-    }
-    Writable.prototype._write = function(chunk, encoding, cb) {
-      cb(new Error('not implemented'));
-    };
-    Writable.prototype._writev = null;
-    Writable.prototype.end = function(chunk, encoding, cb) {
-      var state = this._writableState;
-      if (util.isFunction(chunk)) {
-        cb = chunk;
-        chunk = null;
-        encoding = null;
-      } else if (util.isFunction(encoding)) {
-        cb = encoding;
-        encoding = null;
-      }
-      if (!util.isNullOrUndefined(chunk))
-        this.write(chunk, encoding);
-      if (state.corked) {
-        state.corked = 1;
-        this.uncork();
-      }
-      if (!state.ending && !state.finished)
-        endWritable(this, state, cb);
-    };
-    function needFinish(stream, state) {
-      return (state.ending && state.length === 0 && !state.finished && !state.writing);
-    }
-    function prefinish(stream, state) {
-      if (!state.prefinished) {
-        state.prefinished = true;
-        stream.emit('prefinish');
-      }
-    }
-    function finishMaybe(stream, state) {
-      var need = needFinish(stream, state);
-      if (need) {
-        if (state.pendingcb === 0) {
-          prefinish(stream, state);
-          state.finished = true;
-          stream.emit('finish');
-        } else
-          prefinish(stream, state);
-      }
-      return need;
-    }
-    function endWritable(stream, state, cb) {
-      state.ending = true;
-      finishMaybe(stream, state);
-      if (cb) {
-        if (state.finished)
-          process.nextTick(cb);
-        else
-          stream.once('finish', cb);
-      }
-      state.ended = true;
-    }
-  })(require("github:jspm/nodelibs-buffer@0.1.0.js").Buffer, require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
@@ -13763,62 +13976,20 @@ System.registerDynamic("npm:lodash@3.9.3/internal/baseEvery.js", ["npm:lodash@3.
   return module.exports;
 });
 
+System.registerDynamic("npm:lodash@3.9.3.js", ["npm:lodash@3.9.3/index.js"], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  module.exports = require("npm:lodash@3.9.3/index.js");
+  global.define = __define;
+  return module.exports;
+});
+
 System.registerDynamic("github:jspm/nodelibs-buffer@0.1.0.js", ["github:jspm/nodelibs-buffer@0.1.0/index.js"], true, function(require, exports, module) {
   var global = this,
       __define = global.define;
   global.define = undefined;
   module.exports = require("github:jspm/nodelibs-buffer@0.1.0/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:readable-stream@1.1.13/lib/_stream_duplex.js", ["npm:core-util-is@1.0.1.js", "npm:inherits@2.0.1.js", "npm:readable-stream@1.1.13/lib/_stream_readable.js", "npm:readable-stream@1.1.13/lib/_stream_writable.js", "github:jspm/nodelibs-process@0.1.1.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  (function(process) {
-    module.exports = Duplex;
-    var objectKeys = Object.keys || function(obj) {
-      var keys = [];
-      for (var key in obj)
-        keys.push(key);
-      return keys;
-    };
-    var util = require("npm:core-util-is@1.0.1.js");
-    util.inherits = require("npm:inherits@2.0.1.js");
-    var Readable = require("npm:readable-stream@1.1.13/lib/_stream_readable.js");
-    var Writable = require("npm:readable-stream@1.1.13/lib/_stream_writable.js");
-    util.inherits(Duplex, Readable);
-    forEach(objectKeys(Writable.prototype), function(method) {
-      if (!Duplex.prototype[method])
-        Duplex.prototype[method] = Writable.prototype[method];
-    });
-    function Duplex(options) {
-      if (!(this instanceof Duplex))
-        return new Duplex(options);
-      Readable.call(this, options);
-      Writable.call(this, options);
-      if (options && options.readable === false)
-        this.readable = false;
-      if (options && options.writable === false)
-        this.writable = false;
-      this.allowHalfOpen = true;
-      if (options && options.allowHalfOpen === false)
-        this.allowHalfOpen = false;
-      this.once('end', onend);
-    }
-    function onend() {
-      if (this.allowHalfOpen || this._writableState.ended)
-        return;
-      process.nextTick(this.end.bind(this));
-    }
-    function forEach(xs, f) {
-      for (var i = 0,
-          l = xs.length; i < l; i++) {
-        f(xs[i], i);
-      }
-    }
-  })(require("github:jspm/nodelibs-process@0.1.1.js"));
   global.define = __define;
   return module.exports;
 });
@@ -17801,412 +17972,497 @@ System.register("Worker/SoapClient.js", ["Worker/xmljs.js", "npm:xml2js@0.4.9.js
   };
 });
 
-System.register("Worker/Operations.js", ["Worker/SoapClient.js", "github:Bizboard/arva-utils@master/request/RequestClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js", "npm:lodash@3.9.3.js"], function($__export) {
+System.register("Worker/Operations.js", ["npm:lodash@3.9.3.js", "npm:eventemitter3@1.1.0.js", "Worker/SoapClient.js", "github:Bizboard/arva-utils@master/request/RequestClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js"], function($__export) {
   "use strict";
   var __moduleName = "Worker/Operations.js";
-  var SoapClient,
+  var _,
+      EventEmitter,
+      SoapClient,
       ExistsRequest,
       UrlParser,
-      _,
       soapClient,
-      tempKeys,
-      cache,
-      retriever,
       window,
       global,
-      interval,
-      settings;
-  function _intializeSettings(args) {
-    var url = UrlParser(args.endPoint);
-    if (!url)
-      throw new Error('Invalid DataSource path provided!');
-    var newPath = url.protocol + '://' + url.host + '/';
-    var pathParts = url.path.split('/');
-    var identifiedParts = [];
-    while (!ExistsRequest(newPath + pathParts.join('/') + '/' + _GetListService())) {
-      identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
-    }
-    if (identifiedParts.length > 1) {
-      throw {
-        endPoint: pathParts.join('/') + '/' + identifiedParts[0],
-        message: 'Parameters could not be correctly extracted for polling. Assuming invalid state.'
-      };
-    } else {
-      var resultconfig = {
-        endPoint: newPath + pathParts.join('/'),
-        listName: identifiedParts[0],
-        itemId: identifiedParts[1]
-      };
-      if (args.query)
-        resultconfig.query = args.query;
-      if (args.limit)
-        resultconfig.limit = args.limit;
-      if (args.orderBy)
-        resultconfig.orderBy = args.orderBy;
-      return resultconfig;
-    }
-  }
-  function _handleInit(args) {
-    if (!args.listName)
-      return;
-    retriever = _GetListItemsDefaultConfiguration();
-    retriever.url = _ParsePath(args.endPoint, _GetListService());
-    retriever.params = {
-      'listName': args.listName,
-      'viewFields': {'ViewFields': ''},
-      'queryOptions': {'QueryOptions': {
-          'IncludeMandatoryColumns': 'FALSE',
-          'ViewAttributes': {'_Scope': 'RecursiveAll'}
-        }}
-    };
-    if (args.query) {
-      retriever.params.query = args.query;
-    }
-    if (args.orderBy) {
-      if (retriever.params.query) {
-        retriever.params.query.OrderBy = {"FieldRef": {
-            "_Ascending": "TRUE",
-            "_Name": args.orderBy
-          }};
-      } else {
-        retriever.params.query = {Query: {OrderBy: {"FieldRef": {
-                "_Ascending": "TRUE",
-                "_Name": args.orderBy
-              }}}};
-      }
-    }
-    if (args.limit) {
-      retriever.params.rowLimit = args.limit;
-    }
-  }
-  function _handleSet(newData) {
-    var configuration = _UpdateListItemsDefaultConfiguration();
-    configuration.url = _ParsePath(settings.endPoint, _GetListService());
-    var fieldCollection = [];
-    var method = '';
-    var isLocal = _.findIndex(tempKeys, function(key) {
-      return key.localId == newData.id;
-    });
-    if (isLocal > -1) {
-      newData.id = tempKeys[isLocal].remoteId;
-    }
-    if (newData.id) {
-      fieldCollection.push({
-        "_Name": "ID",
-        "__text": newData.id
-      });
-      method = "Update";
-    } else {
-      fieldCollection.push({
-        "_Name": "ID",
-        "__text": 'New'
-      });
-      method = 'New';
-    }
-    for (var prop in newData) {
-      var fieldValue = newData[prop];
-      if (prop == "id" || typeof(fieldValue) == "undefined")
-        continue;
-      if (prop == "priority" || prop == "_temporary-identifier")
-        continue;
-      if (typeof fieldValue === "object" && fieldValue.id && fieldValue.value) {
-        fieldValue = (fieldValue.id + ";#" + fieldValue.value);
-      }
-      fieldCollection.push({
-        "_Name": prop,
-        "__text": fieldValue
-      });
-    }
-    configuration.params = {
-      "listName": settings.listName,
-      "updates": {"Batch": {
-          "Method": {
-            "Field": fieldCollection,
-            "_ID": "1",
-            "_Cmd": method
-          },
-          "_OnError": "Continue",
-          "_ListVersion": "1",
-          "_ViewName": ""
-        }}
-    };
-    soapClient.call(configuration).then(function(result) {
-      var data = _getResults(result.data);
-      if (data.length == 1) {
-        if (newData['_temporary-identifier']) {
-          tempKeys.push({
-            localId: newData['_temporary-identifier'],
-            remoteId: data[0].id
-          });
-        }
-        _updateCache(data);
-      }
-    }, function(error) {
-      console.log(error);
-    });
-  }
-  function _handleRemove(record) {
-    var configuration = _UpdateListItemsDefaultConfiguration();
-    configuration.url = _ParsePath(settings.endPoint, _GetListService());
-    var fieldCollection = [];
-    var isLocal = _.findIndex(tempKeys, function(key) {
-      return key.localId == record.id;
-    });
-    if (isLocal > -1) {
-      record.id = tempKeys[isLocal].remoteId;
-    }
-    fieldCollection.push({
-      "_Name": "ID",
-      "__text": record.id
-    });
-    configuration.params = {
-      "listName": settings.listName,
-      "updates": {"Batch": {
-          "Method": {
-            "Field": fieldCollection,
-            "_ID": '1',
-            "_Cmd": 'Delete'
-          },
-          "_OnError": 'Continue',
-          "_ListVersion": '1',
-          "_ViewName": ''
-        }}
-    };
-    soapClient.call(configuration).then(function() {
-      postMessage({
-        event: 'child_removed',
-        result: record
-      });
-    }, function(error) {
-      console.log(error);
-    });
-  }
-  function _updateCache(data) {
-    var $__0 = function(record) {
-      var isLocal = _.findIndex(tempKeys, function(key) {
-        return key.remoteId == data.id;
-      });
-      if (isLocal > -1) {
-        data[record].id = tempKeys[isLocal].localId;
-      }
-      var isCached = _.findIndex(cache, function(item) {
-        return data[record].id == item.id;
-      });
-      if (isCached == -1) {
-        cache.push(data[record]);
-        var previousSiblingId = cache.length == 0 ? null : cache[cache.length - 1];
-        postMessage({
-          event: 'child_added',
-          result: data[record],
-          previousSiblingId: previousSiblingId ? previousSiblingId.id : null
-        });
-      } else {
-        if (!_.isEqual(data[record], cache[isCached])) {
-          cache.splice(isCached, 1, data[record]);
-          var previousSibling = isCached == 0 ? null : cache[isCached - 1];
-          postMessage({
-            event: 'child_changed',
-            result: data[record],
-            previousSiblingId: previousSibling ? previousSibling.id : null
-          });
-        }
-      }
-    };
-    for (var record in data) {
-      $__0(record);
-    }
-  }
-  function _setLastUpdated(lastChangeToken) {
-    retriever.params.changeToken = lastChangeToken;
-  }
-  function _refresh() {
-    if (retriever) {
-      soapClient.call(retriever).then(function(result) {
-        var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
-        var lastChangedToken = changes.$.LastChangeToken;
-        _setLastUpdated(lastChangedToken);
-        _handleDeleted(changes);
-        var data = _getResults(result.data);
-        _updateCache(data);
-        postMessage({
-          event: 'value',
-          result: cache
-        });
-        setTimeout(_refresh, interval);
-      }).catch(function(err) {
-        setTimeout(_refresh, interval);
-      });
-    }
-  }
-  function _handleDeleted(result) {
-    var changes = result.Id || null;
-    if (changes && changes.length > 0) {
-      var $__1 = function(change) {
-        if (changes[change].$.ChangeType == "Delete") {
-          var recordId = changes[change]._;
-          var isLocal = _.findIndex(tempKeys, function(key) {
-            return key.remoteId == recordId;
-          });
-          if (isLocal > -1) {
-            recordId = tempKeys[isLocal].localId;
-          }
-          var cacheItem = _.findIndex(cache, function(item) {
-            return item.id == recordId;
-          });
-          postMessage({
-            event: 'child_removed',
-            result: cache[cacheItem]
-          });
-          cache.splice(cacheItem, 1);
-        }
-      };
-      for (var change in changes) {
-        $__1(change);
-      }
-    }
-  }
-  function _getResults(result) {
-    var arrayOfObjects = [];
-    var node = null;
-    if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse) {
-      node = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0]["rs:data"][0];
-      if (node) {
-        if (node.$.ItemCount !== '0') {
-          for (var row in node['z:row']) {
-            var raw = node['z:row'][row].$;
-            var record = _formatRecord(raw);
-            arrayOfObjects.push(record);
-          }
-        }
-      }
-    } else if (result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse) {
-      var error = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0].Result[0].ErrorCode;
-      if (error == '0x00000000') {
-        node = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0];
-        if (node) {
-          for (var row$__2 in node.Result) {
-            var raw$__3 = node.Result[row$__2]["z:row"][0].$;
-            var record$__4 = _formatRecord(raw$__3);
-            arrayOfObjects.push(record$__4);
-          }
-        }
-      }
-    }
-    return arrayOfObjects;
-  }
-  function _formatRecord(record) {
-    var result = {};
-    for (var attribute in record) {
-      var name = attribute.replace('ows_', '');
-      if (name == 'xmlns:z')
-        continue;
-      if (name == "ID") {
-        name = "id";
-        result[name] = record[attribute];
-      } else if (record[attribute].indexOf(";#") > -1) {
-        var keys = record[attribute].split(";#");
-        var pairs = keys.length / 2;
-        var assignable = pairs.length > 1 ? [] : {};
-        for (var pair = 0; pair < pairs; pair++) {
-          if (pairs > 1)
-            assignable.push({
-              id: keys[pair],
-              value: keys[pair + 1]
-            });
-          else
-            assignable = {
-              id: keys[pair],
-              value: keys[pair + 1]
-            };
-        }
-        result[name] = assignable;
-      } else if (!isNaN(record[attribute]))
-        result[name] = parseFloat(record[attribute]);
-      else
-        result[name] = record[attribute];
-    }
-    return result;
-  }
-  function _ParsePath(path, endPoint) {
-    var url = UrlParser(path);
-    if (!url)
-      console.log('Invalid datasource path provided!');
-    var pathParts = url.path.split('/');
-    var newPath = url.protocol + '://' + url.host + '/';
-    for (var i = 0; i < pathParts.length; i++)
-      newPath += pathParts[i] + '/';
-    newPath += endPoint;
-    return newPath;
-  }
-  function _UpdateListItemsDefaultConfiguration() {
-    return {
-      url: '',
-      service: 'Lists',
-      method: 'UpdateListItems',
-      params: '',
-      headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/UpdateListItems'], ['Content-Type', 'text/xml']])
-    };
-  }
-  function _GetListItemsDefaultConfiguration() {
-    return {
-      url: '',
-      service: 'Lists',
-      method: 'GetListItemChangesSinceToken',
-      params: '',
-      headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChangesSinceToken'], ['Content-Type', 'text/xml']])
-    };
-  }
-  function _GetListService() {
-    return '_vti_bin/Lists.asmx';
-  }
-  function _GetUserGroupService() {
-    return '_vti_bin/UserGroup.asmx';
-  }
+      SharePointClient;
   return {
     setters: [function($__m) {
+      _ = $__m.default;
+    }, function($__m) {
+      EventEmitter = $__m.default;
+    }, function($__m) {
       SoapClient = $__m.SoapClient;
     }, function($__m) {
       ExistsRequest = $__m.ExistsRequest;
     }, function($__m) {
       UrlParser = $__m.UrlParser;
-    }, function($__m) {
-      _ = $__m.default;
     }],
     execute: function() {
       soapClient = new SoapClient();
-      tempKeys = [];
-      cache = [];
-      retriever = null;
       window = this;
       global = this;
-      interval = 3000;
-      settings = {};
-      this.onmessage = function(event) {
-        var operation = event.data[0];
-        var args = event.data[1];
-        if (operation === 'init') {
+      SharePointClient = function($__super) {
+        function SharePointClient(options) {
+          $traceurRuntime.superConstructor(SharePointClient).call(this);
+          this.settings = {};
+          this.interval = 3000;
+          this.retriever = null;
+          this.cache = [];
+          this.tempKeys = [];
           try {
-            settings = _intializeSettings(args);
-            _handleInit(settings);
-            _refresh();
+            this.settings = this._intializeSettings(options);
+            this._handleInit(this.settings);
+            this._refresh();
+            return true;
           } catch (exception) {
-            postMessage({
-              event: 'INVALIDSTATE',
-              result: exception
-            });
-            self.close();
+            this.dispose();
+            return false;
           }
-        } else if (operation == 'set') {
-          _handleSet(args);
-        } else if (operation == 'remove') {
-          _handleRemove(args);
+        }
+        return ($traceurRuntime.createClass)(SharePointClient, {
+          get refreshTimer() {
+            return this._refreshTimer;
+          },
+          set refreshTimer(value) {
+            this._refreshTimer = value;
+          },
+          set: function(options) {
+            return this._handleSet(options);
+          },
+          remove: function(options) {
+            return this._handleRemove(options);
+          },
+          dispose: function() {
+            clearTimeout(this.refreshTimer);
+          },
+          _intializeSettings: function(args) {
+            var url = UrlParser(args.endPoint);
+            if (!url)
+              throw new Error('Invalid DataSource path provided!');
+            var newPath = url.protocol + '://' + url.host + '/';
+            var pathParts = url.path.split('/');
+            var identifiedParts = [];
+            while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
+              identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+            }
+            if (identifiedParts.length > 1) {
+              throw {
+                endPoint: pathParts.join('/') + '/' + identifiedParts[0],
+                message: 'Parameters could not be correctly extracted for polling. Assuming invalid state.'
+              };
+            } else {
+              var resultconfig = {
+                endPoint: newPath + pathParts.join('/'),
+                listName: identifiedParts[0],
+                itemId: identifiedParts[1]
+              };
+              if (args.query)
+                resultconfig.query = args.query;
+              if (args.limit)
+                resultconfig.limit = args.limit;
+              if (args.orderBy)
+                resultconfig.orderBy = args.orderBy;
+              return resultconfig;
+            }
+          },
+          _handleInit: function(args) {
+            if (!args.listName)
+              return;
+            this.retriever = this._getListItemsDefaultConfiguration();
+            this.retriever.url = this._parsePath(args.endPoint, this._getListService());
+            this.retriever.params = {
+              'listName': args.listName,
+              'viewFields': {'ViewFields': ''},
+              'queryOptions': {'QueryOptions': {
+                  'IncludeMandatoryColumns': 'FALSE',
+                  'ViewAttributes': {'_Scope': 'RecursiveAll'}
+                }}
+            };
+            if (args.query) {
+              this.retriever.params.query = args.query;
+            }
+            if (args.orderBy) {
+              if (this.retriever.params.query) {
+                this.retriever.params.query.OrderBy = {"FieldRef": {
+                    "_Ascending": "TRUE",
+                    "_Name": args.orderBy
+                  }};
+              } else {
+                this.retriever.params.query = {Query: {OrderBy: {"FieldRef": {
+                        "_Ascending": "TRUE",
+                        "_Name": args.orderBy
+                      }}}};
+              }
+            }
+            if (args.limit) {
+              this.retriever.params.rowLimit = args.limit;
+            }
+          },
+          _handleSet: function(newData) {
+            var $__0 = this;
+            var configuration = this._updateListItemsDefaultConfiguration();
+            configuration.url = this._parsePath(this.settings.endPoint, this._getListService());
+            var fieldCollection = [];
+            var method = '';
+            var isLocal = _.findIndex(this.tempKeys, function(key) {
+              return key.localId == newData.id;
+            });
+            if (isLocal > -1) {
+              newData.id = this.tempKeys[isLocal].remoteId;
+            }
+            if (newData.id) {
+              fieldCollection.push({
+                "_Name": "ID",
+                "__text": newData.id
+              });
+              method = "Update";
+            } else {
+              fieldCollection.push({
+                "_Name": "ID",
+                "__text": 'New'
+              });
+              method = 'New';
+            }
+            for (var prop in newData) {
+              var fieldValue = newData[prop];
+              if (prop == "id" || typeof(fieldValue) == "undefined")
+                continue;
+              if (prop == "priority" || prop == "_temporary-identifier")
+                continue;
+              if (typeof fieldValue === "object" && fieldValue.id && fieldValue.value) {
+                fieldValue = (fieldValue.id + ";#" + fieldValue.value);
+              }
+              fieldCollection.push({
+                "_Name": prop,
+                "__text": fieldValue
+              });
+            }
+            configuration.params = {
+              "listName": this.settings.listName,
+              "updates": {"Batch": {
+                  "Method": {
+                    "Field": fieldCollection,
+                    "_ID": "1",
+                    "_Cmd": method
+                  },
+                  "_OnError": "Continue",
+                  "_ListVersion": "1",
+                  "_ViewName": ""
+                }}
+            };
+            soapClient.call(configuration).then(function(result) {
+              var data = $__0._getResults(result.data);
+              if (data.length == 1) {
+                if (newData['_temporary-identifier']) {
+                  $__0.tempKeys.push({
+                    localId: newData['_temporary-identifier'],
+                    remoteId: data[0].id
+                  });
+                }
+                $__0._updateCache(data);
+              }
+            }, function(error) {
+              console.log(error);
+            });
+          },
+          _handleRemove: function(record) {
+            var $__0 = this;
+            var configuration = this._updateListItemsDefaultConfiguration();
+            configuration.url = this._parsePath(this.settings.endPoint, this._getListService());
+            var fieldCollection = [];
+            var isLocal = _.findIndex(this.tempKeys, function(key) {
+              return key.localId == record.id;
+            });
+            if (isLocal > -1) {
+              record.id = this.tempKeys[isLocal].remoteId;
+            }
+            fieldCollection.push({
+              "_Name": "ID",
+              "__text": record.id
+            });
+            configuration.params = {
+              "listName": this.settings.listName,
+              "updates": {"Batch": {
+                  "Method": {
+                    "Field": fieldCollection,
+                    "_ID": '1',
+                    "_Cmd": 'Delete'
+                  },
+                  "_OnError": 'Continue',
+                  "_ListVersion": '1',
+                  "_ViewName": ''
+                }}
+            };
+            soapClient.call(configuration).then(function() {
+              $__0.emit('message', {
+                event: 'child_removed',
+                result: record
+              });
+            }, function(error) {
+              console.log(error);
+            });
+          },
+          _updateCache: function(data) {
+            var messages = [];
+            var $__9 = this,
+                $__10 = function(record) {
+                  var isLocal = _.findIndex($__9.tempKeys, function(key) {
+                    return key.remoteId == data.id;
+                  });
+                  if (isLocal > -1) {
+                    data[record].id = $__9.tempKeys[isLocal].localId;
+                  }
+                  var isCached = _.findIndex($__9.cache, function(item) {
+                    return data[record].id == item.id;
+                  });
+                  if (isCached == -1) {
+                    $__9.cache.push(data[record]);
+                    var previousSiblingId = $__9.cache.length == 0 ? null : $__9.cache[$__9.cache.length - 1];
+                    messages.push({
+                      event: 'child_added',
+                      result: data[record],
+                      previousSiblingId: previousSiblingId ? previousSiblingId.id : null
+                    });
+                  } else {
+                    if (!_.isEqual(data[record], $__9.cache[isCached])) {
+                      $__9.cache.splice(isCached, 1, data[record]);
+                      var previousSibling = isCached == 0 ? null : $__9.cache[isCached - 1];
+                      messages.push({
+                        event: 'child_changed',
+                        result: data[record],
+                        previousSiblingId: previousSibling ? previousSibling.id : null
+                      });
+                    }
+                  }
+                };
+            for (var record in data) {
+              $__10(record);
+            }
+            return messages;
+          },
+          _setLastUpdated: function(lastChangeToken) {
+            this.retriever.params.changeToken = lastChangeToken;
+          },
+          _refresh: function() {
+            var $__0 = this;
+            if (this.retriever) {
+              soapClient.call(this.retriever).then(function(result) {
+                var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
+                var lastChangedToken = changes.$.LastChangeToken;
+                $__0._setLastUpdated(lastChangedToken);
+                var hasDeletions = $__0._handleDeleted(changes);
+                var data = $__0._getResults(result.data);
+                var messages = $__0._updateCache(data);
+                if (hasDeletions || data.length > 0) {
+                  $__0.emit('message', {
+                    event: 'value',
+                    result: $__0.cache
+                  });
+                }
+                var $__5 = true;
+                var $__6 = false;
+                var $__7 = undefined;
+                try {
+                  for (var $__3 = void 0,
+                      $__2 = (messages)[$traceurRuntime.toProperty(Symbol.iterator)](); !($__5 = ($__3 = $__2.next()).done); $__5 = true) {
+                    var message = $__3.value;
+                    {
+                      $__0.emit('message', message);
+                    }
+                  }
+                } catch ($__8) {
+                  $__6 = true;
+                  $__7 = $__8;
+                } finally {
+                  try {
+                    if (!$__5 && $__2.return != null) {
+                      $__2.return();
+                    }
+                  } finally {
+                    if ($__6) {
+                      throw $__7;
+                    }
+                  }
+                }
+                $__0.refreshTimer = setTimeout($__0._refresh.bind($__0), $__0.interval);
+              }).catch(function(err) {
+                $__0.emit('error', err);
+                $__0.refreshTimer = setTimeout($__0._refresh.bind($__0), $__0.interval);
+              });
+            }
+          },
+          _handleDeleted: function(result) {
+            var changes = result.Id || null;
+            if (changes && changes.length > 0) {
+              var $__11 = this,
+                  $__12 = function(change) {
+                    if (changes[change].$.ChangeType == "Delete") {
+                      var recordId = changes[change]._;
+                      var isLocal = _.findIndex($__11.tempKeys, function(key) {
+                        return key.remoteId == recordId;
+                      });
+                      if (isLocal > -1) {
+                        recordId = $__11.tempKeys[isLocal].localId;
+                      }
+                      var cacheItem = _.findIndex($__11.cache, function(item) {
+                        return item.id == recordId;
+                      });
+                      $__11.emit('message', {
+                        event: 'child_removed',
+                        result: $__11.cache[cacheItem]
+                      });
+                      $__11.cache.splice(cacheItem, 1);
+                    }
+                  };
+              for (var change in changes) {
+                $__12(change);
+              }
+              return true;
+            }
+            return false;
+          },
+          _getResults: function(result) {
+            var arrayOfObjects = [];
+            var node = null;
+            if (result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse) {
+              node = result["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0]["rs:data"][0];
+              if (node) {
+                if (node.$.ItemCount !== '0') {
+                  for (var row in node['z:row']) {
+                    var raw = node['z:row'][row].$;
+                    var record = this._formatRecord(raw);
+                    arrayOfObjects.push(record);
+                  }
+                }
+              }
+            } else if (result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse) {
+              var error = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0].Result[0].ErrorCode;
+              if (error == '0x00000000') {
+                node = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0];
+                if (node) {
+                  for (var row$__13 in node.Result) {
+                    var raw$__14 = node.Result[row$__13]["z:row"][0].$;
+                    var record$__15 = this._formatRecord(raw$__14);
+                    arrayOfObjects.push(record$__15);
+                  }
+                }
+              }
+            }
+            return arrayOfObjects;
+          },
+          _formatRecord: function(record) {
+            var result = {};
+            for (var attribute in record) {
+              var name = attribute.replace('ows_', '');
+              if (name == 'xmlns:z')
+                continue;
+              if (name == "ID") {
+                name = "id";
+                result[name] = record[attribute];
+              } else if (record[attribute].indexOf(";#") > -1) {
+                var keys = record[attribute].split(";#");
+                var pairs = keys.length / 2;
+                var assignable = pairs.length > 1 ? [] : {};
+                for (var pair = 0; pair < pairs; pair++) {
+                  if (pairs > 1)
+                    assignable.push({
+                      id: keys[pair],
+                      value: keys[pair + 1]
+                    });
+                  else
+                    assignable = {
+                      id: keys[pair],
+                      value: keys[pair + 1]
+                    };
+                }
+                result[name] = assignable;
+              } else if (!isNaN(record[attribute]))
+                result[name] = parseFloat(record[attribute]);
+              else
+                result[name] = record[attribute];
+            }
+            return result;
+          },
+          _parsePath: function(path, endPoint) {
+            var url = UrlParser(path);
+            if (!url)
+              console.log('Invalid datasource path provided!');
+            var pathParts = url.path.split('/');
+            var newPath = url.protocol + '://' + url.host + '/';
+            for (var i = 0; i < pathParts.length; i++)
+              newPath += pathParts[i] + '/';
+            newPath += endPoint;
+            return newPath;
+          },
+          _updateListItemsDefaultConfiguration: function() {
+            return {
+              url: '',
+              service: 'Lists',
+              method: 'UpdateListItems',
+              params: '',
+              headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/UpdateListItems'], ['Content-Type', 'text/xml']])
+            };
+          },
+          _getListItemsDefaultConfiguration: function() {
+            return {
+              url: '',
+              service: 'Lists',
+              method: 'GetListItemChangesSinceToken',
+              params: '',
+              headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChangesSinceToken'], ['Content-Type', 'text/xml']])
+            };
+          },
+          _getListService: function() {
+            return '_vti_bin/Lists.asmx';
+          },
+          _GetUserGroupService: function() {
+            return '_vti_bin/UserGroup.asmx';
+          }
+        }, {}, $__super);
+      }(EventEmitter);
+      $__export("SharePointClient", SharePointClient);
+    }
+  };
+});
+
+System.register("Worker/Manager.js", ["Worker/Operations.js"], function($__export) {
+  "use strict";
+  var __moduleName = "Worker/Manager.js";
+  var SharePointClient,
+      clients;
+  return {
+    setters: [function($__m) {
+      SharePointClient = $__m.SharePointClient;
+    }],
+    execute: function() {
+      clients = {};
+      onmessage = function(messageEvent) {
+        var message = messageEvent.data;
+        var $__0 = message,
+            path = $__0.path,
+            operation = $__0.operation;
+        var client = clients[path];
+        switch (operation) {
+          case 'init':
+            if (!client) {
+              client = clients[path] = new SharePointClient(message);
+            }
+            client.on('message', function(message) {
+              message.path = path;
+              postMessage(message);
+            });
+            break;
+          case 'set':
+            if (client) {
+              client.set(message.model);
+            }
+            break;
+          case 'remove':
+            if (client) {
+              client.remove(message.model);
+            }
+            break;
         }
       };
-      ;
-      ;
-      ;
-      ;
-      ;
     }
   };
 });

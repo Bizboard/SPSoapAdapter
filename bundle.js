@@ -3886,6 +3886,67 @@ System = curSystem; })();
 
 (['main.js'], function(System) {
 
+System.registerDynamic("npm:process@0.10.1/browser.js", [], true, function(require, exports, module) {
+  var global = this,
+      __define = global.define;
+  global.define = undefined;
+  var process = module.exports = {};
+  var queue = [];
+  var draining = false;
+  function drainQueue() {
+    if (draining) {
+      return;
+    }
+    draining = true;
+    var currentQueue;
+    var len = queue.length;
+    while (len) {
+      currentQueue = queue;
+      queue = [];
+      var i = -1;
+      while (++i < len) {
+        currentQueue[i]();
+      }
+      len = queue.length;
+    }
+    draining = false;
+  }
+  process.nextTick = function(fun) {
+    queue.push(fun);
+    if (!draining) {
+      setTimeout(drainQueue, 0);
+    }
+  };
+  process.title = 'browser';
+  process.browser = true;
+  process.env = {};
+  process.argv = [];
+  process.version = '';
+  process.versions = {};
+  function noop() {}
+  process.on = noop;
+  process.addListener = noop;
+  process.once = noop;
+  process.off = noop;
+  process.removeListener = noop;
+  process.removeAllListeners = noop;
+  process.emit = noop;
+  process.binding = function(name) {
+    throw new Error('process.binding is not supported');
+  };
+  process.cwd = function() {
+    return '/';
+  };
+  process.chdir = function(dir) {
+    throw new Error('process.chdir is not supported');
+  };
+  process.umask = function() {
+    return 0;
+  };
+  global.define = __define;
+  return module.exports;
+});
+
 System.registerDynamic("npm:eventemitter3@1.1.0/index.js", [], true, function(require, exports, module) {
   var global = this,
       __define = global.define;
@@ -4048,63 +4109,11 @@ System.registerDynamic("npm:eventemitter3@1.1.0/index.js", [], true, function(re
   return module.exports;
 });
 
-System.registerDynamic("npm:process@0.10.1/browser.js", [], true, function(require, exports, module) {
+System.registerDynamic("npm:process@0.10.1.js", ["npm:process@0.10.1/browser.js"], true, function(require, exports, module) {
   var global = this,
       __define = global.define;
   global.define = undefined;
-  var process = module.exports = {};
-  var queue = [];
-  var draining = false;
-  function drainQueue() {
-    if (draining) {
-      return;
-    }
-    draining = true;
-    var currentQueue;
-    var len = queue.length;
-    while (len) {
-      currentQueue = queue;
-      queue = [];
-      var i = -1;
-      while (++i < len) {
-        currentQueue[i]();
-      }
-      len = queue.length;
-    }
-    draining = false;
-  }
-  process.nextTick = function(fun) {
-    queue.push(fun);
-    if (!draining) {
-      setTimeout(drainQueue, 0);
-    }
-  };
-  process.title = 'browser';
-  process.browser = true;
-  process.env = {};
-  process.argv = [];
-  process.version = '';
-  process.versions = {};
-  function noop() {}
-  process.on = noop;
-  process.addListener = noop;
-  process.once = noop;
-  process.off = noop;
-  process.removeListener = noop;
-  process.removeAllListeners = noop;
-  process.emit = noop;
-  process.binding = function(name) {
-    throw new Error('process.binding is not supported');
-  };
-  process.cwd = function() {
-    return '/';
-  };
-  process.chdir = function(dir) {
-    throw new Error('process.chdir is not supported');
-  };
-  process.umask = function() {
-    return 0;
-  };
+  module.exports = require("npm:process@0.10.1/browser.js");
   global.define = __define;
   return module.exports;
 });
@@ -4114,15 +4123,6 @@ System.registerDynamic("npm:eventemitter3@1.1.0.js", ["npm:eventemitter3@1.1.0/i
       __define = global.define;
   global.define = undefined;
   module.exports = require("npm:eventemitter3@1.1.0/index.js");
-  global.define = __define;
-  return module.exports;
-});
-
-System.registerDynamic("npm:process@0.10.1.js", ["npm:process@0.10.1/browser.js"], true, function(require, exports, module) {
-  var global = this,
-      __define = global.define;
-  global.define = undefined;
-  module.exports = require("npm:process@0.10.1/browser.js");
   global.define = __define;
   return module.exports;
 });
@@ -8526,21 +8526,21 @@ System.register("github:Bizboard/arva-utils@master/BlobHelper.js", [], function(
   };
 });
 
-System.register("SharePoint.js", ["npm:eventemitter3@1.1.0.js", "npm:lodash@3.9.3.js", "github:Bizboard/arva-utils@master/request/UrlParser.js", "github:Bizboard/arva-utils@master/BlobHelper.js"], function($__export) {
+System.register("SharePoint.js", ["npm:lodash@3.9.3.js", "npm:eventemitter3@1.1.0.js", "github:Bizboard/arva-utils@master/request/UrlParser.js", "github:Bizboard/arva-utils@master/BlobHelper.js"], function($__export) {
   "use strict";
   var __moduleName = "SharePoint.js";
-  var EventEmitter,
-      _,
+  var _,
+      EventEmitter,
       UrlParser,
       BlobHelper,
       DEBUG_WORKER,
-      SPWorkers,
+      SPWorker,
       SharePoint;
   return {
     setters: [function($__m) {
-      EventEmitter = $__m.default;
-    }, function($__m) {
       _ = $__m.default;
+    }, function($__m) {
+      EventEmitter = $__m.default;
     }, function($__m) {
       UrlParser = $__m.UrlParser;
     }, function($__m) {
@@ -8548,7 +8548,7 @@ System.register("SharePoint.js", ["npm:eventemitter3@1.1.0.js", "npm:lodash@3.9.
     }],
     execute: function() {
       DEBUG_WORKER = true;
-      SPWorkers = {};
+      SPWorker = new Worker('worker.js');
       SharePoint = function($__super) {
         function SharePoint() {
           var options = arguments[0] !== (void 0) ? arguments[0] : {};
@@ -8556,34 +8556,43 @@ System.register("SharePoint.js", ["npm:eventemitter3@1.1.0.js", "npm:lodash@3.9.
           var endpoint = UrlParser(options.endPoint);
           if (!endpoint)
             throw Error('Invalid configuration.');
-          this.workerId = endpoint.path;
-          if (DEBUG_WORKER) {
-            if (!SPWorkers[this.workerId]) {
-              SPWorkers[this.workerId] = new Worker('worker.js');
-              SPWorkers[this.workerId].onmessage = function(msg) {
-                if (msg.data.event === 'INVALIDSTATE') {
-                  console.log("Worker Error:", msg.data.result);
-                  delete SPWorkers[this.workerId];
-                  this.workerId = msg.data.result.endPoint;
-                } else {
-                  this.emit(msg.data.event, msg.data.result, msg.data.previousSiblingId);
-                }
-              }.bind(this);
-              SPWorkers[this.workerId].postMessage(['init', options]);
-            }
-          } else {}
+          this.path = endpoint.path;
+          SPWorker.onmessage = this._onMessage.bind(this);
+          options.path = this.path;
+          options.operation = 'init';
+          SPWorker.postMessage(options);
         }
         return ($traceurRuntime.createClass)(SharePoint, {
           set: function(model) {
             var modelId = model.id;
             if (!modelId || modelId === 0) {
-              model['_temporary-identifier'] = btoa(Math.floor((Math.random() * 10000000000000000)));
+              model['_temporary-identifier'] = Math.floor((Math.random() * 2000000000));
             }
-            SPWorkers[this.workerId].postMessage(['set', model]);
+            SPWorker.postMessage({
+              path: this.path,
+              operation: 'set',
+              model: model
+            });
             return model;
           },
           remove: function(model) {
-            SPWorkers[this.workerId].postMessage(['remove', model]);
+            SPWorker.postMessage({
+              path: this.path,
+              operation: 'remove',
+              model: model
+            });
+          },
+          _onMessage: function(messageEvent) {
+            var message = messageEvent.data;
+            if (message.path !== this.path) {
+              return;
+            }
+            if (message.event === 'INVALIDSTATE') {
+              console.log("Worker Error:", message.result);
+              this.path = message.result.endPoint;
+            } else {
+              this.emit(message.event, message.result, message.previousSiblingId);
+            }
           }
         }, {}, $__super);
       }(EventEmitter);
