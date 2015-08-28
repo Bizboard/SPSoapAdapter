@@ -17972,9 +17972,9 @@ System.register("Worker/SoapClient.js", ["Worker/xmljs.js", "npm:xml2js@0.4.9.js
   };
 });
 
-System.register("Worker/Operations.js", ["npm:lodash@3.9.3.js", "npm:eventemitter3@1.1.0.js", "Worker/SoapClient.js", "github:Bizboard/arva-utils@master/request/RequestClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js"], function($__export) {
+System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:eventemitter3@1.1.0.js", "Worker/SoapClient.js", "github:Bizboard/arva-utils@master/request/RequestClient.js", "github:Bizboard/arva-utils@master/request/UrlParser.js"], function($__export) {
   "use strict";
-  var __moduleName = "Worker/Operations.js";
+  var __moduleName = "Worker/SharePointClient.js";
   var _,
       EventEmitter,
       SoapClient,
@@ -18012,10 +18012,8 @@ System.register("Worker/Operations.js", ["npm:lodash@3.9.3.js", "npm:eventemitte
             this.settings = this._intializeSettings(options);
             this._handleInit(this.settings);
             this._refresh();
-            return true;
           } catch (exception) {
             this.dispose();
-            return false;
           }
         }
         return ($traceurRuntime.createClass)(SharePointClient, {
@@ -18041,8 +18039,10 @@ System.register("Worker/Operations.js", ["npm:lodash@3.9.3.js", "npm:eventemitte
             var newPath = url.protocol + '://' + url.host + '/';
             var pathParts = url.path.split('/');
             var identifiedParts = [];
-            while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
-              identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+            if (this._shouldSubscribeToChanges(args.path)) {
+              while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
+                identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+              }
             }
             if (identifiedParts.length > 1) {
               throw {
@@ -18414,8 +18414,22 @@ System.register("Worker/Operations.js", ["npm:lodash@3.9.3.js", "npm:eventemitte
           _getListService: function() {
             return '_vti_bin/Lists.asmx';
           },
-          _GetUserGroupService: function() {
+          _getUserGroupService: function() {
             return '_vti_bin/UserGroup.asmx';
+          },
+          _shouldSubscribeToChanges: function(path) {
+            if (path[path.length - 1] === '/') {
+              path = path.substring(0, path.length - 2);
+            }
+            var lastSlash = path.lastIndexOf('/');
+            if (lastSlash) {
+              var lastArgument = path.substring(lastSlash + 1);
+              var isNumeric = function(n) {
+                return !isNaN(parseFloat(n)) && isFinite(n);
+              };
+              return !isNumeric(lastArgument);
+            }
+            return true;
           }
         }, {}, $__super);
       }(EventEmitter);
@@ -18424,7 +18438,7 @@ System.register("Worker/Operations.js", ["npm:lodash@3.9.3.js", "npm:eventemitte
   };
 });
 
-System.register("Worker/Manager.js", ["Worker/Operations.js"], function($__export) {
+System.register("Worker/Manager.js", ["Worker/SharePointClient.js"], function($__export) {
   "use strict";
   var __moduleName = "Worker/Manager.js";
   var SharePointClient,

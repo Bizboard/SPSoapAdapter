@@ -2,7 +2,7 @@
  * Created by tom on 28/08/15.
  */
 
-import {SharePointClient}               from './Operations.js';
+import {SharePointClient}               from './SharePointClient.js';
 
 let clients = {};
 

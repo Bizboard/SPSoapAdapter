@@ -30,10 +30,8 @@ export class SharePointClient extends EventEmitter {
             this.settings = this._intializeSettings(options);
             this._handleInit(this.settings);
             this._refresh();
-            return true;
         } catch (exception) {
             this.dispose();
-            return false;
         }
     }
 
@@ -59,8 +57,10 @@ export class SharePointClient extends EventEmitter {
         var pathParts = url.path.split('/');
         let identifiedParts = [];
 
-        while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
-            identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+        if(this._shouldSubscribeToChanges(args.path)) {
+            while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
+                identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+            }
         }
 
         if (identifiedParts.length > 1) {
@@ -581,7 +581,27 @@ export class SharePointClient extends EventEmitter {
      * @returns {string}
      * @private
      */
-    _GetUserGroupService() {
+    _getUserGroupService() {
         return '_vti_bin/UserGroup.asmx';
+    }
+
+    /* Ignores all paths ending in a numeric value. These paths don't contain an array, but rather a specific child.
+     * Binding to specific children is not supported by the SharePoint interface, and shouldn't be necessary either
+     * because there is a subscription to child_changed events on the parent array containing this child. */
+    _shouldSubscribeToChanges(path) {
+        if(path[path.length - 1] === '/') { path = path.substring(0, path.length - 2); }
+
+        let lastSlash = path.lastIndexOf('/');
+        if(lastSlash) {
+            let lastArgument = path.substring(lastSlash + 1);
+
+            let isNumeric = (n) => {
+                return !isNaN(parseFloat(n)) && isFinite(n);
+            };
+
+            return !isNumeric(lastArgument);
+        }
+
+        return true;
     }
 }
