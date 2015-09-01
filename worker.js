@@ -18046,8 +18046,13 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             var identifiedParts = [];
             var isChild = this._isChildItem(args.path);
             if (!isChild) {
-              while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
-                identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+              identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+              try {
+                while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
+                  identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+                }
+              } catch (error) {
+                console.log('SharePoint URL detection error:', error);
               }
             } else {
               identifiedParts[0] = pathParts[pathParts.length - 2];
