@@ -65,8 +65,15 @@ export class SharePointClient extends EventEmitter {
         let isChild = this._isChildItem(args.path);
 
         if(!isChild) {
-            while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
-                identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+            /* We can always remove the last part of the path, since it will be a list name (which we don't need in the sharepoint URL). */
+            identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+
+            try {
+                while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
+                    identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
+                }
+            } catch(error) {
+                console.log('SharePoint URL detection error:', error);
             }
         } else {
             /* We're initializing a child element that has an array-based parent.
