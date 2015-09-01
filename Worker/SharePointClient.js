@@ -27,9 +27,14 @@ export class SharePointClient extends EventEmitter {
         this.tempKeys = [];
 
         try {
-            this.settings = this._intializeSettings(options);
+            let {settings, isChild} = this._intializeSettings(options);
+            this.settings = settings;
+
             this._handleInit(this.settings);
-            this._refresh();
+            if(!isChild) {
+                /* Don't monitor child item updates/removes. We only do that on parent arrays. */
+                this._refresh();
+            }
         } catch (exception) {
             this.dispose();
         }
@@ -50,20 +55,28 @@ export class SharePointClient extends EventEmitter {
     _intializeSettings(args) {
 
         // rebuild endpoint from polling server and interpreting response
-        var url = UrlParser(args.endPoint);
+        let url = UrlParser(args.endPoint);
         if (!url) throw new Error('Invalid DataSource path provided!');
 
-        var newPath = url.protocol + '://' + url.host + '/';
-        var pathParts = url.path.split('/');
+        let newPath = url.protocol + '://' + url.host + '/';
+        let pathParts = url.path.split('/');
         let identifiedParts = [];
 
-        if(this._shouldSubscribeToChanges(args.path)) {
+        let isChild = this._isChildItem(args.path);
+
+        if(!isChild) {
             while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
                 identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
             }
+        } else {
+            /* We're initializing a child element that has an array-based parent.
+             * This means we can't automatically find the correct SharePoint path, and we'll have to assume the listName and itemId. */
+            identifiedParts[0] = pathParts[pathParts.length - 2];
+            identifiedParts[1] = pathParts[pathParts.length - 1];
+            pathParts.splice(pathParts.length - 2, 2); /* Remove the child ID from the endpoint so we can modify its value through the parent endpoint. */
         }
 
-        if (identifiedParts.length > 1) {
+        if (identifiedParts.length < 1) {
             throw {
                 endPoint: pathParts.join('/') + '/' + identifiedParts[0],
                 message: 'Parameters could not be correctly extracted for polling. Assuming invalid state.'
@@ -81,7 +94,7 @@ export class SharePointClient extends EventEmitter {
             if (args.limit) resultconfig.limit = args.limit;
             if (args.orderBy) resultconfig.orderBy = args.orderBy;
 
-            return resultconfig;
+            return {settings: resultconfig, isChild: isChild};
         }
     }
 
@@ -588,18 +601,16 @@ export class SharePointClient extends EventEmitter {
     /* Ignores all paths ending in a numeric value. These paths don't contain an array, but rather a specific child.
      * Binding to specific children is not supported by the SharePoint interface, and shouldn't be necessary either
      * because there is a subscription to child_changed events on the parent array containing this child. */
-    _shouldSubscribeToChanges(path) {
+    _isChildItem(path) {
         if(path[path.length - 1] === '/') { path = path.substring(0, path.length - 2); }
 
-        let lastSlash = path.lastIndexOf('/');
-        if(lastSlash) {
-            let lastArgument = path.substring(lastSlash + 1);
+        let parts = path.split('/');
+        if(parts.length) {
+            let lastArgument = parts[parts.length - 1];
 
-            let isNumeric = (n) => {
-                return !isNaN(parseFloat(n)) && isFinite(n);
-            };
+            let isNumeric = (n) =>  !isNaN(parseFloat(n)) && isFinite(n);
 
-            return !isNumeric(lastArgument);
+            return isNumeric(lastArgument);
         }
 
         return true;

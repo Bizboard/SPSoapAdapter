@@ -18009,9 +18009,14 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
           this.cache = [];
           this.tempKeys = [];
           try {
-            this.settings = this._intializeSettings(options);
+            var $__9 = this._intializeSettings(options),
+                settings = $__9.settings,
+                isChild = $__9.isChild;
+            this.settings = settings;
             this._handleInit(this.settings);
-            this._refresh();
+            if (!isChild) {
+              this._refresh();
+            }
           } catch (exception) {
             this.dispose();
           }
@@ -18039,12 +18044,17 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             var newPath = url.protocol + '://' + url.host + '/';
             var pathParts = url.path.split('/');
             var identifiedParts = [];
-            if (this._shouldSubscribeToChanges(args.path)) {
+            var isChild = this._isChildItem(args.path);
+            if (!isChild) {
               while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
                 identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
               }
+            } else {
+              identifiedParts[0] = pathParts[pathParts.length - 2];
+              identifiedParts[1] = pathParts[pathParts.length - 1];
+              pathParts.splice(pathParts.length - 2, 2);
             }
-            if (identifiedParts.length > 1) {
+            if (identifiedParts.length < 1) {
               throw {
                 endPoint: pathParts.join('/') + '/' + identifiedParts[0],
                 message: 'Parameters could not be correctly extracted for polling. Assuming invalid state.'
@@ -18061,7 +18071,10 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
                 resultconfig.limit = args.limit;
               if (args.orderBy)
                 resultconfig.orderBy = args.orderBy;
-              return resultconfig;
+              return {
+                settings: resultconfig,
+                isChild: isChild
+              };
             }
           },
           _handleInit: function(args) {
@@ -18203,29 +18216,29 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
           },
           _updateCache: function(data) {
             var messages = [];
-            var $__9 = this,
-                $__10 = function(record) {
-                  var isLocal = _.findIndex($__9.tempKeys, function(key) {
+            var $__10 = this,
+                $__11 = function(record) {
+                  var isLocal = _.findIndex($__10.tempKeys, function(key) {
                     return key.remoteId == data.id;
                   });
                   if (isLocal > -1) {
-                    data[record].id = $__9.tempKeys[isLocal].localId;
+                    data[record].id = $__10.tempKeys[isLocal].localId;
                   }
-                  var isCached = _.findIndex($__9.cache, function(item) {
+                  var isCached = _.findIndex($__10.cache, function(item) {
                     return data[record].id == item.id;
                   });
                   if (isCached == -1) {
-                    $__9.cache.push(data[record]);
-                    var previousSiblingId = $__9.cache.length == 0 ? null : $__9.cache[$__9.cache.length - 1];
+                    $__10.cache.push(data[record]);
+                    var previousSiblingId = $__10.cache.length == 0 ? null : $__10.cache[$__10.cache.length - 1];
                     messages.push({
                       event: 'child_added',
                       result: data[record],
                       previousSiblingId: previousSiblingId ? previousSiblingId.id : null
                     });
                   } else {
-                    if (!_.isEqual(data[record], $__9.cache[isCached])) {
-                      $__9.cache.splice(isCached, 1, data[record]);
-                      var previousSibling = isCached == 0 ? null : $__9.cache[isCached - 1];
+                    if (!_.isEqual(data[record], $__10.cache[isCached])) {
+                      $__10.cache.splice(isCached, 1, data[record]);
+                      var previousSibling = isCached == 0 ? null : $__10.cache[isCached - 1];
                       messages.push({
                         event: 'child_changed',
                         result: data[record],
@@ -18235,7 +18248,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
                   }
                 };
             for (var record in data) {
-              $__10(record);
+              $__11(record);
             }
             return messages;
           },
@@ -18293,28 +18306,28 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
           _handleDeleted: function(result) {
             var changes = result.Id || null;
             if (changes && changes.length > 0) {
-              var $__11 = this,
-                  $__12 = function(change) {
+              var $__12 = this,
+                  $__13 = function(change) {
                     if (changes[change].$.ChangeType == "Delete") {
                       var recordId = changes[change]._;
-                      var isLocal = _.findIndex($__11.tempKeys, function(key) {
+                      var isLocal = _.findIndex($__12.tempKeys, function(key) {
                         return key.remoteId == recordId;
                       });
                       if (isLocal > -1) {
-                        recordId = $__11.tempKeys[isLocal].localId;
+                        recordId = $__12.tempKeys[isLocal].localId;
                       }
-                      var cacheItem = _.findIndex($__11.cache, function(item) {
+                      var cacheItem = _.findIndex($__12.cache, function(item) {
                         return item.id == recordId;
                       });
-                      $__11.emit('message', {
+                      $__12.emit('message', {
                         event: 'child_removed',
-                        result: $__11.cache[cacheItem]
+                        result: $__12.cache[cacheItem]
                       });
-                      $__11.cache.splice(cacheItem, 1);
+                      $__12.cache.splice(cacheItem, 1);
                     }
                   };
               for (var change in changes) {
-                $__12(change);
+                $__13(change);
               }
               return true;
             }
@@ -18339,10 +18352,10 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
               if (error == '0x00000000') {
                 node = result["soap:Envelope"]["soap:Body"][0].UpdateListItemsResponse[0].UpdateListItemsResult[0].Results[0];
                 if (node) {
-                  for (var row$__13 in node.Result) {
-                    var raw$__14 = node.Result[row$__13]["z:row"][0].$;
-                    var record$__15 = this._formatRecord(raw$__14);
-                    arrayOfObjects.push(record$__15);
+                  for (var row$__14 in node.Result) {
+                    var raw$__15 = node.Result[row$__14]["z:row"][0].$;
+                    var record$__16 = this._formatRecord(raw$__15);
+                    arrayOfObjects.push(record$__16);
                   }
                 }
               }
@@ -18417,17 +18430,17 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
           _getUserGroupService: function() {
             return '_vti_bin/UserGroup.asmx';
           },
-          _shouldSubscribeToChanges: function(path) {
+          _isChildItem: function(path) {
             if (path[path.length - 1] === '/') {
               path = path.substring(0, path.length - 2);
             }
-            var lastSlash = path.lastIndexOf('/');
-            if (lastSlash) {
-              var lastArgument = path.substring(lastSlash + 1);
+            var parts = path.split('/');
+            if (parts.length) {
+              var lastArgument = parts[parts.length - 1];
               var isNumeric = function(n) {
                 return !isNaN(parseFloat(n)) && isFinite(n);
               };
-              return !isNumeric(lastArgument);
+              return isNumeric(lastArgument);
             }
             return true;
           }
