@@ -504,7 +504,7 @@ export class SharePointClient extends EventEmitter {
             else if (record[attribute].indexOf(";#") > -1) {
                 var keys = record[attribute].split(";#");
                 var pairs = keys.length / 2;
-                var assignable = pairs.length > 1 ? [] : {};
+                var assignable = pairs > 1 ? [] : {};
                 for (var pair = 0; pair < pairs; pair++) {
                     if (pairs > 1) assignable.push({id: keys[pair], value: keys[pair + 1]});
                     else assignable = {id: keys[pair], value: keys[pair + 1]};
