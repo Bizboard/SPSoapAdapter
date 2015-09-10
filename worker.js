@@ -18379,8 +18379,8 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
               } else if (record[attribute].indexOf(";#") > -1) {
                 var keys = record[attribute].split(";#");
                 var pairs = keys.length / 2;
-                var assignable = pairs.length > 1 ? [] : {};
-                for (var pair = 0; pair < pairs; pair++) {
+                var assignable = pairs > 1 ? [] : {};
+                for (var pair = 0; pair < keys.length; pair+=2) {
                   if (pairs > 1)
                     assignable.push({
                       id: keys[pair],
