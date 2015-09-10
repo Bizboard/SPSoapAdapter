@@ -26,13 +26,25 @@ export class SharePoint extends EventEmitter {
         if (!endpoint) throw Error('Invalid configuration.');
 
         this.path = endpoint.path;
+        this.options = options;
 
         workerEvents.on('message', this._onMessage.bind(this));
+    }
 
-        /* Initialise the worker */
-        options.path = this.path;
-        options.operation = 'init';
-        SPWorker.postMessage(options);
+    once(event, handler, context) {
+        this.on(event, function(){
+            handler.call(context, ...arguments);
+            this.off(event, handler, context);
+        }.bind(this), context);
+    }
+
+    on(event, handler, context = this) {
+        /* Hold off on initialising the actual SharePoint connection until someone actually subscribes to data changes. */
+        if(!this._initialised) {
+            this._initialise();
+            this._initialised = true;
+        }
+        super.on(event, handler, context);
     }
 
     set(model) {
@@ -48,6 +60,13 @@ export class SharePoint extends EventEmitter {
 
     remove(model) {
         SPWorker.postMessage({path: this.path, operation: 'remove', model: model});
+    }
+
+    _initialise(){
+        /* Initialise the worker */
+        this.options.path = this.path;
+        this.options.operation = 'init';
+        SPWorker.postMessage(this.options);
     }
 
     _onMessage(messageEvent) {
