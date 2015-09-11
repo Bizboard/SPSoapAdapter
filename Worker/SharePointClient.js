@@ -62,7 +62,7 @@ export class SharePointClient extends EventEmitter {
         let pathParts = url.path.split('/');
         let identifiedParts = [];
 
-        let isChild = this._isChildItem(args.path);
+        let isChild = this._isChildItem(url.path);
 
         if(!isChild) {
             /* We can always remove the last part of the path, since it will be a list name (which we don't need in the sharepoint URL). */

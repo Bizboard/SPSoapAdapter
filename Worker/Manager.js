@@ -8,16 +8,16 @@ let clients = {};
 
 onmessage = function(messageEvent) {
     let message = messageEvent.data;
-    let {path, operation} = message;
-    let client = clients[path];
+    let {subscriberID, operation} = message;
+    let client = clients[subscriberID];
 
     switch(operation) {
         case 'init':
             if(!client) {
-                client = clients[path] = new SharePointClient(message);
+                client = clients[subscriberID] = new SharePointClient(message);
             }
             client.on('message', (message) => {
-                message.path = path;
+                message.subscriberID = subscriberID;
                 postMessage(message);
             });
             break;

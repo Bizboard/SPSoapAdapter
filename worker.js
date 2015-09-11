@@ -18044,7 +18044,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             var newPath = url.protocol + '://' + url.host + '/';
             var pathParts = url.path.split('/');
             var identifiedParts = [];
-            var isChild = this._isChildItem(args.path);
+            var isChild = this._isChildItem(url.path);
             if (!isChild) {
               identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
               try {
@@ -18380,7 +18380,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
                 var keys = record[attribute].split(";#");
                 var pairs = keys.length / 2;
                 var assignable = pairs > 1 ? [] : {};
-                for (var pair = 0; pair < keys.length; pair+=2) {
+                for (var pair = 0; pair < keys.length; pair += 2) {
                   if (pairs > 1)
                     assignable.push({
                       id: keys[pair],
@@ -18470,16 +18470,16 @@ System.register("Worker/Manager.js", ["Worker/SharePointClient.js"], function($_
       onmessage = function(messageEvent) {
         var message = messageEvent.data;
         var $__0 = message,
-            path = $__0.path,
+            subscriberID = $__0.subscriberID,
             operation = $__0.operation;
-        var client = clients[path];
+        var client = clients[subscriberID];
         switch (operation) {
           case 'init':
             if (!client) {
-              client = clients[path] = new SharePointClient(message);
+              client = clients[subscriberID] = new SharePointClient(message);
             }
             client.on('message', function(message) {
-              message.path = path;
+              message.subscriberID = subscriberID;
               postMessage(message);
             });
             break;
