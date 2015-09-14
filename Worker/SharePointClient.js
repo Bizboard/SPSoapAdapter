@@ -374,6 +374,7 @@ export class SharePointClient extends EventEmitter {
                 .then((result) => {
                     let changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
                     let lastChangedToken = changes.$.LastChangeToken;
+                    let isFirstResponse = !!this.retriever.params.changeToken; /* True if this is the first server response for the current path. */
 
                     this._setLastUpdated(lastChangedToken);
                     let hasDeletions = this._handleDeleted(changes);
@@ -381,9 +382,13 @@ export class SharePointClient extends EventEmitter {
                     let data = this._getResults(result.data);
                     let messages = this._updateCache(data);
 
-                    /* If any data was modified, emit a 'value' event. */
+                    /* If any data is new or modified, emit a 'value' event. */
                     if (hasDeletions || data.length > 0) {
                         this.emit('message', {event: 'value', result: this.cache});
+                    } else if(isFirstResponse) {
+                        /* If there is no data, and this is the first time we get a response from the server,
+                         * emit a value event that shows subscribers that there is no data at this path. */
+                        this.emit('message', {event: 'value', result: null});
                     }
 
                     /* Emit any added/changed events. */

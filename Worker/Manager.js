@@ -38,5 +38,13 @@ onmessage = function(messageEvent) {
              * cancel all subscriptions that were automatically created on instantiation. */
             if(!clientExisted) { client.dispose(); }
             break;
+        case 'get_cache':
+            let cacheData = client.cache;
+            postMessage({
+                subscriberID: subscriberID,
+                event: 'cache_data',
+                cache: cacheData
+            });
+            break;
     }
 };

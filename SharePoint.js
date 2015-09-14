@@ -32,7 +32,7 @@ export class SharePoint extends EventEmitter {
     }
 
     once(event, handler, context) {
-        this.on(event, function(){
+        this.on(event, function () {
             handler.call(context, ...arguments);
             this.off(event, handler, context);
         }.bind(this), context);
@@ -40,10 +40,11 @@ export class SharePoint extends EventEmitter {
 
     on(event, handler, context = this) {
         /* Hold off on initialising the actual SharePoint connection until someone actually subscribes to data changes. */
-        if(!this._initialised) {
+        if (!this._initialised) {
             this._initialise();
             this._initialised = true;
         }
+        super.on(event, () => { if (event === 'value') { this._ready = true; } }, this);
         super.on(event, handler, context);
     }
 
@@ -74,27 +75,53 @@ export class SharePoint extends EventEmitter {
         });
     }
 
-    _initialise(){
+    _initialise() {
         /* Initialise the worker */
         SPWorker.postMessage(_.extend({}, this.options, {
             subscriberID: this.subscriberID,
             operation: 'init'
+        }));
+
+        /* Grab any existing cached data for this path. There will be data if there are other
+         * subscribers on the same path already. */
+        SPWorker.postMessage(_.extend({}, this.options, {
+            subscriberID: this.subscriberID,
+            operation: 'get_cache'
         }));
     }
 
     _onMessage(messageEvent) {
         let message = messageEvent.data;
         /* Ignore messages not meant for this SharePoint instance. */
-        if(message.subscriberID !== this.subscriberID) { return; }
+        if (message.subscriberID !== this.subscriberID) { return; }
 
-        if (message.event !== 'INVALIDSTATE') {
+        if (message.event === 'cache_data') {
+            this._handleCacheData(message.cache);
+        } else if (message.event !== 'INVALIDSTATE') {
             this.emit(message.event, message.result, message.previousSiblingId);
         } else {
             console.log("Worker Error:", message.result);
         }
     }
 
-    static hashCode(s){
-        return s.split("").reduce(function(a,b){a=((a<<5)-a)+b.charCodeAt(0);return a&a},0);
+    _handleCacheData(cacheData) {
+        if(!cacheData) { cacheData = []; }
+
+        /* Only emit cached data if we haven't seen a 'value' event yet */
+        if (!this._ready) {
+            for (let index = 0; index < cacheData.length; i++) {
+                let child = cacheData[index];
+                let previousChildID = index > 0 ? cacheData[index - 1] : null;
+                this.emit('child_added', child, previousChildID);
+            }
+            this.emit('value', cacheData.length ? cacheData : null);
+        }
+    }
+
+    static hashCode(s) {
+        return s.split("").reduce(function (a, b) {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a
+        }, 0);
     }
 }

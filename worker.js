@@ -18266,6 +18266,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
               soapClient.call(this.retriever).then(function(result) {
                 var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
                 var lastChangedToken = changes.$.LastChangeToken;
+                var isFirstResponse = !!$__0.retriever.params.changeToken;
                 $__0._setLastUpdated(lastChangedToken);
                 var hasDeletions = $__0._handleDeleted(changes);
                 var data = $__0._getResults(result.data);
@@ -18274,6 +18275,11 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
                   $__0.emit('message', {
                     event: 'value',
                     result: $__0.cache
+                  });
+                } else if (isFirstResponse) {
+                  $__0.emit('message', {
+                    event: 'value',
+                    result: null
                   });
                 }
                 var $__5 = true;
@@ -18497,6 +18503,14 @@ System.register("Worker/Manager.js", ["Worker/SharePointClient.js"], function($_
             if (!clientExisted) {
               client.dispose();
             }
+            break;
+          case 'get_cache':
+            var cacheData = client.cache;
+            postMessage({
+              subscriberID: subscriberID,
+              event: 'cache_data',
+              cache: cacheData
+            });
             break;
         }
       };
