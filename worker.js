@@ -18400,7 +18400,9 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             }
             return result;
           },
-          _parsePath: function(path, endPoint) {
+          _parsePath: function() {
+            var path = arguments[0] !== (void 0) ? arguments[0] : '';
+            var endPoint = arguments[1] !== (void 0) ? arguments[1] : '';
             var url = UrlParser(path);
             if (!url)
               console.log('Invalid datasource path provided!');
@@ -18473,24 +18475,27 @@ System.register("Worker/Manager.js", ["Worker/SharePointClient.js"], function($_
             subscriberID = $__0.subscriberID,
             operation = $__0.operation;
         var client = clients[subscriberID];
+        var clientExisted = !!client;
+        if (!clientExisted) {
+          client = clients[subscriberID] = new SharePointClient(message);
+        }
         switch (operation) {
           case 'init':
-            if (!client) {
-              client = clients[subscriberID] = new SharePointClient(message);
-            }
             client.on('message', function(message) {
               message.subscriberID = subscriberID;
               postMessage(message);
             });
             break;
           case 'set':
-            if (client) {
-              client.set(message.model);
+            client.set(message.model);
+            if (!clientExisted) {
+              client.dispose();
             }
             break;
           case 'remove':
-            if (client) {
-              client.remove(message.model);
+            client.remove(message.model);
+            if (!clientExisted) {
+              client.dispose();
             }
             break;
         }

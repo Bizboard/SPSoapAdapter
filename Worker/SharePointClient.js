@@ -530,7 +530,7 @@ export class SharePointClient extends EventEmitter {
      * @returns {string}
      * @private
      */
-    _parsePath(path, endPoint) {
+    _parsePath(path = '', endPoint = '') {
 
         var url = UrlParser(path);
         if (!url) console.log('Invalid datasource path provided!');

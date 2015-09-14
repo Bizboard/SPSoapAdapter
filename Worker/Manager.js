@@ -10,22 +10,33 @@ onmessage = function(messageEvent) {
     let message = messageEvent.data;
     let {subscriberID, operation} = message;
     let client = clients[subscriberID];
+    let clientExisted = !!client;
+
+    /* If the requested client doesn't exist yet, create a new instance. */
+    if(!clientExisted) {
+        /* This automatically subscribes to changes, so for a set/remove operation that
+         * isn't interested in listening to changes we'll need to unsubscribe again after the operation. */
+        client = clients[subscriberID] = new SharePointClient(message);
+    }
 
     switch(operation) {
         case 'init':
-            if(!client) {
-                client = clients[subscriberID] = new SharePointClient(message);
-            }
             client.on('message', (message) => {
                 message.subscriberID = subscriberID;
                 postMessage(message);
             });
             break;
         case 'set':
-            if(client) { client.set(message.model); }
+            client.set(message.model);
+            /* If the client was created for this set operation,
+             * cancel all subscriptions that were automatically created on instantiation. */
+            if(!clientExisted) { client.dispose(); }
             break;
         case 'remove':
-            if(client) { client.remove(message.model); }
+            client.remove(message.model);
+            /* If the client was created for this remove operation,
+             * cancel all subscriptions that were automatically created on instantiation. */
+            if(!clientExisted) { client.dispose(); }
             break;
     }
 };

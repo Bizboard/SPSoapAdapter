@@ -54,12 +54,24 @@ export class SharePoint extends EventEmitter {
             model['_temporary-identifier'] = Math.floor((Math.random() * 2000000000));
         }
 
-        SPWorker.postMessage({subscriberID: this.subscriberID, operation: 'set', model: model});
+        SPWorker.postMessage({
+            subscriberID: this.subscriberID,
+            endPoint: this.options.endPoint,
+            listName: this.options.listName,
+            operation: 'set',
+            model: model
+        });
         return model;
     }
 
     remove(model) {
-        SPWorker.postMessage({subscriberID: this.subscriberID, operation: 'remove', model: model});
+        SPWorker.postMessage({
+            subscriberID: this.subscriberID,
+            endPoint: this.options.endPoint,
+            listName: this.options.listName,
+            operation: 'remove',
+            model: model
+        });
     }
 
     _initialise(){
