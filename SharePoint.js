@@ -109,7 +109,7 @@ export class SharePoint extends EventEmitter {
 
         /* Only emit cached data if we haven't seen a 'value' event yet */
         if (!this._ready) {
-            for (let index = 0; index < cacheData.length; i++) {
+            for (let index = 0; index < cacheData.length; index++) {
                 let child = cacheData[index];
                 let previousChildID = index > 0 ? cacheData[index - 1] : null;
                 this.emit('child_added', child, previousChildID);
