@@ -44,7 +44,18 @@ export class SharePoint extends EventEmitter {
             this._initialise();
             this._initialised = true;
         }
-        super.on(event, () => { if (event === 'value') { this._ready = true; } }, this);
+
+        if (this._ready && event === 'value' || event === 'child_added') {
+            this.once('cache_data', (cacheData) => this._handleCacheData(cacheData, event, handler, context));
+
+            /* Grab any existing cached data for this path. There will be data if there are other
+             * subscribers on the same path already. */
+            SPWorker.postMessage(_.extend({}, this.options, {
+                subscriberID: this.subscriberID,
+                operation: 'get_cache'
+            }));
+        }
+
         super.on(event, handler, context);
     }
 
@@ -76,17 +87,13 @@ export class SharePoint extends EventEmitter {
     }
 
     _initialise() {
+
+        super.once('value', () => { this._ready = true; });
+
         /* Initialise the worker */
         SPWorker.postMessage(_.extend({}, this.options, {
             subscriberID: this.subscriberID,
             operation: 'init'
-        }));
-
-        /* Grab any existing cached data for this path. There will be data if there are other
-         * subscribers on the same path already. */
-        SPWorker.postMessage(_.extend({}, this.options, {
-            subscriberID: this.subscriberID,
-            operation: 'get_cache'
         }));
     }
 
@@ -96,7 +103,7 @@ export class SharePoint extends EventEmitter {
         if (message.subscriberID !== this.subscriberID) { return; }
 
         if (message.event === 'cache_data') {
-            this._handleCacheData(message.cache);
+            this.emit('cache_data', message.cache);
         } else if (message.event !== 'INVALIDSTATE') {
             this.emit(message.event, message.result, message.previousSiblingId);
         } else {
@@ -104,17 +111,17 @@ export class SharePoint extends EventEmitter {
         }
     }
 
-    _handleCacheData(cacheData) {
-        if(!cacheData) { cacheData = []; }
+    _handleCacheData(cacheData, event, handler, context) {
+        if (!cacheData) { cacheData = []; }
 
-        /* Only emit cached data if we haven't seen a 'value' event yet */
-        if (!this._ready) {
+        if (event === 'child_added') {
             for (let index = 0; index < cacheData.length; index++) {
                 let child = cacheData[index];
                 let previousChildID = index > 0 ? cacheData[index - 1] : null;
-                this.emit('child_added', child, previousChildID);
+                handler.call(context, child, previousChildID);
             }
-            this.emit('value', cacheData.length ? cacheData : null);
+        } else if (event === 'value') {
+            handler.call(context, cacheData.length ? cacheData : null);
         }
     }
 

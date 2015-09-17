@@ -18086,7 +18086,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             if (!args.listName)
               return;
             this.retriever = this._getListItemsDefaultConfiguration();
-            this.retriever.url = this._parsePath(args.endPoint, this._getListService());
+            this.retriever.url = this._parsePath(args.endPoint, this._getListService()) + ("?view=" + args.listName);
             this.retriever.params = {
               'listName': args.listName,
               'viewFields': {'ViewFields': ''},
@@ -18118,7 +18118,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
           _handleSet: function(newData) {
             var $__0 = this;
             var configuration = this._updateListItemsDefaultConfiguration();
-            configuration.url = this._parsePath(this.settings.endPoint, this._getListService());
+            configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?update=" + this.settings.listName + "}");
             var fieldCollection = [];
             var method = '';
             var isLocal = _.findIndex(this.tempKeys, function(key) {
@@ -18176,7 +18176,32 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
                     remoteId: data[0].id
                   });
                 }
-                $__0._updateCache(data);
+                var messages = $__0._updateCache(data);
+                var $__5 = true;
+                var $__6 = false;
+                var $__7 = undefined;
+                try {
+                  for (var $__3 = void 0,
+                      $__2 = (messages)[$traceurRuntime.toProperty(Symbol.iterator)](); !($__5 = ($__3 = $__2.next()).done); $__5 = true) {
+                    var message = $__3.value;
+                    {
+                      $__0.emit('message', message);
+                    }
+                  }
+                } catch ($__8) {
+                  $__6 = true;
+                  $__7 = $__8;
+                } finally {
+                  try {
+                    if (!$__5 && $__2.return != null) {
+                      $__2.return();
+                    }
+                  } finally {
+                    if ($__6) {
+                      throw $__7;
+                    }
+                  }
+                }
               }
             }, function(error) {
               console.log(error);
@@ -18185,7 +18210,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
           _handleRemove: function(record) {
             var $__0 = this;
             var configuration = this._updateListItemsDefaultConfiguration();
-            configuration.url = this._parsePath(this.settings.endPoint, this._getListService());
+            configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?remove=" + this.settings.listName + "}");
             var fieldCollection = [];
             var isLocal = _.findIndex(this.tempKeys, function(key) {
               return key.localId == record.id;
@@ -18266,7 +18291,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
               soapClient.call(this.retriever).then(function(result) {
                 var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
                 var lastChangedToken = changes.$.LastChangeToken;
-                var isFirstResponse = !!$__0.retriever.params.changeToken;
+                var isFirstResponse = !$__0.retriever.params.changeToken;
                 $__0._setLastUpdated(lastChangedToken);
                 var hasDeletions = $__0._handleDeleted(changes);
                 var data = $__0._getResults(result.data);

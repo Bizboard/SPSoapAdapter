@@ -117,7 +117,8 @@ export class SharePointClient extends EventEmitter {
         // initialize with SharePoint configuration
         this.retriever = this._getListItemsDefaultConfiguration();
 
-        this.retriever.url = this._parsePath(args.endPoint, this._getListService());
+        /* Append the listName to the URL for easy debugging */
+        this.retriever.url = this._parsePath(args.endPoint, this._getListService()) + `?view=${args.listName}`;
         this.retriever.params = {
             'listName': args.listName,
             'viewFields': {
@@ -173,7 +174,8 @@ export class SharePointClient extends EventEmitter {
      */
     _handleSet(newData) {
         var configuration = this._updateListItemsDefaultConfiguration();
-        configuration.url = this._parsePath(this.settings.endPoint, this._getListService());
+        /* Append the listName to the URL for easy debugging */
+        configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?update=${this.settings.listName}}`;
         var fieldCollection = [];
         var method = '';
 
@@ -248,7 +250,10 @@ export class SharePointClient extends EventEmitter {
                     if (newData['_temporary-identifier']) {
                         this.tempKeys.push({localId: newData['_temporary-identifier'], remoteId: data[0].id});
                     }
-                    this._updateCache(data);
+                    let messages = this._updateCache(data);
+                    for(let message of messages) {
+                        this.emit('message', message);
+                    }
                 }
             }, (error) => {
                 console.log(error);
@@ -262,7 +267,8 @@ export class SharePointClient extends EventEmitter {
      */
     _handleRemove(record) {
         var configuration = this._updateListItemsDefaultConfiguration();
-        configuration.url = this._parsePath(this.settings.endPoint, this._getListService());
+        /* Append the listName to the URL for easy debugging */
+        configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?remove=${this.settings.listName}}`;
         var fieldCollection = [];
 
         let isLocal = _.findIndex(this.tempKeys, function (key) {
@@ -374,7 +380,7 @@ export class SharePointClient extends EventEmitter {
                 .then((result) => {
                     let changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
                     let lastChangedToken = changes.$.LastChangeToken;
-                    let isFirstResponse = !!this.retriever.params.changeToken; /* True if this is the first server response for the current path. */
+                    let isFirstResponse = !this.retriever.params.changeToken; /* True if this is the first server response for the current path. */
 
                     this._setLastUpdated(lastChangedToken);
                     let hasDeletions = this._handleDeleted(changes);
