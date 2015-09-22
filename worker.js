@@ -18402,13 +18402,18 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             var result = {};
             for (var attribute in record) {
               var name = attribute.replace('ows_', '');
-              if (name == 'xmlns:z')
+              if (name == 'xmlns:z') {
                 continue;
+              }
+              var value = record[attribute];
+              if (value === '') {
+                continue;
+              }
               if (name == "ID") {
                 name = "id";
-                result[name] = record[attribute];
-              } else if (record[attribute].indexOf(";#") > -1) {
-                var keys = record[attribute].split(";#");
+                result[name] = value;
+              } else if (value.indexOf(";#") > -1) {
+                var keys = value.split(";#");
                 var pairs = keys.length / 2;
                 var assignable = pairs > 1 ? [] : {};
                 for (var pair = 0; pair < keys.length; pair += 2) {
@@ -18424,10 +18429,11 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
                     };
                 }
                 result[name] = assignable;
-              } else if (!isNaN(record[attribute]))
-                result[name] = parseFloat(record[attribute]);
-              else
-                result[name] = record[attribute];
+              } else if (!isNaN(value)) {
+                result[name] = parseFloat(value);
+              } else {
+                result[name] = value;
+              }
             }
             return result;
           },

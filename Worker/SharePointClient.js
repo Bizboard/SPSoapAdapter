@@ -505,15 +505,16 @@ export class SharePointClient extends EventEmitter {
         for (let attribute in record) {
 
             let name = attribute.replace('ows_', '');
-            if (name == 'xmlns:z') continue;
+            if (name == 'xmlns:z') { continue; }
+
+            let value = record[attribute];
+            if(value === '') { continue; }
 
             if (name == "ID") {
                 name = "id";
-                result[name] = record[attribute];
-            }
-
-            else if (record[attribute].indexOf(";#") > -1) {
-                var keys = record[attribute].split(";#");
+                result[name] = value;
+            } else if (value.indexOf(";#") > -1) {
+                var keys = value.split(";#");
                 var pairs = keys.length / 2;
                 var assignable = pairs > 1 ? [] : {};
                 for (var pair = 0; pair < keys.length; pair+=2) {
@@ -521,15 +522,15 @@ export class SharePointClient extends EventEmitter {
                     else assignable = {id: keys[pair], value: keys[pair + 1]};
                 }
                 result[name] = assignable;
+            } else if (!isNaN(value)) {
+                /* Map a number when that number is detected */
+                result[name] = parseFloat(value);
+            } else {
+                /* By default map the attribute 1:1 */
+                result[name] = value;
             }
-
-            // map a number when that number is detected
-            else if (!isNaN(record[attribute]))
-                result[name] = parseFloat(record[attribute]);
-            // default map 1-1
-            else
-                result[name] = record[attribute];
         }
+
         return result;
     }
 
