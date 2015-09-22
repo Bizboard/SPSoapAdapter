@@ -18146,8 +18146,15 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
                 continue;
               if (prop == "priority" || prop == "_temporary-identifier")
                 continue;
-              if (typeof fieldValue === "object" && fieldValue.id && fieldValue.value) {
-                fieldValue = (fieldValue.id + ";#" + fieldValue.value);
+              if (typeof fieldValue === 'object') {
+                if (fieldValue.id && fieldValue.value) {
+                  fieldValue = (fieldValue.id + ";#");
+                } else if (fieldValue.length !== undefined && fieldValue[0] && fieldValue[0].id && fieldValue[0].value) {
+                  var IDs = _.pluck(fieldValue, 'id');
+                  fieldValue = IDs.join(';#;#');
+                } else {
+                  continue;
+                }
               }
               fieldCollection.push({
                 "_Name": prop,

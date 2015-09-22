@@ -210,10 +210,20 @@ export class SharePointClient extends EventEmitter {
             let fieldValue = newData[prop];
             if (prop == "id" || typeof(fieldValue) == "undefined") continue;
             if (prop == "priority" || prop == "_temporary-identifier") continue;
-            if (typeof fieldValue === "object" && fieldValue.id && fieldValue.value) {
-                /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
-                fieldValue = `${fieldValue.id};#${fieldValue.value}`;
+            if (typeof fieldValue === 'object') {
+                if (fieldValue.id && fieldValue.value) {
+                    /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
+                    fieldValue = `${fieldValue.id};#`;
+                } else if(fieldValue.length !== undefined && fieldValue[0] && fieldValue[0].id && fieldValue[0].value) {
+                    /* This is a SharePoint LookupMulti field. It is specially formatted like above. */
+                    let IDs = _.pluck(fieldValue, 'id');
+                    fieldValue = IDs.join(';#;#');
+                } else {
+                    continue;
+                }
             }
+
+
 
             fieldCollection.push({
                 "_Name": prop,
