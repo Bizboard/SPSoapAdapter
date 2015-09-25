@@ -17983,6 +17983,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
       soapClient,
       window,
       global,
+      tempKeys,
       SharePointClient;
   return {
     setters: [function($__m) {
@@ -18000,6 +18001,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
       soapClient = new SoapClient();
       window = this;
       global = this;
+      tempKeys = [];
       SharePointClient = function($__super) {
         function SharePointClient(options) {
           $traceurRuntime.superConstructor(SharePointClient).call(this);
@@ -18007,7 +18009,6 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
           this.interval = 3000;
           this.retriever = null;
           this.cache = [];
-          this.tempKeys = [];
           try {
             var $__9 = this._intializeSettings(options),
                 settings = $__9.settings,
@@ -18121,11 +18122,14 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?update=" + this.settings.listName + "}");
             var fieldCollection = [];
             var method = '';
-            var isLocal = _.findIndex(this.tempKeys, function(key) {
+            var isLocal = _.findIndex(tempKeys, function(key) {
               return key.localId == newData.id;
             });
             if (isLocal > -1) {
-              newData.id = this.tempKeys[isLocal].remoteId;
+              newData.id = tempKeys[isLocal].remoteId;
+            }
+            if (!newData.id && this.childID) {
+              newData.id = this.childID;
             }
             if (newData.id) {
               fieldCollection.push({
@@ -18178,7 +18182,7 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
               var data = $__0._getResults(result.data);
               if (data.length == 1) {
                 if (newData['_temporary-identifier']) {
-                  $__0.tempKeys.push({
+                  tempKeys.push({
                     localId: newData['_temporary-identifier'],
                     remoteId: data[0].id
                   });
@@ -18219,11 +18223,11 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             var configuration = this._updateListItemsDefaultConfiguration();
             configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?remove=" + this.settings.listName + "}");
             var fieldCollection = [];
-            var isLocal = _.findIndex(this.tempKeys, function(key) {
+            var isLocal = _.findIndex(tempKeys, function(key) {
               return key.localId == record.id;
             });
             if (isLocal > -1) {
-              record.id = this.tempKeys[isLocal].remoteId;
+              record.id = tempKeys[isLocal].remoteId;
             }
             fieldCollection.push({
               "_Name": "ID",
@@ -18255,11 +18259,11 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
             var messages = [];
             var $__10 = this,
                 $__11 = function(record) {
-                  var isLocal = _.findIndex($__10.tempKeys, function(key) {
+                  var isLocal = _.findIndex(tempKeys, function(key) {
                     return key.remoteId == data.id;
                   });
                   if (isLocal > -1) {
-                    data[record].id = $__10.tempKeys[isLocal].localId;
+                    data[record].id = tempKeys[isLocal].localId;
                   }
                   var isCached = _.findIndex($__10.cache, function(item) {
                     return data[record].id == item.id;
@@ -18353,11 +18357,11 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
                   $__13 = function(change) {
                     if (changes[change].$.ChangeType == "Delete") {
                       var recordId = changes[change]._;
-                      var isLocal = _.findIndex($__12.tempKeys, function(key) {
+                      var isLocal = _.findIndex(tempKeys, function(key) {
                         return key.remoteId == recordId;
                       });
                       if (isLocal > -1) {
-                        recordId = $__12.tempKeys[isLocal].localId;
+                        recordId = tempKeys[isLocal].localId;
                       }
                       var cacheItem = _.findIndex($__12.cache, function(item) {
                         return item.id == recordId;
@@ -18491,7 +18495,12 @@ System.register("Worker/SharePointClient.js", ["npm:lodash@3.9.3.js", "npm:event
               var isNumeric = function(n) {
                 return !isNaN(parseFloat(n)) && isFinite(n);
               };
-              return isNumeric(lastArgument);
+              if (isNumeric(lastArgument)) {
+                this.childID = lastArgument;
+                return true;
+              } else {
+                return false;
+              }
             }
             return true;
           }

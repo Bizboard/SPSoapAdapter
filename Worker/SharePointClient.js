@@ -11,27 +11,28 @@ import {UrlParser}      from 'arva-utils/request/UrlParser';
 var soapClient = new SoapClient();
 var window = this;
 var global = this;
+var tempKeys = [];
 
 export class SharePointClient extends EventEmitter {
 
     get refreshTimer() { return this._refreshTimer; }
+
     set refreshTimer(value) { this._refreshTimer = value; }
 
-    constructor(options){
+    constructor(options) {
         super();
 
         this.settings = {};
         this.interval = 3000;
         this.retriever = null;
         this.cache = [];
-        this.tempKeys = [];
 
         try {
             let {settings, isChild} = this._intializeSettings(options);
             this.settings = settings;
 
             this._handleInit(this.settings);
-            if(!isChild) {
+            if (!isChild) {
                 /* Don't monitor child item updates/removes. We only do that on parent arrays. */
                 this._refresh();
             }
@@ -64,7 +65,7 @@ export class SharePointClient extends EventEmitter {
 
         let isChild = this._isChildItem(url.path);
 
-        if(!isChild) {
+        if (!isChild) {
             /* We can always remove the last part of the path, since it will be a list name (which we don't need in the sharepoint URL). */
             identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
 
@@ -72,7 +73,7 @@ export class SharePointClient extends EventEmitter {
                 while (!ExistsRequest(newPath + pathParts.join('/') + '/' + this._getListService())) {
                     identifiedParts.unshift(pathParts.splice(pathParts.length - 1, 1)[0]);
                 }
-            } catch(error) {
+            } catch (error) {
                 console.log('SharePoint URL detection error:', error);
             }
         } else {
@@ -80,7 +81,8 @@ export class SharePointClient extends EventEmitter {
              * This means we can't automatically find the correct SharePoint path, and we'll have to assume the listName and itemId. */
             identifiedParts[0] = pathParts[pathParts.length - 2];
             identifiedParts[1] = pathParts[pathParts.length - 1];
-            pathParts.splice(pathParts.length - 2, 2); /* Remove the child ID from the endpoint so we can modify its value through the parent endpoint. */
+            pathParts.splice(pathParts.length - 2, 2);
+            /* Remove the child ID from the endpoint so we can modify its value through the parent endpoint. */
         }
 
         if (identifiedParts.length < 1) {
@@ -179,12 +181,16 @@ export class SharePointClient extends EventEmitter {
         var fieldCollection = [];
         var method = '';
 
-        let isLocal = _.findIndex(this.tempKeys, function (key) {
+        let isLocal = _.findIndex(tempKeys, function (key) {
             return key.localId == newData.id;
         });
 
         if (isLocal > -1) {
-            newData.id = this.tempKeys[isLocal].remoteId;
+            newData.id = tempKeys[isLocal].remoteId;
+        }
+
+        if (!newData.id && this.childID) {
+            newData.id = this.childID;
         }
 
         // assume existing record to be updated.
@@ -214,7 +220,7 @@ export class SharePointClient extends EventEmitter {
                 if (fieldValue.id && fieldValue.value) {
                     /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
                     fieldValue = `${fieldValue.id};#`;
-                } else if(fieldValue.length !== undefined && fieldValue[0] && fieldValue[0].id && fieldValue[0].value) {
+                } else if (fieldValue.length !== undefined && fieldValue[0] && fieldValue[0].id && fieldValue[0].value) {
                     /* This is a SharePoint LookupMulti field. It is specially formatted like above. */
                     let IDs = _.pluck(fieldValue, 'id');
                     fieldValue = IDs.join(';#;#');
@@ -222,7 +228,6 @@ export class SharePointClient extends EventEmitter {
                     continue;
                 }
             }
-
 
 
             fieldCollection.push({
@@ -258,10 +263,10 @@ export class SharePointClient extends EventEmitter {
 
                     // push ID mapping for given session
                     if (newData['_temporary-identifier']) {
-                        this.tempKeys.push({localId: newData['_temporary-identifier'], remoteId: data[0].id});
+                        tempKeys.push({localId: newData['_temporary-identifier'], remoteId: data[0].id});
                     }
                     let messages = this._updateCache(data);
-                    for(let message of messages) {
+                    for (let message of messages) {
                         this.emit('message', message);
                     }
                 }
@@ -281,12 +286,12 @@ export class SharePointClient extends EventEmitter {
         configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?remove=${this.settings.listName}}`;
         var fieldCollection = [];
 
-        let isLocal = _.findIndex(this.tempKeys, function (key) {
+        let isLocal = _.findIndex(tempKeys, function (key) {
             return key.localId == record.id;
         });
 
         if (isLocal > -1) {
-            record.id = this.tempKeys[isLocal].remoteId;
+            record.id = tempKeys[isLocal].remoteId;
         }
 
         fieldCollection.push({
@@ -331,12 +336,12 @@ export class SharePointClient extends EventEmitter {
         let messages = [];
         for (let record in data) {
 
-            let isLocal = _.findIndex(this.tempKeys, function (key) {
+            let isLocal = _.findIndex(tempKeys, function (key) {
                 return key.remoteId == data.id;
             });
 
             if (isLocal > -1) {
-                data[record].id = this.tempKeys[isLocal].localId;
+                data[record].id = tempKeys[isLocal].localId;
             }
 
             let isCached = _.findIndex(this.cache, function (item) {
@@ -390,7 +395,8 @@ export class SharePointClient extends EventEmitter {
                 .then((result) => {
                     let changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
                     let lastChangedToken = changes.$.LastChangeToken;
-                    let isFirstResponse = !this.retriever.params.changeToken; /* True if this is the first server response for the current path. */
+                    let isFirstResponse = !this.retriever.params.changeToken;
+                    /* True if this is the first server response for the current path. */
 
                     this._setLastUpdated(lastChangedToken);
                     let hasDeletions = this._handleDeleted(changes);
@@ -401,7 +407,7 @@ export class SharePointClient extends EventEmitter {
                     /* If any data is new or modified, emit a 'value' event. */
                     if (hasDeletions || data.length > 0) {
                         this.emit('message', {event: 'value', result: this.cache});
-                    } else if(isFirstResponse) {
+                    } else if (isFirstResponse) {
                         /* If there is no data, and this is the first time we get a response from the server,
                          * emit a value event that shows subscribers that there is no data at this path. */
                         this.emit('message', {event: 'value', result: null});
@@ -433,12 +439,12 @@ export class SharePointClient extends EventEmitter {
 
                     let recordId = changes[change]._;
 
-                    let isLocal = _.findIndex(this.tempKeys, function (key) {
+                    let isLocal = _.findIndex(tempKeys, function (key) {
                         return key.remoteId == recordId;
                     });
 
                     if (isLocal > -1) {
-                        recordId = this.tempKeys[isLocal].localId;
+                        recordId = tempKeys[isLocal].localId;
                     }
 
                     let cacheItem = _.findIndex(this.cache, function (item) {
@@ -518,7 +524,7 @@ export class SharePointClient extends EventEmitter {
             if (name == 'xmlns:z') { continue; }
 
             let value = record[attribute];
-            if(value === '') { continue; }
+            if (value === '') { continue; }
 
             if (name == "ID") {
                 name = "id";
@@ -527,7 +533,7 @@ export class SharePointClient extends EventEmitter {
                 var keys = value.split(";#");
                 var pairs = keys.length / 2;
                 var assignable = pairs > 1 ? [] : {};
-                for (var pair = 0; pair < keys.length; pair+=2) {
+                for (var pair = 0; pair < keys.length; pair += 2) {
                     if (pairs > 1) assignable.push({id: keys[pair], value: keys[pair + 1]});
                     else assignable = {id: keys[pair], value: keys[pair + 1]};
                 }
@@ -585,7 +591,6 @@ export class SharePointClient extends EventEmitter {
     }
 
 
-
     /**
      * Get Default resource for Reading Lists
      * @returns {{url: string, service: string, method: string, params: string, headers: (Map|*)}}
@@ -605,8 +610,6 @@ export class SharePointClient extends EventEmitter {
     }
 
 
-
-
     /**
      * Default interface for Get list
      * @returns {string}
@@ -615,7 +618,6 @@ export class SharePointClient extends EventEmitter {
     _getListService() {
         return '_vti_bin/Lists.asmx';
     }
-
 
 
     /**
@@ -631,17 +633,21 @@ export class SharePointClient extends EventEmitter {
      * Binding to specific children is not supported by the SharePoint interface, and shouldn't be necessary either
      * because there is a subscription to child_changed events on the parent array containing this child. */
     _isChildItem(path) {
-        if(path[path.length - 1] === '/') { path = path.substring(0, path.length - 2); }
+        if (path[path.length - 1] === '/') { path = path.substring(0, path.length - 2); }
 
         let parts = path.split('/');
-        if(parts.length) {
+        if (parts.length) {
             let lastArgument = parts[parts.length - 1];
 
             let isNumeric = (n) =>  !isNaN(parseFloat(n)) && isFinite(n);
 
-            return isNumeric(lastArgument);
+            if (isNumeric(lastArgument)) {
+                this.childID = lastArgument;
+                return true;
+            } else {
+                return false;
+            }
         }
-
         return true;
     }
 }
