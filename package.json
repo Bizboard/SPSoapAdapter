@@ -6,7 +6,7 @@
   "jspm": {
     "directories": {},
     "dependencies": {
-      "arva-utils": "github:Bizboard/arva-utils@master",
+      "arva-utils": "github:Bizboard/arva-utils@develop",
       "eventemitter3": "npm:eventemitter3@^1.1.0",
       "json-query": "npm:json-query@^1.5.0",
       "lodash": "npm:lodash@^3.9.3",
