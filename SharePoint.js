@@ -25,7 +25,7 @@ export class SharePoint extends EventEmitter {
         let endpoint = UrlParser(options.endPoint);
         if (!endpoint) throw Error('Invalid configuration.');
 
-        this.subscriberID = SharePoint.hashCode(endpoint.path + options.query + options.orderBy + options.limit);
+        this.subscriberID = SharePoint.hashCode(endpoint.path + JSON.stringify(options.query) + options.orderBy + options.limit);
         this.options = options;
 
         workerEvents.on('message', this._onMessage.bind(this));
