@@ -14,7 +14,7 @@ System.config({
 
 System.config({
   "map": {
-    "arva-utils": "github:bizboard/arva-utils@master",
+    "arva-utils": "github:bizboard/arva-utils@1.0.0-beta-1",
     "base64": "base64.js",
     "eventemitter3": "npm:eventemitter3@1.1.1",
     "json-query": "npm:json-query@1.5.0",
@@ -22,7 +22,7 @@ System.config({
     "traceur": "github:jmcriffey/bower-traceur@0.0.90",
     "traceur-runtime": "github:jmcriffey/bower-traceur-runtime@0.0.90",
     "xml2js": "npm:xml2js@0.4.12",
-    "github:bizboard/arva-utils@master": {
+    "github:bizboard/arva-utils@1.0.0-beta-1": {
       "di": "github:Bizboard/di.js@master",
       "fs": "github:jspm/nodelibs-fs@0.1.2",
       "lodash": "npm:lodash@3.10.1",
