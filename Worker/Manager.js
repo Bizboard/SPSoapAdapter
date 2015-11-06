@@ -17,7 +17,10 @@ onmessage = function(messageEvent) {
         /* This automatically subscribes to changes, so for a set/remove operation that
          * isn't interested in listening to changes we'll need to unsubscribe again after the operation. */
         client = clients[subscriberID] = new SharePointClient(message);
+        client.referenceCount = 0;
     }
+
+    client.referenceCount++;
 
     switch(operation) {
         case 'init':
@@ -25,6 +28,12 @@ onmessage = function(messageEvent) {
                 message.subscriberID = subscriberID;
                 postMessage(message);
             });
+            break;
+        case 'dispose':
+            client.referenceCount--;
+            if(client.referenceCount <= 0){
+                client.dispose();
+            }
             break;
         case 'set':
             client.set(message.model);

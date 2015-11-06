@@ -4,8 +4,9 @@
 
 import _                from 'lodash';
 import EventEmitter     from 'eventemitter3';
-import {UrlParser}      from 'arva-utils/request/UrlParser';
-import {BlobHelper}     from 'arva-utils/BlobHelper';
+import {UrlParser}      from 'arva-utils/request/UrlParser.js';
+import {ObjectHelper}   from 'arva-utils/ObjectHelper.js';
+import {BlobHelper}     from 'arva-utils/BlobHelper.js';
 
 let DEBUG_WORKER = true;
 let SPWorker = new Worker('worker.js');
@@ -22,11 +23,14 @@ export class SharePoint extends EventEmitter {
     constructor(options = {}) {
         super();
 
+        ObjectHelper.bindAllMethods(this, this);
+
         let endpoint = UrlParser(options.endPoint);
         if (!endpoint) throw Error('Invalid configuration.');
 
         this.subscriberID = SharePoint.hashCode(endpoint.path + options.query + options.orderBy + options.limit);
         this.options = options;
+        this.cache = null;
 
         workerEvents.on('message', this._onMessage.bind(this));
     }
@@ -43,6 +47,11 @@ export class SharePoint extends EventEmitter {
         if (!this._initialised) {
             this._initialise();
             this._initialised = true;
+        }
+
+        /* Fix to make Arva-ds PrioArray.add() work, by immediately returning the model data with an ID when the model is created. */
+        if(!this._ready && this.cache && event === 'value') {
+            handler.call(context, this.cache);
         }
 
         if (this._ready && event === 'value' || event === 'child_added') {
@@ -64,6 +73,10 @@ export class SharePoint extends EventEmitter {
         let modelId = model.id;
         if (!modelId || modelId === 0) {
             model['_temporary-identifier'] = Math.floor((Math.random() * 2000000000));
+
+            if(model.disableChangeListener) { model.disableChangeListener(); }
+            model.id = model['_temporary-identifier'];
+            if(model.enableChangeListener) { model.enableChangeListener(); }
         }
 
         SPWorker.postMessage({
@@ -73,6 +86,9 @@ export class SharePoint extends EventEmitter {
             operation: 'set',
             model: model
         });
+
+        /* Cache is used to immediately trigger the value callback if a new model was created and subscribes to its own changes. */
+        this.cache = model;
         return model;
     }
 

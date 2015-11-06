@@ -335,36 +335,37 @@ export class SharePointClient extends EventEmitter {
     _updateCache(data) {
         let messages = [];
         for (let record in data) {
+            let model = data[record];
 
             let isLocal = _.findIndex(tempKeys, function (key) {
-                return key.remoteId == data.id;
+                return key.remoteId == model.id;
             });
 
             if (isLocal > -1) {
-                data[record].id = tempKeys[isLocal].localId;
+                model.id = tempKeys[isLocal].localId;
             }
 
             let isCached = _.findIndex(this.cache, function (item) {
-                return data[record].id == item.id;
+                return model.id == item.id;
             });
 
             if (isCached == -1) {
-                this.cache.push(data[record]);
+                this.cache.push(model);
 
                 let previousSiblingId = this.cache.length == 0 ? null : this.cache[this.cache.length - 1];
                 messages.push({
                     event: 'child_added',
-                    result: data[record],
+                    result: model,
                     previousSiblingId: previousSiblingId ? previousSiblingId.id : null
                 });
             }
             else {
-                if (!_.isEqual(data[record], this.cache[isCached])) {
-                    this.cache.splice(isCached, 1, data[record]);
+                if (!_.isEqual(model, this.cache[isCached])) {
+                    this.cache.splice(isCached, 1, model);
                     let previousSibling = isCached == 0 ? null : this.cache[isCached - 1];
                     messages.push({
                         event: 'child_changed',
-                        result: data[record],
+                        result: model,
                         previousSiblingId: previousSibling ? previousSibling.id : null
                     });
                 }
