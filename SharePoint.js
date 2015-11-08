@@ -81,10 +81,6 @@ export class SharePoint extends EventEmitter {
         let modelId = model.id;
         if (!modelId || modelId === 0) {
             model['_temporary-identifier'] = Math.floor((Math.random() * 2000000000));
-
-            if(model.disableChangeListener) { model.disableChangeListener(); }
-            model.id = model['_temporary-identifier'];
-            if(model.enableChangeListener) { model.enableChangeListener(); }
         }
 
         SPWorker.postMessage({
@@ -94,6 +90,13 @@ export class SharePoint extends EventEmitter {
             operation: 'set',
             model: model
         });
+
+        if(model['_temporary-identifier']) {
+            /* Set the model's ID to the temporary one so it can be used to query the dataSource with. */
+            if (model.disableChangeListener) { model.disableChangeListener(); }
+            model.id = model['_temporary-identifier'];
+            if (model.enableChangeListener) { model.enableChangeListener(); }
+        }
 
         /* Cache is used to immediately trigger the value callback if a new model was created and subscribes to its own changes. */
         this.cache = model;
