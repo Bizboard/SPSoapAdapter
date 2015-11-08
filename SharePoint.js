@@ -68,6 +68,14 @@ export class SharePoint extends EventEmitter {
         super.on(event, handler, context);
     }
 
+    off(event, handler, context) {
+        if (event && (handler || context)) {
+            this.removeListener(event, handler, context);
+        } else {
+            this.removeAllListeners(event);
+        }
+    }
+
     set(model) {
         /* If there is no ID, make a temporary ID for reference in the main thread for the session scope. */
         let modelId = model.id;
