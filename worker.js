@@ -18393,22 +18393,10 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
       SharePointClient = function($__super) {
         function SharePointClient(options) {
           $traceurRuntime.superConstructor(SharePointClient).call(this);
-          this.settings = {};
+          this.settings = options;
           this.interval = 3000;
           this.retriever = null;
           this.cache = [];
-          try {
-            var $__11 = this._intializeSettings(options),
-                settings = $__11.settings,
-                isChild = $__11.isChild;
-            this.settings = settings;
-            this._handleInit(this.settings);
-            if (!isChild) {
-              this._refresh();
-            }
-          } catch (exception) {
-            this.dispose();
-          }
         }
         return ($traceurRuntime.createClass)(SharePointClient, {
           get refreshTimer() {
@@ -18416,6 +18404,20 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
           },
           set refreshTimer(value) {
             this._refreshTimer = value;
+          },
+          init: function() {
+            try {
+              var $__11 = this._initializeSettings(this.settings),
+                  settings = $__11.settings,
+                  isChild = $__11.isChild;
+              this.settings = settings;
+              this._handleInit(this.settings);
+              if (!isChild) {
+                this._refresh();
+              }
+            } catch (exception) {
+              this.dispose();
+            }
           },
           set: function(options) {
             return this._handleSet(options);
@@ -18426,7 +18428,25 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
           dispose: function() {
             clearTimeout(this.refreshTimer);
           },
-          _intializeSettings: function(args) {
+          getAuth: function() {
+            var $__3 = this;
+            return new Promise(function(resolve, reject) {
+              var configuration = $__3._getUserGroupDefaultConfiguration();
+              configuration.url = ($__3.settings.endPoint + "/" + $__3._getUserGroupService() + "?view=getUserGroup");
+              soapClient.call(configuration).then(function(result) {
+                var data = result.data["soap:Envelope"]["soap:Body"][0].GetCurrentUserInfoResponse[0].GetCurrentUserInfoResult[0].GetUserInfo[0].User[0].$;
+                var user = {
+                  uid: data.ID,
+                  name: data.Name,
+                  email: data.Email
+                };
+                resolve(user);
+              }).catch(function(error) {
+                return reject(error);
+              });
+            });
+          },
+          _initializeSettings: function(args) {
             var url = UrlParser(args.endPoint);
             if (!url)
               throw new Error('Invalid DataSource path provided!');
@@ -18868,6 +18888,15 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
               headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChangesSinceToken'], ['Content-Type', 'text/xml']])
             };
           },
+          _getUserGroupDefaultConfiguration: function() {
+            return {
+              url: '',
+              service: 'UserGroup',
+              method: 'GetCurrentUserInfo',
+              params: '',
+              headers: new Map([['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/directory/GetCurrentUserInfo'], ['Content-Type', 'text/xml']])
+            };
+          },
           _getListService: function() {
             return '_vti_bin/Lists.asmx';
           },
@@ -18912,43 +18941,133 @@ $__System.register("1", ["8d"], function($__export) {
     execute: function() {
       clients = {};
       onmessage = function(messageEvent) {
-        var message = messageEvent.data;
-        var $__2 = message,
-            subscriberID = $__2.subscriberID,
-            operation = $__2.operation;
-        var client = clients[subscriberID];
-        var clientExisted = !!client;
-        if (!clientExisted) {
-          client = clients[subscriberID] = new SharePointClient(message);
-        }
-        switch (operation) {
-          case 'init':
-            client.on('message', function(message) {
-              message.subscriberID = subscriberID;
-              postMessage(message);
-            });
-            break;
-          case 'set':
-            client.set(message.model);
-            if (!clientExisted) {
-              client.dispose();
+        var message,
+            $__2,
+            subscriberID,
+            operation,
+            client,
+            clientExisted,
+            cacheData,
+            authData,
+            error;
+        return $traceurRuntime.asyncWrap(function($ctx) {
+          while (true)
+            switch ($ctx.state) {
+              case 0:
+                message = messageEvent.data;
+                $__2 = message, subscriberID = $__2.subscriberID, operation = $__2.operation;
+                client = clients[subscriberID];
+                clientExisted = !!client;
+                if (!clientExisted) {
+                  client = clients[subscriberID] = new SharePointClient(message);
+                  client.referenceCount = 0;
+                }
+                client.referenceCount++;
+                $ctx.state = 40;
+                break;
+              case 40:
+                switch (operation) {
+                  default:
+                    $ctx.state = -2;
+                    break;
+                  case 'init':
+                    $ctx.state = 3;
+                    break;
+                  case 'dispose':
+                    $ctx.state = 7;
+                    break;
+                  case 'set':
+                    $ctx.state = 11;
+                    break;
+                  case 'remove':
+                    $ctx.state = 15;
+                    break;
+                  case 'get_cache':
+                    $ctx.state = 19;
+                    break;
+                  case 'get_auth':
+                    $ctx.state = 28;
+                    break;
+                }
+                break;
+              case 3:
+                if (!client.initialised) {
+                  client.init();
+                  client.initialised = true;
+                }
+                client.on('message', function(message) {
+                  message.subscriberID = subscriberID;
+                  postMessage(message);
+                });
+                $ctx.state = -2;
+                break;
+              case 7:
+                client.referenceCount--;
+                if (client.referenceCount <= 0) {
+                  client.dispose();
+                }
+                $ctx.state = -2;
+                break;
+              case 11:
+                client.set(message.model);
+                if (!clientExisted) {
+                  client.dispose();
+                }
+                $ctx.state = -2;
+                break;
+              case 15:
+                client.remove(message.model);
+                if (!clientExisted) {
+                  client.dispose();
+                }
+                $ctx.state = -2;
+                break;
+              case 19:
+                cacheData = client.cache;
+                postMessage({
+                  subscriberID: subscriberID,
+                  event: 'cache_data',
+                  cache: cacheData
+                });
+                $ctx.state = -2;
+                break;
+              case 32:
+                console.log('Error whilst fetching user auth data: ', error);
+                $ctx.state = -2;
+                break;
+              case 26:
+                $ctx.popTry();
+                $ctx.maybeUncatchable();
+                error = $ctx.storedException;
+                $ctx.state = 32;
+                break;
+              case 25:
+                $ctx.popTry();
+                $ctx.state = -2;
+                break;
+              case 22:
+                postMessage({
+                  subscriberID: subscriberID,
+                  event: 'auth_result',
+                  auth: authData
+                });
+                $ctx.state = 25;
+                break;
+              case 23:
+                authData = $ctx.value;
+                $ctx.state = 22;
+                break;
+              case 29:
+                Promise.resolve(client.getAuth()).then($ctx.createCallback(23), $ctx.errback);
+                return;
+              case 28:
+                $ctx.pushTry(26, null);
+                $ctx.state = 29;
+                break;
+              default:
+                return $ctx.end();
             }
-            break;
-          case 'remove':
-            client.remove(message.model);
-            if (!clientExisted) {
-              client.dispose();
-            }
-            break;
-          case 'get_cache':
-            var cacheData = client.cache;
-            postMessage({
-              subscriberID: subscriberID,
-              event: 'cache_data',
-              cache: cacheData
-            });
-            break;
-        }
+        }, this);
       };
     }
   };

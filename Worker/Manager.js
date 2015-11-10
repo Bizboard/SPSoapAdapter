@@ -6,7 +6,7 @@ import {SharePointClient}               from './SharePointClient.js';
 
 let clients = {};
 
-onmessage = function(messageEvent) {
+onmessage = async function(messageEvent) {
     let message = messageEvent.data;
     let {subscriberID, operation} = message;
     let client = clients[subscriberID];
@@ -24,6 +24,10 @@ onmessage = function(messageEvent) {
 
     switch(operation) {
         case 'init':
+            if(!client.initialised) {
+                client.init();
+                client.initialised = true;
+            }
             client.on('message', (message) => {
                 message.subscriberID = subscriberID;
                 postMessage(message);
@@ -54,6 +58,18 @@ onmessage = function(messageEvent) {
                 event: 'cache_data',
                 cache: cacheData
             });
+            break;
+        case 'get_auth':
+            try {
+                let authData = await client.getAuth();
+                postMessage({
+                    subscriberID: subscriberID,
+                    event: 'auth_result',
+                    auth: authData
+                });
+            } catch (error) {
+                console.log('Error whilst fetching user auth data: ', error);
+            }
             break;
     }
 };

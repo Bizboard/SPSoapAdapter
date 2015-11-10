@@ -22,13 +22,15 @@ export class SharePointClient extends EventEmitter {
     constructor(options) {
         super();
 
-        this.settings = {};
+        this.settings = options;
         this.interval = 3000;
         this.retriever = null;
         this.cache = [];
+    }
 
+    init(){
         try {
-            let {settings, isChild} = this._intializeSettings(options);
+            let {settings, isChild} = this._initializeSettings(this.settings);
             this.settings = settings;
 
             this._handleInit(this.settings);
@@ -53,7 +55,27 @@ export class SharePointClient extends EventEmitter {
         clearTimeout(this.refreshTimer);
     }
 
-    _intializeSettings(args) {
+    getAuth() {
+        return new Promise((resolve, reject) => {
+            /* initialize with SharePoint configuration */
+            let configuration = this._getUserGroupDefaultConfiguration();
+
+            /* Append the listName to the URL for easy debugging */
+            configuration.url = `${this.settings.endPoint}/${this._getUserGroupService()}?view=getUserGroup`;
+
+            soapClient.call(configuration).then((result) => {
+                let data = result.data["soap:Envelope"]["soap:Body"][0].GetCurrentUserInfoResponse[0].GetCurrentUserInfoResult[0].GetUserInfo[0].User[0].$;
+                let user = {
+                    uid: data.ID,
+                    name: data.Name,
+                    email: data.Email
+                };
+                resolve(user);
+            }).catch((error) => reject(error));
+        });
+    }
+
+    _initializeSettings(args) {
 
         // rebuild endpoint from polling server and interpreting response
         let url = UrlParser(args.endPoint);
@@ -605,6 +627,25 @@ export class SharePointClient extends EventEmitter {
             params: '',
             headers: new Map([
                 ['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/GetListItemChangesSinceToken'],
+                ['Content-Type', 'text/xml']
+            ])
+        };
+    }
+
+
+    /**
+     * Get Default resource for Reading Lists
+     * @returns {{url: string, service: string, method: string, params: string, headers: (Map|*)}}
+     * @private
+     */
+    _getUserGroupDefaultConfiguration() {
+        return {
+            url: '',
+            service: 'UserGroup',
+            method: 'GetCurrentUserInfo',
+            params: '',
+            headers: new Map([
+                ['SOAPAction', 'http://schemas.microsoft.com/sharepoint/soap/directory/GetCurrentUserInfo'],
                 ['Content-Type', 'text/xml']
             ])
         };

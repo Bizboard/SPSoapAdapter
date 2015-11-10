@@ -35,7 +35,19 @@ export class SharePoint extends EventEmitter {
         workerEvents.on('message', this._onMessage.bind(this));
     }
 
-    once(event, handler, context) {
+    getAuth(callback, context = this){
+        super.once('auth_result', (authData) => this._handleAuthResult(authData, callback, context));
+
+        /* Grab any existing cached data for this path. There will be data if there are other
+         * subscribers on the same path already. */
+        SPWorker.postMessage(_.extend({}, this.options, {
+            subscriberID: this.subscriberID,
+            endPoint: this.options.endPoint,
+            operation: 'get_auth'
+        }));
+    }
+
+    once(event, handler, context = this) {
         this.on(event, function () {
             handler.call(context, ...arguments);
             this.off(event, handler, context);
@@ -50,7 +62,7 @@ export class SharePoint extends EventEmitter {
         }
 
         /* Fix to make Arva-ds PrioArray.add() work, by immediately returning the model data with an ID when the model is created. */
-        if(!this._ready && this.cache && event === 'value') {
+        if (!this._ready && this.cache && event === 'value') {
             handler.call(context, this.cache);
         }
 
@@ -68,9 +80,9 @@ export class SharePoint extends EventEmitter {
         super.on(event, handler, context);
     }
 
-    off(event, handler, context) {
-        if (event && (handler || context)) {
-            this.removeListener(event, handler, context);
+    off(event, handler) {
+        if (event && handler) {
+            this.removeListener(event, handler);
         } else {
             this.removeAllListeners(event);
         }
@@ -80,7 +92,7 @@ export class SharePoint extends EventEmitter {
         /* If there is no ID, make a temporary ID for reference in the main thread for the session scope. */
         let modelId = model.id;
         if (!modelId || modelId === 0) {
-            model['_temporary-identifier'] = Math.floor((Math.random() * 2000000000));
+            model['_temporary-identifier'] = `${Math.floor((Math.random() * 2000000000))}`;
         }
 
         SPWorker.postMessage({
@@ -91,7 +103,7 @@ export class SharePoint extends EventEmitter {
             model: model
         });
 
-        if(model['_temporary-identifier']) {
+        if (model['_temporary-identifier']) {
             /* Set the model's ID to the temporary one so it can be used to query the dataSource with. */
             if (model.disableChangeListener) { model.disableChangeListener(); }
             model.id = model['_temporary-identifier'];
@@ -131,6 +143,8 @@ export class SharePoint extends EventEmitter {
 
         if (message.event === 'cache_data') {
             this.emit('cache_data', message.cache);
+        } else if(message.event === 'auth_result') {
+            this.emit('auth_result', message.auth);
         } else if (message.event !== 'INVALIDSTATE') {
             this.emit(message.event, message.result, message.previousSiblingId);
         } else {
@@ -150,6 +164,13 @@ export class SharePoint extends EventEmitter {
         } else if (event === 'value') {
             handler.call(context, cacheData.length ? cacheData : null);
         }
+    }
+
+    _handleAuthResult(authData, handler, context = this) {
+        if (!authData) { authData = {}; }
+
+        handler.call(context, authData);
+
     }
 
     static hashCode(s) {
