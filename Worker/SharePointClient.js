@@ -277,7 +277,7 @@ export class SharePointClient extends EventEmitter {
         };
 
         // initial initialisation of the datasource
-        soapClient.call(configuration)
+        soapClient.call(configuration, tempKeys)
             .then((result)=> {
 
                 let data = this._getResults(result.data);
@@ -340,7 +340,7 @@ export class SharePointClient extends EventEmitter {
         };
 
         // initial initialisation of the datasource
-        soapClient.call(configuration)
+        soapClient.call(configuration, tempKeys)
             .then(()=> {
                 this.emit('message', {event: 'child_removed', result: record});
             }, (error) => {
@@ -371,7 +371,7 @@ export class SharePointClient extends EventEmitter {
                 return model.id == item.id;
             });
 
-            if (isCached == -1) {
+            if (isCached === -1) {
                 this.cache.push(model);
 
                 let previousSiblingId = this.cache.length == 0 ? null : this.cache[this.cache.length - 1];
@@ -414,7 +414,7 @@ export class SharePointClient extends EventEmitter {
      */
     _refresh() {
         if (this.retriever) {
-            soapClient.call(this.retriever)
+            soapClient.call(this.retriever, tempKeys)
                 .then((result) => {
                     let changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
                     let lastChangedToken = changes.$.LastChangeToken;

@@ -61,8 +61,24 @@ export class SoapClient {
         return "Error!";
     }
 
+    /**
+     * Replaces locally generated item IDs with their remote SharePoint counterparts.
+     * @param {String} text Text to replace the IDs in.
+     * @param {Array} tempKeys Array of {localId:x, remoteId:y} pairs.
+     * @returns {string} Text with the replaced IDs
+     * @private
+     */
+    _replaceTempKeys(text = '', tempKeys = []) {
+        for(let tempKey of tempKeys) {
+            /* Split/join is faster than doing a regex replace:
+             * http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript#comment27942520_1145525 */
+            text = text.split(tempKey.localId).join(tempKey.remoteId);
+        }
 
-    call(config) {
+        return text;
+    }
+
+    call(config, tempKeys = []) {
 
         var request;
         config = config || {};
@@ -72,7 +88,7 @@ export class SoapClient {
             headers : config.headers,
             data    : this._applySoapTemplate({
                 method: config.method,
-                params: this._serializeParams(config.params)
+                params: this._replaceTempKeys(this._serializeParams(config.params), tempKeys)
             })
         };
 

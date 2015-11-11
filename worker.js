@@ -18303,7 +18303,38 @@ $__System.register("8b", ["f", "87", "c", "88", "89", "8a"], function($__export)
           _handleError: function(error) {
             return "Error!";
           },
+          _replaceTempKeys: function() {
+            var text = arguments[0] !== (void 0) ? arguments[0] : '';
+            var tempKeys = arguments[1] !== (void 0) ? arguments[1] : [];
+            var $__6 = true;
+            var $__7 = false;
+            var $__8 = undefined;
+            try {
+              for (var $__4 = void 0,
+                  $__3 = (tempKeys)[Symbol.iterator](); !($__6 = ($__4 = $__3.next()).done); $__6 = true) {
+                var tempKey = $__4.value;
+                {
+                  text = text.split(tempKey.localId).join(tempKey.remoteId);
+                }
+              }
+            } catch ($__9) {
+              $__7 = true;
+              $__8 = $__9;
+            } finally {
+              try {
+                if (!$__6 && $__3.return != null) {
+                  $__3.return();
+                }
+              } finally {
+                if ($__7) {
+                  throw $__8;
+                }
+              }
+            }
+            return text;
+          },
           call: function(config) {
+            var tempKeys = arguments[1] !== (void 0) ? arguments[1] : [];
             var request;
             config = config || {};
             request = {
@@ -18311,7 +18342,7 @@ $__System.register("8b", ["f", "87", "c", "88", "89", "8a"], function($__export)
               headers: config.headers,
               data: this._applySoapTemplate({
                 method: config.method,
-                params: this._serializeParams(config.params)
+                params: this._replaceTempKeys(this._serializeParams(config.params), tempKeys)
               })
             };
             var context = this;
@@ -18586,7 +18617,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                   "_ViewName": ""
                 }}
             };
-            soapClient.call(configuration).then(function(result) {
+            soapClient.call(configuration, tempKeys).then(function(result) {
               var data = $__3._getResults(result.data);
               if (data.length == 1) {
                 if (newData['_temporary-identifier']) {
@@ -18654,7 +18685,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                   "_ViewName": ''
                 }}
             };
-            soapClient.call(configuration).then(function() {
+            soapClient.call(configuration, tempKeys).then(function() {
               $__3.emit('message', {
                 event: 'child_removed',
                 result: record
@@ -18677,7 +18708,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                   var isCached = _.findIndex($__12.cache, function(item) {
                     return model.id == item.id;
                   });
-                  if (isCached == -1) {
+                  if (isCached === -1) {
                     $__12.cache.push(model);
                     var previousSiblingId = $__12.cache.length == 0 ? null : $__12.cache[$__12.cache.length - 1];
                     messages.push({
@@ -18708,7 +18739,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
           _refresh: function() {
             var $__3 = this;
             if (this.retriever) {
-              soapClient.call(this.retriever).then(function(result) {
+              soapClient.call(this.retriever, tempKeys).then(function(result) {
                 var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
                 var lastChangedToken = changes.$.LastChangeToken;
                 var isFirstResponse = !$__3.retriever.params.changeToken;
