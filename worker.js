@@ -18458,6 +18458,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
           },
           dispose: function() {
             clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
           },
           getAuth: function() {
             var $__3 = this;
@@ -18476,6 +18477,9 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                 return reject(error);
               });
             });
+          },
+          subscribeToChanges: function() {
+            this._refresh();
           },
           _initializeSettings: function(args) {
             var url = UrlParser(args.endPoint);
@@ -18738,6 +18742,10 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
           },
           _refresh: function() {
             var $__3 = this;
+            if (this.refreshTimer) {
+              return;
+            }
+            this.refreshTimer = 1;
             if (this.retriever) {
               soapClient.call(this.retriever, tempKeys).then(function(result) {
                 var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
@@ -18993,10 +19001,9 @@ $__System.register("1", ["8d"], function($__export) {
                   client = clients[subscriberID] = new SharePointClient(message);
                   client.referenceCount = 0;
                 }
-                client.referenceCount++;
-                $ctx.state = 40;
+                $ctx.state = 44;
                 break;
-              case 40:
+              case 44:
                 switch (operation) {
                   default:
                     $ctx.state = -2;
@@ -19004,20 +19011,23 @@ $__System.register("1", ["8d"], function($__export) {
                   case 'init':
                     $ctx.state = 3;
                     break;
-                  case 'dispose':
+                  case 'subscribe':
                     $ctx.state = 7;
                     break;
-                  case 'set':
+                  case 'dispose':
                     $ctx.state = 11;
                     break;
-                  case 'remove':
+                  case 'set':
                     $ctx.state = 15;
                     break;
-                  case 'get_cache':
+                  case 'remove':
                     $ctx.state = 19;
                     break;
+                  case 'get_cache':
+                    $ctx.state = 23;
+                    break;
                   case 'get_auth':
-                    $ctx.state = 28;
+                    $ctx.state = 32;
                     break;
                 }
                 break;
@@ -19025,35 +19035,40 @@ $__System.register("1", ["8d"], function($__export) {
                 if (!client.initialised) {
                   client.init();
                   client.initialised = true;
+                  client.on('message', function(message) {
+                    message.subscriberID = subscriberID;
+                    postMessage(message);
+                  });
                 }
-                client.on('message', function(message) {
-                  message.subscriberID = subscriberID;
-                  postMessage(message);
-                });
+                client.referenceCount++;
                 $ctx.state = -2;
                 break;
               case 7:
+                client.subscribeToChanges();
+                $ctx.state = -2;
+                break;
+              case 11:
                 client.referenceCount--;
                 if (client.referenceCount <= 0) {
                   client.dispose();
                 }
                 $ctx.state = -2;
                 break;
-              case 11:
+              case 15:
                 client.set(message.model);
                 if (!clientExisted) {
                   client.dispose();
                 }
                 $ctx.state = -2;
                 break;
-              case 15:
+              case 19:
                 client.remove(message.model);
                 if (!clientExisted) {
                   client.dispose();
                 }
                 $ctx.state = -2;
                 break;
-              case 19:
+              case 23:
                 cacheData = client.cache;
                 postMessage({
                   subscriberID: subscriberID,
@@ -19062,38 +19077,38 @@ $__System.register("1", ["8d"], function($__export) {
                 });
                 $ctx.state = -2;
                 break;
-              case 32:
+              case 36:
                 console.log('Error whilst fetching user auth data: ', error);
                 $ctx.state = -2;
                 break;
-              case 26:
+              case 30:
                 $ctx.popTry();
                 $ctx.maybeUncatchable();
                 error = $ctx.storedException;
-                $ctx.state = 32;
+                $ctx.state = 36;
                 break;
-              case 25:
+              case 29:
                 $ctx.popTry();
                 $ctx.state = -2;
                 break;
-              case 22:
+              case 26:
                 postMessage({
                   subscriberID: subscriberID,
                   event: 'auth_result',
                   auth: authData
                 });
-                $ctx.state = 25;
-                break;
-              case 23:
-                authData = $ctx.value;
-                $ctx.state = 22;
-                break;
-              case 29:
-                Promise.resolve(client.getAuth()).then($ctx.createCallback(23), $ctx.errback);
-                return;
-              case 28:
-                $ctx.pushTry(26, null);
                 $ctx.state = 29;
+                break;
+              case 27:
+                authData = $ctx.value;
+                $ctx.state = 26;
+                break;
+              case 33:
+                Promise.resolve(client.getAuth()).then($ctx.createCallback(27), $ctx.errback);
+                return;
+              case 32:
+                $ctx.pushTry(30, null);
+                $ctx.state = 33;
                 break;
               default:
                 return $ctx.end();

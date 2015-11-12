@@ -28,7 +28,7 @@ export class SharePointClient extends EventEmitter {
         this.cache = [];
     }
 
-    init(){
+    init() {
         try {
             let {settings, isChild} = this._initializeSettings(this.settings);
             this.settings = settings;
@@ -53,6 +53,7 @@ export class SharePointClient extends EventEmitter {
 
     dispose() {
         clearTimeout(this.refreshTimer);
+        this.refreshTimer = null;
     }
 
     getAuth() {
@@ -73,6 +74,10 @@ export class SharePointClient extends EventEmitter {
                 resolve(user);
             }).catch((error) => reject(error));
         });
+    }
+
+    subscribeToChanges(){
+        this._refresh();
     }
 
     _initializeSettings(args) {
@@ -413,6 +418,10 @@ export class SharePointClient extends EventEmitter {
      * @private
      */
     _refresh() {
+        /* Prevent refresh from being called more than once at a time. */
+        if (this.refreshTimer) { return; }
+        this.refreshTimer = 1;
+
         if (this.retriever) {
             soapClient.call(this.retriever, tempKeys)
                 .then((result) => {

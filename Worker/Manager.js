@@ -20,18 +20,21 @@ onmessage = async function(messageEvent) {
         client.referenceCount = 0;
     }
 
-    client.referenceCount++;
-
     switch(operation) {
         case 'init':
             if(!client.initialised) {
                 client.init();
                 client.initialised = true;
+                client.on('message', (message) => {
+                    message.subscriberID = subscriberID;
+                    postMessage(message);
+                });
             }
-            client.on('message', (message) => {
-                message.subscriberID = subscriberID;
-                postMessage(message);
-            });
+
+            client.referenceCount++;
+            break;
+        case 'subscribe':
+            client.subscribeToChanges();
             break;
         case 'dispose':
             client.referenceCount--;

@@ -77,6 +77,12 @@ export class SharePoint extends EventEmitter {
             }));
         }
 
+        /* Tell the SharePoint worker that we want to be subscribed to changes from now on (can be called multiple times) */
+        SPWorker.postMessage(_.extend({}, this.options, {
+            subscriberID: this.subscriberID,
+            operation: 'subscribe'
+        }));
+
         super.on(event, handler, context);
     }
 
@@ -86,9 +92,24 @@ export class SharePoint extends EventEmitter {
         } else {
             this.removeAllListeners(event);
         }
+
+        if(!super.listeners(event, true)) {
+            /* Grab any existing cached data for this path. There will be data if there are other
+             * subscribers on the same path already. */
+            SPWorker.postMessage(_.extend({}, this.options, {
+                subscriberID: this.subscriberID,
+                operation: 'dispose'
+            }));
+        }
     }
 
     set(model) {
+        /* Hold off on initialising the actual SharePoint connection until someone actually subscribes to data changes. */
+        if (!this._initialised) {
+            this._initialise();
+            this._initialised = true;
+        }
+
         /* If there is no ID, make a temporary ID for reference in the main thread for the session scope. */
         let modelId = model.id;
         if (!modelId || modelId === 0) {
