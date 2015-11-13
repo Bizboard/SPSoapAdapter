@@ -35,7 +35,7 @@ export class SharePoint extends EventEmitter {
         workerEvents.on('message', this._onMessage.bind(this));
     }
 
-    getAuth(callback, context = this){
+    getAuth(callback, context = this) {
         super.once('auth_result', (authData) => this._handleAuthResult(authData, callback, context));
 
         /* Grab any existing cached data for this path. There will be data if there are other
@@ -87,15 +87,17 @@ export class SharePoint extends EventEmitter {
     }
 
     off(event, handler) {
+        let amountRemoved;
         if (event && handler) {
             this.removeListener(event, handler);
+            amountRemoved = 1;
         } else {
             this.removeAllListeners(event);
+            amountRemoved = this.listeners(event).length;
         }
 
-        if(!super.listeners(event, true)) {
-            /* Grab any existing cached data for this path. There will be data if there are other
-             * subscribers on the same path already. */
+        for(let i = 0; i < amountRemoved; i++) {
+            /* Tell the Manager that this subscription is cancelled and no longer requires refreshed data from SharePoint. */
             SPWorker.postMessage(_.extend({}, this.options, {
                 subscriberID: this.subscriberID,
                 operation: 'dispose'
@@ -164,7 +166,7 @@ export class SharePoint extends EventEmitter {
 
         if (message.event === 'cache_data') {
             this.emit('cache_data', message.cache);
-        } else if(message.event === 'auth_result') {
+        } else if (message.event === 'auth_result') {
             this.emit('auth_result', message.auth);
         } else if (message.event !== 'INVALIDSTATE') {
             this.emit(message.event, message.result, message.previousSiblingId);

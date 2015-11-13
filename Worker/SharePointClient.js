@@ -32,12 +32,9 @@ export class SharePointClient extends EventEmitter {
         try {
             let {settings, isChild} = this._initializeSettings(this.settings);
             this.settings = settings;
+            this.isChild = isChild;
 
             this._handleInit(this.settings);
-            if (!isChild) {
-                /* Don't monitor child item updates/removes. We only do that on parent arrays. */
-                this._refresh();
-            }
         } catch (exception) {
             this.dispose();
         }
@@ -77,7 +74,10 @@ export class SharePointClient extends EventEmitter {
     }
 
     subscribeToChanges(){
-        this._refresh();
+        if (!this.isChild) {
+            /* Don't monitor child item updates/removes. We only do that on parent arrays. */
+            this._refresh();
+        }
     }
 
     _initializeSettings(args) {
@@ -204,7 +204,7 @@ export class SharePointClient extends EventEmitter {
     _handleSet(newData) {
         var configuration = this._updateListItemsDefaultConfiguration();
         /* Append the listName to the URL for easy debugging */
-        configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?update=${this.settings.listName}}`;
+        configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?update=${this.settings.listName}`;
         var fieldCollection = [];
         var method = '';
 
@@ -310,7 +310,7 @@ export class SharePointClient extends EventEmitter {
     _handleRemove(record) {
         var configuration = this._updateListItemsDefaultConfiguration();
         /* Append the listName to the URL for easy debugging */
-        configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?remove=${this.settings.listName}}`;
+        configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?remove=${this.settings.listName}`;
         var fieldCollection = [];
 
         let isLocal = _.findIndex(tempKeys, function (key) {
@@ -414,12 +414,14 @@ export class SharePointClient extends EventEmitter {
 
 
     /**
+     *
      * Refresh SharePoint with latest changes.
+     * @param {Boolean} calledManually If set to false, ignores any existing timer in this.refreshTimer and executes the refresh regardless.
      * @private
      */
-    _refresh() {
+    _refresh(calledManually = true) {
         /* Prevent refresh from being called more than once at a time. */
-        if (this.refreshTimer) { return; }
+        if (this.refreshTimer && calledManually) { return; }
         this.refreshTimer = 1;
 
         if (this.retriever) {
@@ -450,11 +452,13 @@ export class SharePointClient extends EventEmitter {
                         this.emit('message', message);
                     }
 
-                    this.refreshTimer = setTimeout(this._refresh.bind(this), this.interval);
+                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
+                    this.refreshTimer = null;
 
                 }).catch((err) => {
                     this.emit('error', err);
-                    this.refreshTimer = setTimeout(this._refresh.bind(this), this.interval);
+                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
+                    this.refreshTimer = null;
                 });
         }
     }

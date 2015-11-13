@@ -30,11 +30,10 @@ onmessage = async function(messageEvent) {
                     postMessage(message);
                 });
             }
-
-            client.referenceCount++;
             break;
         case 'subscribe':
             client.subscribeToChanges();
+            client.referenceCount++;
             break;
         case 'dispose':
             client.referenceCount--;
