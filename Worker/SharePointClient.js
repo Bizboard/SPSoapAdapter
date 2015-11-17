@@ -257,9 +257,9 @@ export class SharePointClient extends EventEmitter {
                 }
             }
 
-
             fieldCollection.push({
                 "_Name": prop,
+                "_StorageTZ": 'UTC',
                 "__text": fieldValue
             });
         }
