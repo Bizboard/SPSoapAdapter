@@ -18522,10 +18522,71 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
               this.retriever.params.rowLimit = args.limit;
             }
           },
+          _refresh: function() {
+            var calledManually = arguments[0] !== (void 0) ? arguments[0] : true;
+            var $__3 = this;
+            if (this.refreshTimer && calledManually) {
+              return;
+            }
+            this.refreshTimer = 1;
+            if (this.retriever) {
+              soapClient.call(this.retriever, tempKeys).then(function(result) {
+                var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
+                var lastChangedToken = changes.$.LastChangeToken;
+                var isFirstResponse = !$__3.retriever.params.changeToken;
+                $__3._setLastUpdated(lastChangedToken);
+                var hasDeletions = $__3._handleDeleted(changes);
+                var data = $__3._getResults(result.data);
+                var messages = $__3._updateCache(data);
+                if (hasDeletions || data.length > 0) {
+                  $__3.emit('message', {
+                    event: 'value',
+                    result: $__3.cache
+                  });
+                } else if (isFirstResponse) {
+                  $__3.emit('message', {
+                    event: 'value',
+                    result: null
+                  });
+                }
+                var $__7 = true;
+                var $__8 = false;
+                var $__9 = undefined;
+                try {
+                  for (var $__5 = void 0,
+                      $__4 = (messages)[Symbol.iterator](); !($__7 = ($__5 = $__4.next()).done); $__7 = true) {
+                    var message = $__5.value;
+                    {
+                      $__3.emit('message', message);
+                    }
+                  }
+                } catch ($__10) {
+                  $__8 = true;
+                  $__9 = $__10;
+                } finally {
+                  try {
+                    if (!$__7 && $__4.return != null) {
+                      $__4.return();
+                    }
+                  } finally {
+                    if ($__8) {
+                      throw $__9;
+                    }
+                  }
+                }
+                $__3.refreshTimer = setTimeout($__3._refresh.bind($__3, false), $__3.interval);
+                $__3.refreshTimer = null;
+              }).catch(function(err) {
+                $__3.emit('error', err);
+                $__3.refreshTimer = setTimeout($__3._refresh.bind($__3, false), $__3.interval);
+                $__3.refreshTimer = null;
+              });
+            }
+          },
           _handleSet: function(newData) {
             var $__3 = this;
             var configuration = this._updateListItemsDefaultConfiguration();
-            configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?update=" + this.settings.listName + "}");
+            configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?update=" + this.settings.listName);
             var fieldCollection = [];
             var method = '';
             var isLocal = _.findIndex(tempKeys, function(key) {
@@ -18587,6 +18648,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
             soapClient.call(configuration, tempKeys).then(function(result) {
               var data = $__3._getResults(result.data);
               if (data.length == 1) {
+                var remoteId = data[0].id;
                 if (newData['_temporary-identifier']) {
                   tempKeys.push({
                     localId: newData['_temporary-identifier'],
@@ -18619,6 +18681,12 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                     }
                   }
                 }
+                var model = newData;
+                model.remoteId = remoteId;
+                $__3.emit('message', {
+                  event: 'value',
+                  result: model
+                });
               }
             }, function(error) {
               console.log(error);
@@ -18627,12 +18695,13 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
           _handleRemove: function(record) {
             var $__3 = this;
             var configuration = this._updateListItemsDefaultConfiguration();
-            configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?remove=" + this.settings.listName + "}");
+            configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?remove=" + this.settings.listName);
             var fieldCollection = [];
             var isLocal = _.findIndex(tempKeys, function(key) {
               return key.localId == record.id;
             });
             if (isLocal > -1) {
+              record.remoteId = record.id;
               record.id = tempKeys[isLocal].remoteId;
             }
             fieldCollection.push({
@@ -18670,12 +18739,13 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                     return key.remoteId == model.id;
                   });
                   if (isLocal > -1) {
+                    model.remoteId = model.id;
                     model.id = tempKeys[isLocal].localId;
                   }
-                  var isCached = _.findIndex($__12.cache, function(item) {
+                  var cacheIndex = _.findIndex($__12.cache, function(item) {
                     return model.id == item.id;
                   });
-                  if (isCached === -1) {
+                  if (cacheIndex === -1) {
                     $__12.cache.push(model);
                     var previousSiblingId = $__12.cache.length == 0 ? null : $__12.cache[$__12.cache.length - 1];
                     messages.push({
@@ -18684,9 +18754,9 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                       previousSiblingId: previousSiblingId ? previousSiblingId.id : null
                     });
                   } else {
-                    if (!_.isEqual(model, $__12.cache[isCached])) {
-                      $__12.cache.splice(isCached, 1, model);
-                      var previousSibling = isCached == 0 ? null : $__12.cache[isCached - 1];
+                    if (!_.isEqual(model, $__12.cache[cacheIndex])) {
+                      $__12.cache.splice(cacheIndex, 1, model);
+                      var previousSibling = cacheIndex == 0 ? null : $__12.cache[cacheIndex - 1];
                       messages.push({
                         event: 'child_changed',
                         result: model,
@@ -18702,66 +18772,6 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
           },
           _setLastUpdated: function(lastChangeToken) {
             this.retriever.params.changeToken = lastChangeToken;
-          },
-          _refresh: function() {
-            var $__3 = this;
-            if (this.refreshTimer) {
-              return;
-            }
-            this.refreshTimer = 1;
-            if (this.retriever) {
-              soapClient.call(this.retriever, tempKeys).then(function(result) {
-                var changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
-                var lastChangedToken = changes.$.LastChangeToken;
-                var isFirstResponse = !$__3.retriever.params.changeToken;
-                $__3._setLastUpdated(lastChangedToken);
-                var hasDeletions = $__3._handleDeleted(changes);
-                var data = $__3._getResults(result.data);
-                var messages = $__3._updateCache(data);
-                if (hasDeletions || data.length > 0) {
-                  $__3.emit('message', {
-                    event: 'value',
-                    result: $__3.cache
-                  });
-                } else if (isFirstResponse) {
-                  $__3.emit('message', {
-                    event: 'value',
-                    result: null
-                  });
-                }
-                var $__7 = true;
-                var $__8 = false;
-                var $__9 = undefined;
-                try {
-                  for (var $__5 = void 0,
-                      $__4 = (messages)[Symbol.iterator](); !($__7 = ($__5 = $__4.next()).done); $__7 = true) {
-                    var message = $__5.value;
-                    {
-                      $__3.emit('message', message);
-                    }
-                  }
-                } catch ($__10) {
-                  $__8 = true;
-                  $__9 = $__10;
-                } finally {
-                  try {
-                    if (!$__7 && $__4.return != null) {
-                      $__4.return();
-                    }
-                  } finally {
-                    if ($__8) {
-                      throw $__9;
-                    }
-                  }
-                }
-                $__3.refreshTimer = setTimeout($__3._refresh.bind($__3), $__3.interval);
-                $__3.refreshTimer = null;
-              }).catch(function(err) {
-                $__3.emit('error', err);
-                $__3.refreshTimer = setTimeout($__3._refresh.bind($__3), $__3.interval);
-                $__3.refreshTimer = null;
-              });
-            }
           },
           _handleDeleted: function(result) {
             var changes = result.Id || null;

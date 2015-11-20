@@ -198,6 +198,57 @@ export class SharePointClient extends EventEmitter {
 
 
     /**
+     *
+     * Refresh SharePoint with latest changes.
+     * @param {Boolean} calledManually If set to false, ignores any existing timer in this.refreshTimer and executes the refresh regardless.
+     * @private
+     */
+    _refresh(calledManually = true) {
+        /* Prevent refresh from being called more than once at a time. */
+        if (this.refreshTimer && calledManually) { return; }
+        this.refreshTimer = 1;
+
+        if (this.retriever) {
+            soapClient.call(this.retriever, tempKeys)
+                .then((result) => {
+                    let changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
+                    let lastChangedToken = changes.$.LastChangeToken;
+                    let isFirstResponse = !this.retriever.params.changeToken;
+                    /* True if this is the first server response for the current path. */
+
+                    this._setLastUpdated(lastChangedToken);
+                    let hasDeletions = this._handleDeleted(changes);
+
+                    let data = this._getResults(result.data);
+                    let messages = this._updateCache(data);
+
+                    /* If any data is new or modified, emit a 'value' event. */
+                    if (hasDeletions || data.length > 0) {
+                        this.emit('message', {event: 'value', result: this.cache});
+                    } else if (isFirstResponse) {
+                        /* If there is no data, and this is the first time we get a response from the server,
+                         * emit a value event that shows subscribers that there is no data at this path. */
+                        this.emit('message', {event: 'value', result: null});
+                    }
+
+                    /* Emit any added/changed events. */
+                    for (let message of messages) {
+                        this.emit('message', message);
+                    }
+
+                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
+                    this.refreshTimer = null;
+
+                }).catch((err) => {
+                    this.emit('error', err);
+                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
+                    this.refreshTimer = null;
+                });
+        }
+    }
+
+
+    /**
      * Add or Update a data record.
      * @private
      */
@@ -287,8 +338,9 @@ export class SharePointClient extends EventEmitter {
 
                 let data = this._getResults(result.data);
                 if (data.length == 1) {
+                    let remoteId = data[0].id;
 
-                    // push ID mapping for given session
+                    // push ID mapping for given session to collection of temp keys
                     if (newData['_temporary-identifier']) {
                         tempKeys.push({localId: newData['_temporary-identifier'], remoteId: data[0].id});
                     }
@@ -296,6 +348,11 @@ export class SharePointClient extends EventEmitter {
                     for (let message of messages) {
                         this.emit('message', message);
                     }
+
+                    /* Fire a value event with the now available remoteId present */
+                    let model = newData;
+                    model.remoteId = remoteId;
+                    this.emit('message', {event: 'value', result: model});
                 }
             }, (error) => {
                 console.log(error);
@@ -318,6 +375,7 @@ export class SharePointClient extends EventEmitter {
         });
 
         if (isLocal > -1) {
+            record.remoteId = record.id;
             record.id = tempKeys[isLocal].remoteId;
         }
 
@@ -369,14 +427,15 @@ export class SharePointClient extends EventEmitter {
             });
 
             if (isLocal > -1) {
+                model.remoteId = model.id;
                 model.id = tempKeys[isLocal].localId;
             }
 
-            let isCached = _.findIndex(this.cache, function (item) {
+            let cacheIndex = _.findIndex(this.cache, function (item) {
                 return model.id == item.id;
             });
 
-            if (isCached === -1) {
+            if (cacheIndex === -1) {
                 this.cache.push(model);
 
                 let previousSiblingId = this.cache.length == 0 ? null : this.cache[this.cache.length - 1];
@@ -387,9 +446,9 @@ export class SharePointClient extends EventEmitter {
                 });
             }
             else {
-                if (!_.isEqual(model, this.cache[isCached])) {
-                    this.cache.splice(isCached, 1, model);
-                    let previousSibling = isCached == 0 ? null : this.cache[isCached - 1];
+                if (!_.isEqual(model, this.cache[cacheIndex])) {
+                    this.cache.splice(cacheIndex, 1, model);
+                    let previousSibling = cacheIndex == 0 ? null : this.cache[cacheIndex - 1];
                     messages.push({
                         event: 'child_changed',
                         result: model,
@@ -410,57 +469,6 @@ export class SharePointClient extends EventEmitter {
     _setLastUpdated(lastChangeToken) {
 
         this.retriever.params.changeToken = lastChangeToken;
-    }
-
-
-    /**
-     *
-     * Refresh SharePoint with latest changes.
-     * @param {Boolean} calledManually If set to false, ignores any existing timer in this.refreshTimer and executes the refresh regardless.
-     * @private
-     */
-    _refresh(calledManually = true) {
-        /* Prevent refresh from being called more than once at a time. */
-        if (this.refreshTimer && calledManually) { return; }
-        this.refreshTimer = 1;
-
-        if (this.retriever) {
-            soapClient.call(this.retriever, tempKeys)
-                .then((result) => {
-                    let changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
-                    let lastChangedToken = changes.$.LastChangeToken;
-                    let isFirstResponse = !this.retriever.params.changeToken;
-                    /* True if this is the first server response for the current path. */
-
-                    this._setLastUpdated(lastChangedToken);
-                    let hasDeletions = this._handleDeleted(changes);
-
-                    let data = this._getResults(result.data);
-                    let messages = this._updateCache(data);
-
-                    /* If any data is new or modified, emit a 'value' event. */
-                    if (hasDeletions || data.length > 0) {
-                        this.emit('message', {event: 'value', result: this.cache});
-                    } else if (isFirstResponse) {
-                        /* If there is no data, and this is the first time we get a response from the server,
-                         * emit a value event that shows subscribers that there is no data at this path. */
-                        this.emit('message', {event: 'value', result: null});
-                    }
-
-                    /* Emit any added/changed events. */
-                    for (let message of messages) {
-                        this.emit('message', message);
-                    }
-
-                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
-                    this.refreshTimer = null;
-
-                }).catch((err) => {
-                    this.emit('error', err);
-                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
-                    this.refreshTimer = null;
-                });
-        }
     }
 
     _handleDeleted(result) {
