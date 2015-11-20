@@ -157,6 +157,7 @@ export class SharePointClient extends EventEmitter {
             'queryOptions': {
                 'QueryOptions': {
                     'IncludeMandatoryColumns': 'FALSE',
+                    'DateInUtc': 'TRUE',
                     'ViewAttributes': {
                         '_Scope': 'RecursiveAll'
                     }
@@ -307,9 +308,9 @@ export class SharePointClient extends EventEmitter {
                 }
             }
 
-
             fieldCollection.push({
                 "_Name": prop,
+                "_StorageTZ": 'UTC',
                 "__text": fieldValue
             });
         }
