@@ -18333,6 +18333,24 @@ $__System.register("8b", ["f", "87", "c", "88", "89", "8a"], function($__export)
 $__System.register("8c", [], function($__export) {
   "use strict";
   var __moduleName = "8c";
+  var Settings;
+  return {
+    setters: [],
+    execute: function() {
+      Settings = function() {
+        function Settings() {}
+        return ($traceurRuntime.createClass)(Settings, {}, {get localKeyPrefix() {
+            return '_local_';
+          }});
+      }();
+      $__export("Settings", Settings);
+    }
+  };
+});
+
+$__System.register("8d", [], function($__export) {
+  "use strict";
+  var __moduleName = "8d";
   function UrlParser(url) {
     var e = /^([a-z][a-z0-9+.-]*):(?:\/\/((?:(?=((?:[a-z0-9-._~!$&'()*+,;=:]|%[0-9A-F]{2})*))(\3)@)?(?=(\[[0-9A-F:.]{2,}\]|(?:[a-z0-9-._~!$&'()*+,;=]|%[0-9A-F]{2})*))\5(?::(?=(\d*))\6)?)(\/(?=((?:[a-z0-9-._~!$&'()*+,;=:@\/]|%[0-9A-F]{2})*))\8)?|(\/?(?!\/)(?=((?:[a-z0-9-._~!$&'()*+,;=:@\/]|%[0-9A-F]{2})*))\10)?)(?:\?(?=((?:[a-z0-9-._~!$&'()*+,;=:@\/?]|%[0-9A-F]{2})*))\11)?(?:#(?=((?:[a-z0-9-._~!$&'()*+,;=:@\/?]|%[0-9A-F]{2})*))\12)?$/i;
     if (url.match(e)) {
@@ -18354,12 +18372,13 @@ $__System.register("8c", [], function($__export) {
   };
 });
 
-$__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
+$__System.register("8e", ["c", "e", "8b", "8c", "89", "8d"], function($__export) {
   "use strict";
-  var __moduleName = "8d";
+  var __moduleName = "8e";
   var _,
       EventEmitter,
       SoapClient,
+      Settings,
       ExistsRequest,
       UrlParser,
       soapClient,
@@ -18374,6 +18393,8 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
       EventEmitter = $__m.default;
     }, function($__m) {
       SoapClient = $__m.SoapClient;
+    }, function($__m) {
+      Settings = $__m.Settings;
     }, function($__m) {
       ExistsRequest = $__m.ExistsRequest;
     }, function($__m) {
@@ -18652,7 +18673,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                 if (newData['_temporary-identifier']) {
                   tempKeys.push({
                     localId: newData['_temporary-identifier'],
-                    remoteId: data[0].id
+                    remoteId: remoteId
                   });
                 }
                 var messages = $__3._updateCache(data);
@@ -18682,11 +18703,19 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
                   }
                 }
                 var model = newData;
+                model.id = model['_temporary-identifier'];
                 model.remoteId = remoteId;
-                $__3.emit('message', {
-                  event: 'value',
-                  result: model
-                });
+                if ($__3.isChild) {
+                  $__3.emit('message', {
+                    event: 'value',
+                    result: newData
+                  });
+                } else {
+                  $__3.emit('message', {
+                    event: 'child_changed',
+                    result: model
+                  });
+                }
               }
             }, function(error) {
               console.log(error);
@@ -18697,11 +18726,11 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
             var configuration = this._updateListItemsDefaultConfiguration();
             configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?remove=" + this.settings.listName);
             var fieldCollection = [];
+            record.remoteId = record.id;
             var isLocal = _.findIndex(tempKeys, function(key) {
               return key.localId == record.id;
             });
             if (isLocal > -1) {
-              record.remoteId = record.id;
               record.id = tempKeys[isLocal].remoteId;
             }
             fieldCollection.push({
@@ -18735,11 +18764,11 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
             var $__12 = this,
                 $__13 = function(record) {
                   var model = data[record];
+                  model.remoteId = model.id;
                   var isLocal = _.findIndex(tempKeys, function(key) {
                     return key.remoteId == model.id;
                   });
                   if (isLocal > -1) {
-                    model.remoteId = model.id;
                     model.id = tempKeys[isLocal].localId;
                   }
                   var cacheIndex = _.findIndex($__12.cache, function(item) {
@@ -18927,7 +18956,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
               var isNumeric = function(n) {
                 return !isNaN(parseFloat(n)) && isFinite(n);
               };
-              if (isNumeric(lastArgument)) {
+              if (isNumeric(lastArgument) || lastArgument.indexOf(Settings.localKeyPrefix) === 0) {
                 this.childID = lastArgument;
                 return true;
               } else {
@@ -18943,7 +18972,7 @@ $__System.register("8d", ["c", "e", "8b", "89", "8c"], function($__export) {
   };
 });
 
-$__System.register("1", ["8d"], function($__export) {
+$__System.register("1", ["8e"], function($__export) {
   "use strict";
   var __moduleName = "1";
   var SharePointClient,

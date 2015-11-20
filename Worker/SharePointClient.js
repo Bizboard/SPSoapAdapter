@@ -3,9 +3,10 @@
  */
 import _                from 'lodash';
 import EventEmitter     from 'eventemitter3';
-import {SoapClient}     from './SoapClient';
-import {ExistsRequest}  from 'arva-utils/request/RequestClient';
-import {UrlParser}      from 'arva-utils/request/UrlParser';
+import {SoapClient}     from './SoapClient.js';
+import {Settings}       from '../Settings.js';
+import {ExistsRequest}  from 'arva-utils/request/RequestClient.js';
+import {UrlParser}      from 'arva-utils/request/UrlParser.js';
 
 // setup the soapClient.
 var soapClient = new SoapClient();
@@ -157,7 +158,6 @@ export class SharePointClient extends EventEmitter {
             'queryOptions': {
                 'QueryOptions': {
                     'IncludeMandatoryColumns': 'FALSE',
-                    'DateInUtc': 'TRUE',
                     'ViewAttributes': {
                         '_Scope': 'RecursiveAll'
                     }
@@ -308,9 +308,9 @@ export class SharePointClient extends EventEmitter {
                 }
             }
 
+
             fieldCollection.push({
                 "_Name": prop,
-                "_StorageTZ": 'UTC',
                 "__text": fieldValue
             });
         }
@@ -343,17 +343,22 @@ export class SharePointClient extends EventEmitter {
 
                     // push ID mapping for given session to collection of temp keys
                     if (newData['_temporary-identifier']) {
-                        tempKeys.push({localId: newData['_temporary-identifier'], remoteId: data[0].id});
+                        tempKeys.push({localId: newData['_temporary-identifier'], remoteId: remoteId});
                     }
                     let messages = this._updateCache(data);
                     for (let message of messages) {
                         this.emit('message', message);
                     }
 
-                    /* Fire a value event with the now available remoteId present */
+                    /* Fire a value/child_changed event with the now available remoteId present */
                     let model = newData;
+                    model.id = model['_temporary-identifier'];
                     model.remoteId = remoteId;
-                    this.emit('message', {event: 'value', result: model});
+                    if(this.isChild) {
+                        this.emit('message', {event: 'value', result: newData});
+                    } else {
+                        this.emit('message', {event: 'child_changed', result: model})
+                    }
                 }
             }, (error) => {
                 console.log(error);
@@ -371,12 +376,13 @@ export class SharePointClient extends EventEmitter {
         configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?remove=${this.settings.listName}`;
         var fieldCollection = [];
 
+        record.remoteId = record.id;
+
         let isLocal = _.findIndex(tempKeys, function (key) {
             return key.localId == record.id;
         });
 
         if (isLocal > -1) {
-            record.remoteId = record.id;
             record.id = tempKeys[isLocal].remoteId;
         }
 
@@ -422,13 +428,13 @@ export class SharePointClient extends EventEmitter {
         let messages = [];
         for (let record in data) {
             let model = data[record];
+            model.remoteId = model.id;
 
             let isLocal = _.findIndex(tempKeys, function (key) {
                 return key.remoteId == model.id;
             });
 
             if (isLocal > -1) {
-                model.remoteId = model.id;
                 model.id = tempKeys[isLocal].localId;
             }
 
@@ -705,7 +711,7 @@ export class SharePointClient extends EventEmitter {
 
             let isNumeric = (n) =>  !isNaN(parseFloat(n)) && isFinite(n);
 
-            if (isNumeric(lastArgument)) {
+            if (isNumeric(lastArgument) || lastArgument.indexOf(Settings.localKeyPrefix) === 0) {
                 this.childID = lastArgument;
                 return true;
             } else {

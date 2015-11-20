@@ -4,6 +4,7 @@
 
 import _                from 'lodash';
 import EventEmitter     from 'eventemitter3';
+import {Settings}       from './Settings.js';
 import {UrlParser}      from 'arva-utils/request/UrlParser.js';
 import {ObjectHelper}   from 'arva-utils/ObjectHelper.js';
 import {BlobHelper}     from 'arva-utils/BlobHelper.js';
@@ -115,7 +116,7 @@ export class SharePoint extends EventEmitter {
         /* If there is no ID, make a temporary ID for reference in the main thread for the session scope. */
         let modelId = model.id;
         if (!modelId || modelId === 0) {
-            model['_temporary-identifier'] = `_local_${Math.floor((Math.random() * 2000000000))}`;
+            model['_temporary-identifier'] = `${Settings.localKeyPrefix}${Math.floor((Math.random() * 2000000000))}`;
         }
 
         SPWorker.postMessage({
