@@ -18636,7 +18636,7 @@ $__System.register("8e", ["c", "e", "8b", "8c", "89", "8d"], function($__export)
               var fieldValue = newData[prop];
               if (prop == "id" || typeof(fieldValue) == "undefined")
                 continue;
-              if (prop == "priority" || prop == "_temporary-identifier")
+              if (prop == "priority" || prop == "_temporary-identifier" || prop == "remoteId")
                 continue;
               if ((typeof fieldValue === 'undefined' ? 'undefined' : $traceurRuntime.typeof(fieldValue)) === 'object') {
                 if (fieldValue.id && fieldValue.value) {

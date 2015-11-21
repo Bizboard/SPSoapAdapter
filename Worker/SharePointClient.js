@@ -294,7 +294,7 @@ export class SharePointClient extends EventEmitter {
         for (var prop in newData) {
             let fieldValue = newData[prop];
             if (prop == "id" || typeof(fieldValue) == "undefined") continue;
-            if (prop == "priority" || prop == "_temporary-identifier") continue;
+            if (prop == "priority" || prop == "_temporary-identifier" || prop == "remoteId") continue;
             if (typeof fieldValue === 'object') {
                 if (fieldValue.id && fieldValue.value) {
                     /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
