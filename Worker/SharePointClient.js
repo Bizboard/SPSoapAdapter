@@ -74,7 +74,7 @@ export class SharePointClient extends EventEmitter {
         });
     }
 
-    subscribeToChanges(){
+    subscribeToChanges() {
         if (!this.isChild) {
             /* Don't monitor child item updates/removes. We only do that on parent arrays. */
             this._refresh();
@@ -334,36 +334,38 @@ export class SharePointClient extends EventEmitter {
         };
 
         // initial initialisation of the datasource
-        soapClient.call(configuration, tempKeys)
-            .then((result)=> {
+        (function (newData) {
+            soapClient.call(configuration, tempKeys)
+                .then((result)=> {
 
-                let data = this._getResults(result.data);
-                if (data.length == 1) {
-                    let remoteId = data[0].id;
+                    let data = this._getResults(result.data);
+                    if (data.length == 1) {
+                        let remoteId = data[0].id;
 
-                    // push ID mapping for given session to collection of temp keys
-                    if (newData['_temporary-identifier']) {
-                        tempKeys.push({localId: newData['_temporary-identifier'], remoteId: remoteId});
-                    }
-                    let messages = this._updateCache(data);
-                    for (let message of messages) {
-                        this.emit('message', message);
-                    }
+                        // push ID mapping for given session to collection of temp keys
+                        if (newData['_temporary-identifier']) {
+                            tempKeys.push({localId: newData['_temporary-identifier'], remoteId: remoteId, client: this});
+                        }
+                        let messages = this._updateCache(data);
+                        for (let message of messages) {
+                            this.emit('message', message);
+                        }
 
-                    /* Fire a value/child_changed event with the now available remoteId present */
-                    let model = newData;
-                    model.id = model['_temporary-identifier'] || model.id;
-                    model.remoteId = remoteId;
-                    if(this.isChild) {
-                        this.emit('message', {event: 'value', result: model});
-                    } else {
-                        this.emit('message', {event: 'child_changed', result: model});
-                        this.emit('message', {event: 'value', result: this.cache});
+                        /* Fire a value/child_changed event with the now available remoteId present */
+                        let model = newData;
+                        model.id = model['_temporary-identifier'] || model.id;
+                        model.remoteId = remoteId;
+                        if (this.isChild) {
+                            this.emit('message', {event: 'value', result: model});
+                        } else {
+                            this.emit('message', {event: 'child_changed', result: model});
+                            this.emit('message', {event: 'value', result: this.cache});
+                        }
                     }
-                }
-            }, (error) => {
-                console.log(error);
-            });
+                }, (error) => {
+                    console.log(error);
+                });
+        }.bind(this))(newData);
     }
 
     /**
@@ -428,20 +430,26 @@ export class SharePointClient extends EventEmitter {
     _updateCache(data) {
         let messages = [];
         for (let record in data) {
+            let shouldUseRemoteId = false;
             let model = data[record];
             model.remoteId = model.id;
 
-            let isLocal = _.findIndex(tempKeys, function (key) {
+            let localIndex = _.findIndex(tempKeys, function (key) {
                 return key.remoteId == model.id;
             });
 
-            if (isLocal > -1) {
-                model.id = tempKeys[isLocal].localId;
+            if (localIndex > -1) {
+                let tempKey = tempKeys[localIndex];
+
+                /* If this SPClient instance created the temp ID, we need to use it in our events.
+                 * Otherwise, we should use the remote ID that SharePoint generated. */
+                shouldUseRemoteId = tempKey.client !== this;
+                model.id = shouldUseRemoteId ? model.remoteId : tempKey.localId;
             }
 
-            let cacheIndex = _.findIndex(this.cache, function (item) {
-                return model.id == item.id;
-            });
+             let cacheIndex = _.findIndex(this.cache, function (item) {
+             return model.id == item.id;
+             });
 
             if (cacheIndex === -1) {
                 this.cache.push(model);
@@ -455,7 +463,8 @@ export class SharePointClient extends EventEmitter {
             }
             else {
                 if (!_.isEqual(model, this.cache[cacheIndex])) {
-                    this.cache.splice(cacheIndex, 1, model);
+                    this.cache[cacheIndex] = model;
+
                     let previousSibling = cacheIndex == 0 ? null : this.cache[cacheIndex - 1];
                     messages.push({
                         event: 'child_changed',
@@ -475,7 +484,6 @@ export class SharePointClient extends EventEmitter {
      * @private
      */
     _setLastUpdated(lastChangeToken) {
-
         this.retriever.params.changeToken = lastChangeToken;
     }
 
@@ -491,12 +499,14 @@ export class SharePointClient extends EventEmitter {
 
                     let recordId = changes[change]._;
 
-                    let isLocal = _.findIndex(tempKeys, function (key) {
+                    let localIndex = _.findIndex(tempKeys, function (key) {
                         return key.remoteId == recordId;
                     });
 
-                    if (isLocal > -1) {
-                        recordId = tempKeys[isLocal].localId;
+                    if (localIndex > -1) {
+                        let tempKey = tempKeys[localIndex];
+                        let isOurTempKey = tempKey.client === this;
+                        recordId = isOurTempKey ? tempKey.localId : tempKey.remoteId;
                     }
 
                     let cacheItem = _.findIndex(this.cache, function (item) {

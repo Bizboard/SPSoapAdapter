@@ -18605,7 +18605,6 @@ $__System.register("8e", ["c", "e", "8b", "8c", "89", "8d"], function($__export)
             }
           },
           _handleSet: function(newData) {
-            var $__3 = this;
             var configuration = this._updateListItemsDefaultConfiguration();
             configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + ("?update=" + this.settings.listName);
             var fieldCollection = [];
@@ -18666,64 +18665,68 @@ $__System.register("8e", ["c", "e", "8b", "8c", "89", "8d"], function($__export)
                   "_ViewName": ""
                 }}
             };
-            soapClient.call(configuration, tempKeys).then(function(result) {
-              var data = $__3._getResults(result.data);
-              if (data.length == 1) {
-                var remoteId = data[0].id;
-                if (newData['_temporary-identifier']) {
-                  tempKeys.push({
-                    localId: newData['_temporary-identifier'],
-                    remoteId: remoteId
-                  });
-                }
-                var messages = $__3._updateCache(data);
-                var $__7 = true;
-                var $__8 = false;
-                var $__9 = undefined;
-                try {
-                  for (var $__5 = void 0,
-                      $__4 = (messages)[Symbol.iterator](); !($__7 = ($__5 = $__4.next()).done); $__7 = true) {
-                    var message = $__5.value;
-                    {
-                      $__3.emit('message', message);
-                    }
+            (function(newData) {
+              var $__3 = this;
+              soapClient.call(configuration, tempKeys).then(function(result) {
+                var data = $__3._getResults(result.data);
+                if (data.length == 1) {
+                  var remoteId = data[0].id;
+                  if (newData['_temporary-identifier']) {
+                    tempKeys.push({
+                      localId: newData['_temporary-identifier'],
+                      remoteId: remoteId,
+                      client: $__3
+                    });
                   }
-                } catch ($__10) {
-                  $__8 = true;
-                  $__9 = $__10;
-                } finally {
+                  var messages = $__3._updateCache(data);
+                  var $__7 = true;
+                  var $__8 = false;
+                  var $__9 = undefined;
                   try {
-                    if (!$__7 && $__4.return != null) {
-                      $__4.return();
+                    for (var $__5 = void 0,
+                        $__4 = (messages)[Symbol.iterator](); !($__7 = ($__5 = $__4.next()).done); $__7 = true) {
+                      var message = $__5.value;
+                      {
+                        $__3.emit('message', message);
+                      }
                     }
+                  } catch ($__10) {
+                    $__8 = true;
+                    $__9 = $__10;
                   } finally {
-                    if ($__8) {
-                      throw $__9;
+                    try {
+                      if (!$__7 && $__4.return != null) {
+                        $__4.return();
+                      }
+                    } finally {
+                      if ($__8) {
+                        throw $__9;
+                      }
                     }
                   }
+                  var model = newData;
+                  model.id = model['_temporary-identifier'] || model.id;
+                  model.remoteId = remoteId;
+                  if ($__3.isChild) {
+                    $__3.emit('message', {
+                      event: 'value',
+                      result: model
+                    });
+                  } else {
+                    $__3.emit('message', {
+                      event: 'child_changed',
+                      result: model
+                    });
+                    $__3.emit('message', {
+                      event: 'value',
+                      result: $__3.cache
+                    });
+                  }
                 }
-                var model = newData;
-                model.id = model['_temporary-identifier'] || model.id;
-                model.remoteId = remoteId;
-                if ($__3.isChild) {
-                  $__3.emit('message', {
-                    event: 'value',
-                    result: model
-                  });
-                } else {
-                  $__3.emit('message', {
-                    event: 'child_changed',
-                    result: model
-                  });
-                  $__3.emit('message', {
-                    event: 'value',
-                    result: $__3.cache
-                  });
-                }
-              }
-            }, function(error) {
-              console.log(error);
-            });
+              }, function(error) {
+                console.log(error);
+              });
+            }.bind(this))(newData);
           },
           _handleRemove: function(record) {
             var $__3 = this;
@@ -18767,13 +18770,16 @@ $__System.register("8e", ["c", "e", "8b", "8c", "89", "8d"], function($__export)
             var messages = [];
             var $__12 = this,
                 $__13 = function(record) {
+                  var shouldUseRemoteId = false;
                   var model = data[record];
                   model.remoteId = model.id;
-                  var isLocal = _.findIndex(tempKeys, function(key) {
+                  var localIndex = _.findIndex(tempKeys, function(key) {
                     return key.remoteId == model.id;
                   });
-                  if (isLocal > -1) {
-                    model.id = tempKeys[isLocal].localId;
+                  if (localIndex > -1) {
+                    var tempKey = tempKeys[localIndex];
+                    shouldUseRemoteId = tempKey.client !== $__12;
+                    model.id = shouldUseRemoteId ? model.remoteId : tempKey.localId;
                   }
                   var cacheIndex = _.findIndex($__12.cache, function(item) {
                     return model.id == item.id;
@@ -18788,7 +18794,7 @@ $__System.register("8e", ["c", "e", "8b", "8c", "89", "8d"], function($__export)
                     });
                   } else {
                     if (!_.isEqual(model, $__12.cache[cacheIndex])) {
-                      $__12.cache.splice(cacheIndex, 1, model);
+                      $__12.cache[cacheIndex] = model;
                       var previousSibling = cacheIndex == 0 ? null : $__12.cache[cacheIndex - 1];
                       messages.push({
                         event: 'child_changed',
@@ -18813,11 +18819,13 @@ $__System.register("8e", ["c", "e", "8b", "8c", "89", "8d"], function($__export)
                   $__15 = function(change) {
                     if (changes[change].$.ChangeType == "Delete") {
                       var recordId = changes[change]._;
-                      var isLocal = _.findIndex(tempKeys, function(key) {
+                      var localIndex = _.findIndex(tempKeys, function(key) {
                         return key.remoteId == recordId;
                       });
-                      if (isLocal > -1) {
-                        recordId = tempKeys[isLocal].localId;
+                      if (localIndex > -1) {
+                        var tempKey = tempKeys[localIndex];
+                        var isOurTempKey = tempKey.client === $__14;
+                        recordId = isOurTempKey ? tempKey.localId : tempKey.remoteId;
                       }
                       var cacheItem = _.findIndex($__14.cache, function(item) {
                         return item.id == recordId;
