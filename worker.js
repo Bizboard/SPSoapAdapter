@@ -18703,17 +18703,21 @@ $__System.register("8e", ["c", "e", "8b", "8c", "89", "8d"], function($__export)
                   }
                 }
                 var model = newData;
-                model.id = model['_temporary-identifier'];
+                model.id = model['_temporary-identifier'] || model.id;
                 model.remoteId = remoteId;
                 if ($__3.isChild) {
                   $__3.emit('message', {
                     event: 'value',
-                    result: newData
+                    result: model
                   });
                 } else {
                   $__3.emit('message', {
                     event: 'child_changed',
                     result: model
+                  });
+                  $__3.emit('message', {
+                    event: 'value',
+                    result: $__3.cache
                   });
                 }
               }
