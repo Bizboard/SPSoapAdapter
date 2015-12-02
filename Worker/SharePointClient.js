@@ -356,7 +356,8 @@ export class SharePointClient extends EventEmitter {
                         model.id = model['_temporary-identifier'] || model.id;
                         model.remoteId = remoteId;
                         if (this.isChild) {
-                            this.emit('message', {event: 'value', result: model});
+                            /* TODO: re-enable value emit on children when child subscriptions are implemented */
+                            //this.emit('message', {event: 'value', result: model});
                         } else {
                             this.emit('message', {event: 'child_changed', result: model});
                             this.emit('message', {event: 'value', result: this.cache});
