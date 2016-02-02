@@ -232,9 +232,11 @@ export class SharePointClient extends EventEmitter {
                         this.emit('message', {event: 'value', result: null});
                     }
 
-                    /* Emit any added/changed events. */
-                    for (let message of messages) {
-                        this.emit('message', message);
+                    if (!isFirstResponse) {
+                        /* Emit any added/changed events. */
+                        for (let message of messages) {
+                            this.emit('message', message);
+                        }
                     }
 
                     this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
@@ -448,9 +450,9 @@ export class SharePointClient extends EventEmitter {
                 model.id = shouldUseRemoteId ? model.remoteId : tempKey.localId;
             }
 
-             let cacheIndex = _.findIndex(this.cache, function (item) {
-             return model.id == item.id;
-             });
+            let cacheIndex = _.findIndex(this.cache, function (item) {
+                return model.id == item.id;
+            });
 
             if (cacheIndex === -1) {
                 this.cache.push(model);

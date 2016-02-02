@@ -4457,7 +4457,7 @@ $__System.register("6", ["7"], function($__export) {
             var $__8 = undefined;
             try {
               for (var $__4 = void 0,
-                  $__3 = (propNames.values())[Symbol.iterator](); !($__6 = ($__4 = $__3.next()).done); $__6 = true) {
+                  $__3 = (propNames)[Symbol.iterator](); !($__6 = ($__4 = $__3.next()).done); $__6 = true) {
                 var name = $__4.value;
                 {
                   var value = rootObject[name];
@@ -4493,7 +4493,7 @@ $__System.register("6", ["7"], function($__export) {
             var $__15 = undefined;
             try {
               for (var $__11 = void 0,
-                  $__10 = (descriptorNames.values())[Symbol.iterator](); !($__13 = ($__11 = $__10.next()).done); $__13 = true) {
+                  $__10 = (descriptorNames)[Symbol.iterator](); !($__13 = ($__11 = $__10.next()).done); $__13 = true) {
                 var name$__17 = $__11.value;
                 {
                   var descriptor = Object.getOwnPropertyDescriptor(prototype, name$__17);
@@ -18570,28 +18570,30 @@ $__System.register("8e", ["7", "8b", "89", "3", "5", "2"], function($__export) {
                     result: null
                   });
                 }
-                var $__7 = true;
-                var $__8 = false;
-                var $__9 = undefined;
-                try {
-                  for (var $__5 = void 0,
-                      $__4 = (messages)[Symbol.iterator](); !($__7 = ($__5 = $__4.next()).done); $__7 = true) {
-                    var message = $__5.value;
-                    {
-                      $__3.emit('message', message);
-                    }
-                  }
-                } catch ($__10) {
-                  $__8 = true;
-                  $__9 = $__10;
-                } finally {
+                if (!isFirstResponse) {
+                  var $__7 = true;
+                  var $__8 = false;
+                  var $__9 = undefined;
                   try {
-                    if (!$__7 && $__4.return != null) {
-                      $__4.return();
+                    for (var $__5 = void 0,
+                        $__4 = (messages)[Symbol.iterator](); !($__7 = ($__5 = $__4.next()).done); $__7 = true) {
+                      var message = $__5.value;
+                      {
+                        $__3.emit('message', message);
+                      }
                     }
+                  } catch ($__10) {
+                    $__8 = true;
+                    $__9 = $__10;
                   } finally {
-                    if ($__8) {
-                      throw $__9;
+                    try {
+                      if (!$__7 && $__4.return != null) {
+                        $__4.return();
+                      }
+                    } finally {
+                      if ($__8) {
+                        throw $__9;
+                      }
                     }
                   }
                 }
