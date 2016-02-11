@@ -67,7 +67,7 @@ export class SharePoint extends EventEmitter {
             handler.call(context, this.cache);
         }
 
-        if (this._ready && event === 'value' || event === 'child_added') {
+        if (this._ready && event === 'value') {
             this.once('cache_data', (cacheData) => this._handleCacheData(cacheData, event, handler, context));
 
             /* Grab any existing cached data for this path. There will be data if there are other

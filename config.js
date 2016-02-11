@@ -1,24 +1,26 @@
 System.config({
-  baseURL: "/",
-  defaultJSExtensions: true,
-  transpiler: "traceur",
-  traceurOptions: {
+  "baseURL": "/",
+  "defaultJSExtensions": true,
+  "transpiler": "traceur",
+  "traceurOptions": {
     "annotations": true,
     "asyncFunctions": true
   },
-  paths: {
+  "paths": {
     "github:*": "jspm_packages/github/*",
     "npm:*": "jspm_packages/npm/*"
-  },
+  }
+});
 
-  map: {
+System.config({
+  "map": {
     "arva-utils": "github:bizboard/arva-utils@develop",
     "base64": "base64.js",
     "eventemitter3": "npm:eventemitter3@1.1.1",
     "json-query": "npm:json-query@1.5.0",
     "lodash": "npm:lodash@4.2.0",
-    "traceur": "github:jmcriffey/bower-traceur@0.0.92",
-    "traceur-runtime": "github:jmcriffey/bower-traceur-runtime@0.0.92",
+    "traceur": "github:jmcriffey/bower-traceur@0.0.90",
+    "traceur-runtime": "github:jmcriffey/bower-traceur-runtime@0.0.90",
     "xml2js": "npm:xml2js@0.4.16",
     "github:bizboard/arva-utils@develop": {
       "bowser": "npm:bowser@1.0.0",
@@ -127,3 +129,4 @@ System.config({
     }
   }
 });
+

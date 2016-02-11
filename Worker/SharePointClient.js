@@ -27,6 +27,7 @@ export class SharePointClient extends EventEmitter {
         this.interval = 3000;
         this.retriever = null;
         this.cache = [];
+        this.hasNoServerResponse = true;
     }
 
     init() {
@@ -192,9 +193,17 @@ export class SharePointClient extends EventEmitter {
             }
         }
 
-        if (args.limit) {
-            this.retriever.params.rowLimit = args.limit;
+
+        let rowLimit = 50;
+        if(args.rowLimit !== undefined){
+            rowLimit = args.rowLimit;
+            this.limitRows = true;
+        } else {
+            this.limitRows = false;
         }
+
+        this.retriever.params.rowLimit =  rowLimit;
+
     }
 
 
@@ -212,13 +221,16 @@ export class SharePointClient extends EventEmitter {
         if (this.retriever) {
             soapClient.call(this.retriever, tempKeys)
                 .then((result) => {
-                    let changes = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0].Changes[0];
-                    let lastChangedToken = changes.$.LastChangeToken;
-                    let isFirstResponse = !this.retriever.params.changeToken;
-                    /* True if this is the first server response for the current path. */
 
-                    this._setLastUpdated(lastChangedToken);
-                    let hasDeletions = this._handleDeleted(changes);
+
+                    let listItem = result.data["soap:Envelope"]["soap:Body"][0].GetListItemChangesSinceTokenResponse[0].GetListItemChangesSinceTokenResult[0].listitems[0];
+                    let hasDeletions = false;
+                    if(listItem.Changes){
+                        let changes = listItem.Changes[0];
+                        hasDeletions = this._handleDeleted(changes);
+                    }
+
+                    this._handleNextToken(listItem);
 
                     let data = this._getResults(result.data);
                     let messages = this._updateCache(data);
@@ -226,27 +238,27 @@ export class SharePointClient extends EventEmitter {
                     /* If any data is new or modified, emit a 'value' event. */
                     if (hasDeletions || data.length > 0) {
                         this.emit('message', {event: 'value', result: this.cache});
-                    } else if (isFirstResponse) {
+                    } else if (this.hasNoServerResponse) {
                         /* If there is no data, and this is the first time we get a response from the server,
                          * emit a value event that shows subscribers that there is no data at this path. */
                         this.emit('message', {event: 'value', result: null});
                     }
 
-                    if (!isFirstResponse) {
+                    if (!this.hasNoServerResponse) {
                         /* Emit any added/changed events. */
                         for (let message of messages) {
                             this.emit('message', message);
                         }
                     }
-
+                    this.hasNoServerResponse = false;
                     this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
                     this.refreshTimer = null;
 
                 }).catch((err) => {
-                    this.emit('error', err);
-                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
-                    this.refreshTimer = null;
-                });
+                this.emit('error', err);
+                this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
+                this.refreshTimer = null;
+            });
         }
     }
 
@@ -486,9 +498,46 @@ export class SharePointClient extends EventEmitter {
      * @param newDate
      * @private
      */
-    _setLastUpdated(lastChangeToken) {
+    _activateChangeToken(lastChangeToken) {
         this.retriever.params.changeToken = lastChangeToken;
     }
+
+    _setNextPage(nextPaginationToken){
+        this.retriever.params.queryOptions.QueryOptions.Paging = {_ListItemCollectionPositionNext: nextPaginationToken};
+    }
+
+    _clearNextPage() {
+        delete this.retriever.params.queryOptions.QueryOptions.Paging;
+    }
+
+    _deactivateChangeToken() {
+        delete this.retriever.params.changeToken;
+    }
+
+
+    _handleNextToken(listItem){
+        if(this.limitRows){
+            this._activateChangeToken(listItem.Changes[0].$.LastChangeToken);
+        } else {
+            let {ListItemCollectionPositionNext: nextPaginationToken} = listItem["rs:data"][0].$;
+
+            let lastQueryHadPagination = this.retriever.params.queryOptions.QueryOptions.Paging;
+
+            if (!lastQueryHadPagination && listItem.Changes) {
+                this.lastChangeToken = listItem.Changes[0].$.LastChangeToken;
+            }
+
+            if (nextPaginationToken !== undefined) {
+                this._setNextPage(nextPaginationToken);
+                this._deactivateChangeToken();
+            } else {
+                this._clearNextPage();
+                this._activateChangeToken(this.lastChangeToken);
+            }
+        }
+    }
+
+
 
     _handleDeleted(result) {
 
