@@ -1,19 +1,29 @@
 System.config({
-  baseURL: "/",
-  defaultJSExtensions: true,
-  transpiler: "traceur",
-  traceurOptions: {
-    "annotations": true,
-    "asyncFunctions": true
+  "baseURL": "/",
+  "defaultJSExtensions": true,
+  "transpiler": "babel",
+  "babelOptions": {
+    "stage": 0,
+    "optional": [
+      "runtime",
+      "es7.decorators",
+      "es7.asyncFunctions",
+      "optimisation.modules.system"
+    ]
   },
-  paths: {
+  "paths": {
     "github:*": "jspm_packages/github/*",
     "npm:*": "jspm_packages/npm/*"
-  },
+  }
+});
 
-  map: {
+System.config({
+  "map": {
     "arva-utils": "github:bizboard/arva-utils@1.0.0-beta-3",
+    "babel": "npm:babel-core@5.8.35",
+    "babel-runtime": "npm:babel-runtime@5.8.35",
     "base64": "base64.js",
+    "core-js": "npm:core-js@0.9.18",
     "eventemitter3": "npm:eventemitter3@1.1.1",
     "json-query": "npm:json-query@1.5.0",
     "lodash": "npm:lodash@3.10.1",
@@ -68,10 +78,18 @@ System.config({
     "npm:assert@1.3.0": {
       "util": "npm:util@0.10.3"
     },
+    "npm:babel-runtime@5.8.35": {
+      "process": "github:jspm/nodelibs-process@0.1.2"
+    },
     "npm:buffer@3.5.1": {
       "base64-js": "npm:base64-js@0.0.8",
       "ieee754": "npm:ieee754@1.1.6",
       "is-array": "npm:is-array@1.0.1"
+    },
+    "npm:core-js@0.9.18": {
+      "fs": "github:jspm/nodelibs-fs@0.1.2",
+      "process": "github:jspm/nodelibs-process@0.1.2",
+      "systemjs-json": "github:systemjs/plugin-json@0.1.0"
     },
     "npm:core-util-is@1.0.1": {
       "buffer": "github:jspm/nodelibs-buffer@0.1.0"
@@ -150,3 +168,4 @@ System.config({
     }
   }
 });
+

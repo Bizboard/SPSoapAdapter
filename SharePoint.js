@@ -12,7 +12,9 @@ import {BlobHelper}     from 'arva-utils/BlobHelper.js';
 let DEBUG_WORKER = true;
 let SPWorker = new Worker('worker.js');
 let workerEvents = new EventEmitter();
-SPWorker.onmessage = (messageEvent) => { workerEvents.emit('message', messageEvent); };
+SPWorker.onmessage = (messageEvent) => {
+    workerEvents.emit('message', messageEvent);
+};
 
 /**
  * The SharePoint class will utilize a Web Worker to perform data operations. Running the data interfacing in a
@@ -56,6 +58,7 @@ export class SharePoint extends EventEmitter {
     }
 
     on(event, handler, context = this) {
+
         /* Hold off on initialising the actual SharePoint connection until someone actually subscribes to data changes. */
         if (!this._initialised) {
             this._initialise();
@@ -67,7 +70,7 @@ export class SharePoint extends EventEmitter {
             handler.call(context, this.cache);
         }
 
-        if (this._ready && event === 'value' || event === 'child_added') {
+        if (this._ready && event === 'value') {
             this.once('cache_data', (cacheData) => this._handleCacheData(cacheData, event, handler, context));
 
             /* Grab any existing cached data for this path. There will be data if there are other
@@ -97,7 +100,7 @@ export class SharePoint extends EventEmitter {
             amountRemoved = this.listeners(event).length;
         }
 
-        for(let i = 0; i < amountRemoved; i++) {
+        for (let i = 0; i < amountRemoved; i++) {
             /* Tell the Manager that this subscription is cancelled and no longer requires refreshed data from SharePoint. */
             SPWorker.postMessage(_.extend({}, this.options, {
                 subscriberID: this.subscriberID,
@@ -127,11 +130,16 @@ export class SharePoint extends EventEmitter {
             model: model
         });
 
+
         if (model['_temporary-identifier']) {
             /* Set the model's ID to the temporary one so it can be used to query the dataSource with. */
-            if (model.disableChangeListener) { model.disableChangeListener(); }
+            if (model.disableChangeListener) {
+                model.disableChangeListener();
+            }
             model.id = model['_temporary-identifier'];
-            if (model.enableChangeListener) { model.enableChangeListener(); }
+            if (model.enableChangeListener) {
+                model.enableChangeListener();
+            }
         }
 
         /* Cache is used to immediately trigger the value callback if a new model was created and subscribes to its own changes. */
@@ -151,19 +159,108 @@ export class SharePoint extends EventEmitter {
 
     _initialise() {
 
-        super.once('value', () => { this._ready = true; });
+        super.once('value', () => {
+            this._ready = true;
+        });
 
         /* Initialise the worker */
         SPWorker.postMessage(_.extend({}, this.options, {
             subscriberID: this.subscriberID,
+
             operation: 'init'
         }));
     }
 
     _onMessage(messageEvent) {
         let message = messageEvent.data;
+
         /* Ignore messages not meant for this SharePoint instance. */
-        if (message.subscriberID !== this.subscriberID) { return; }
+        if (message.subscriberID !== this.subscriberID) {
+            return;
+        }
+        let messageData = message.data;
+        if (message.event === 'doSet') {
+            let clientContext = new SP.ClientContext(this.options.endPoint.split('/').slice(0,-1).join('/'));
+            let list = clientContext.get_web().get_lists().getByTitle(messageData.listName);
+            let item;
+            if (messageData.method === "New") {
+                item = list.addItem(new SP.ListItemCreationInformation());
+            } else {
+                item = list.getItemById(Number.parseInt(messageData.data.id));
+            }
+            let newData = messageData.data;
+            for (var prop in newData) {
+                let fieldValue = newData[prop];
+                if (prop == "id" || typeof(fieldValue) == "undefined") continue;
+                if (prop == "priority" || prop == "_temporary-identifier" || prop == "remoteId") continue;
+                let value;
+                if (typeof fieldValue === 'object') {
+                    if (fieldValue.id && fieldValue.value) {
+                        /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
+                        value = new SP.FieldLookupValue();
+                        value.set_lookupId('' + fieldValue.id);
+                        //fieldValue = `${fieldValue.id};#`;
+                    } else if (fieldValue.length !== undefined && fieldValue[0] && fieldValue[0].id && fieldValue[0].value) {
+                        // TODO: FOR LATER
+                        /* This is a SharePoint LookupMulti field. It is specially formatted like above. */
+                        /*let IDs = _.pluck(fieldValue, 'id');
+                         fieldValue = IDs.join(';#;#');*/
+                    } else {
+                        continue;
+                    }
+                }
+                item.set_item(prop, value);
+
+                /*Call UrlThingy.set(messageDataEvent.data, function(result){
+                 postMessage('didSet'+messageDataEvent.data.url+messageDataEvent.data.object.id, result);
+                 });*/
+
+            }
+            item.update();
+            clientContext.load(item);
+            clientContext.executeQueryAsync(() => {
+
+                let model = {id: '' + item.get_id()};
+                let retrievedInfo = item.get_fieldValues();
+                for(let field in retrievedInfo){
+                    let value = retrievedInfo[field];
+                    if(value instanceof SP.FieldLookupValue){
+                        model[field] = {id:value.get_lookupId(), value: value.get_lookupValue()};
+                    } else if(typeof value === 'string'){
+                        model[field] = value;
+                    }
+                }
+
+                SPWorker.postMessage({
+                    subscriberID: this.subscriberID,
+                    endPoint: this.options.endPoint,
+                    listName: this.options.listName,
+                    operation: 'didSet' + messageData.secretKey,
+                    model
+                });
+            }, (sender, args) => {
+                let model = {id: '' + item.get_id()};
+                let retrievedInfo = item.get_fieldValues();
+                for(let field in retrievedInfo){
+                    let value = retrievedInfo[field];
+                    if(value instanceof SP.FieldLookupValue){
+                        model[field] = {id:value.get_lookupId(), value: value.get_lookupValue()};
+                    } else if(typeof value === 'string'){
+                        model[field] = value;
+                    }
+                }
+
+                SPWorker.postMessage({
+                    subscriberID: this.subscriberID,
+                    endPoint: this.options.endPoint,
+                    listName: this.options.listName,
+                    operation: 'didSet' + messageData.secretKey,
+                    model
+                });
+                console.log('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
+            });
+            return;
+        }
 
         if (message.event === 'cache_data') {
             this.emit('cache_data', message.cache);
@@ -177,7 +274,9 @@ export class SharePoint extends EventEmitter {
     }
 
     _handleCacheData(cacheData, event, handler, context) {
-        if (!cacheData) { cacheData = []; }
+        if (!cacheData) {
+            cacheData = [];
+        }
 
         if (event === 'child_added') {
             for (let index = 0; index < cacheData.length; index++) {
@@ -191,7 +290,9 @@ export class SharePoint extends EventEmitter {
     }
 
     _handleAuthResult(authData, handler, context = this) {
-        if (!authData) { authData = {}; }
+        if (!authData) {
+            authData = {};
+        }
 
         handler.call(context, authData);
 
