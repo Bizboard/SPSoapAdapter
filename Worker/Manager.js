@@ -3,7 +3,6 @@
  */
 import 'arva-utils/hotfixes/polyfills/FunctionName.js';
 import 'arva-utils/hotfixes/polyfills/ObjectKeys.js';
-import 'arva-utils/hotfixes/polyfills/FunctionName.js';
 import 'arva-utils/hotfixes/polyfills/StartsWith.js';
 import {SharePointClient}               from './SharePointClient.js';
 
