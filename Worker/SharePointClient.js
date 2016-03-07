@@ -29,19 +29,6 @@ export class SharePointClient extends EventEmitter {
         this.cache = [];
         this.hasNoServerResponse = true;
 
-        importScripts('https://bizboardapps.sharepoint.com/bizPeople/_layouts/15/SP.RequestExecutor.js');
-        var executor = new SP.RequestExecutor(this.settings.endPoint + 'bizPeople');
-        executor.executeAsync(
-                {
-                  url:
-                      appweburl +
-                      "/_api/web/lists/getbytitle('Categories')/items",
-                  method: "GET",
-                  headers: { "Accept": "application/json; odata=verbose" },
-                  success: function() {debugger;},
-                  error: function(err) {console.log(err);}
-                }
-            );
     }
 
     init() {
