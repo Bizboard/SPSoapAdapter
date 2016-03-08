@@ -193,7 +193,7 @@ export class SharePoint extends EventEmitter {
                 let fieldValue = newData[prop];
                 if (prop == "id" || typeof(fieldValue) == "undefined") continue;
                 if (prop == "priority" || prop == "_temporary-identifier" || prop == "remoteId") continue;
-                let value = fieldValue;
+                let value;
                 if (typeof fieldValue === 'object') {
                     if (fieldValue.id && fieldValue.value) {
                         /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
@@ -208,8 +208,6 @@ export class SharePoint extends EventEmitter {
                     } else {
                         continue;
                     }
-                } else if (value === ''){
-                    continue;
                 }
                 item.set_item(prop, value);
 
