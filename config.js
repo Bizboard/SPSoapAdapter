@@ -19,18 +19,18 @@ System.config({
 
 System.config({
   "map": {
-    "arva-utils": "github:bizboard/arva-utils@1.0.0-beta-3",
+    "arva-utils": "github:bizboard/arva-utils@develop",
     "babel": "npm:babel-core@5.8.35",
     "babel-runtime": "npm:babel-runtime@5.8.35",
     "base64": "base64.js",
     "core-js": "npm:core-js@0.9.18",
     "eventemitter3": "npm:eventemitter3@1.1.1",
     "json-query": "npm:json-query@1.5.0",
-    "lodash": "npm:lodash@3.10.1",
+    "lodash": "npm:lodash@4.2.0",
     "traceur": "github:jmcriffey/bower-traceur@0.0.92",
     "traceur-runtime": "github:jmcriffey/bower-traceur-runtime@0.0.92",
-    "xml2js": "npm:xml2js@0.4.12",
-    "github:bizboard/arva-utils@1.0.0-beta-3": {
+    "xml2js": "npm:xml2js@0.4.16",
+    "github:bizboard/arva-utils@develop": {
       "bowser": "npm:bowser@1.0.0",
       "di": "github:bizboard/di.js@master",
       "fs": "github:jspm/nodelibs-fs@0.1.2",
@@ -91,7 +91,7 @@ System.config({
       "process": "github:jspm/nodelibs-process@0.1.2",
       "systemjs-json": "github:systemjs/plugin-json@0.1.0"
     },
-    "npm:core-util-is@1.0.1": {
+    "npm:core-util-is@1.0.2": {
       "buffer": "github:jspm/nodelibs-buffer@0.1.0"
     },
     "npm:inherits@2.0.1": {
@@ -101,6 +101,9 @@ System.config({
       "process": "github:jspm/nodelibs-process@0.1.2"
     },
     "npm:lodash@3.10.1": {
+      "process": "github:jspm/nodelibs-process@0.1.2"
+    },
+    "npm:lodash@4.2.0": {
       "process": "github:jspm/nodelibs-process@0.1.2"
     },
     "npm:path-browserify@0.0.0": {
@@ -114,7 +117,7 @@ System.config({
     },
     "npm:readable-stream@1.1.13": {
       "buffer": "github:jspm/nodelibs-buffer@0.1.0",
-      "core-util-is": "npm:core-util-is@1.0.1",
+      "core-util-is": "npm:core-util-is@1.0.2",
       "events": "github:jspm/nodelibs-events@0.1.1",
       "inherits": "npm:inherits@2.0.1",
       "isarray": "npm:isarray@0.0.1",
@@ -153,17 +156,15 @@ System.config({
       "inherits": "npm:inherits@2.0.1",
       "process": "github:jspm/nodelibs-process@0.1.2"
     },
-    "npm:xml2js@0.4.12": {
+    "npm:xml2js@0.4.16": {
       "events": "github:jspm/nodelibs-events@0.1.1",
-      "fs": "github:jspm/nodelibs-fs@0.1.2",
       "process": "github:jspm/nodelibs-process@0.1.2",
       "sax": "npm:sax@0.6.1",
       "timers": "github:jspm/nodelibs-timers@0.1.0",
-      "util": "github:jspm/nodelibs-util@0.1.0",
-      "xmlbuilder": "npm:xmlbuilder@3.1.0"
+      "xmlbuilder": "npm:xmlbuilder@4.2.1"
     },
-    "npm:xmlbuilder@3.1.0": {
-      "lodash": "npm:lodash@3.10.1",
+    "npm:xmlbuilder@4.2.1": {
+      "lodash": "npm:lodash@4.2.0",
       "process": "github:jspm/nodelibs-process@0.1.2"
     }
   }
