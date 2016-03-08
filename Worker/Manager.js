@@ -73,7 +73,5 @@ onmessage = async function(messageEvent) {
                 console.log('Error whilst fetching user auth data: ', error);
             }
             break;
-        default:
-            client.emit(operation, message.model);
     }
 };
