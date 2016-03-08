@@ -363,13 +363,13 @@ export class SharePointClient extends EventEmitter {
 
             let data = model;
 
-            let remoteId = model.id;
+            let remoteId = id;
 
             // push ID mapping for given session to collection of temp keys
             if (newData['_temporary-identifier']) {
                 tempKeys.push({localId: newData['_temporary-identifier'], remoteId: remoteId, client: this});
             }
-            let messages = this._updateCache([data]);
+            let messages = this._updateCache(data);
             for (let message of messages) {
                 this.emit('message', message);
             }
