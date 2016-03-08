@@ -17941,13 +17941,13 @@ System.register('Worker/SharePointClient.js', ['npm:babel-runtime@5.8.35/helpers
 
                             var data = model;
 
-                            var remoteId = model.id;
+                            var remoteId = id;
 
                             // push ID mapping for given session to collection of temp keys
                             if (newData['_temporary-identifier']) {
                                 tempKeys.push({ localId: newData['_temporary-identifier'], remoteId: remoteId, client: _this3 });
                             }
-                            var messages = _this3._updateCache([data]);
+                            var messages = _this3._updateCache(data);
                             var _iteratorNormalCompletion2 = true;
                             var _didIteratorError2 = false;
                             var _iteratorError2 = undefined;
@@ -18532,7 +18532,7 @@ System.register('Worker/Manager.js', ['npm:babel-runtime@5.8.35/regenerator.js',
 
                         case 33:
                             context$1$0.prev = 33;
-                            context$1$0.t1 = context$1$0['catch'](26);
+                            context$n1$0.t1 = context$1$0['catch'](26);
 
                             console.log('Error whilst fetching user auth data: ', context$1$0.t1);
 
@@ -18555,4 +18555,6 @@ System.register('Worker/Manager.js', ['npm:babel-runtime@5.8.35/regenerator.js',
 (function(factory) {
   factory();
 });
+
+//d
 //# sourceMappingURL=worker.js.map

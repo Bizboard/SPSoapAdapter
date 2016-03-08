@@ -375,6 +375,7 @@ export class SharePointClient extends EventEmitter {
             }
 
             /* Fire a value/child_changed event with the now available remoteId present */
+            let model = newData;
             model.id = model['_temporary-identifier'] || model.id;
             model.remoteId = remoteId;
             if (this.isChild) {
