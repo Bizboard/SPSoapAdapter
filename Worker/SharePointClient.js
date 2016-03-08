@@ -32,6 +32,7 @@ export class SharePointClient extends EventEmitter {
         this.retriever = null;
         this.cache = [];
         this.hasNoServerResponse = true;
+
     }
 
     init() {
