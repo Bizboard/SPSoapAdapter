@@ -180,8 +180,10 @@ export class SharePoint extends EventEmitter {
         }
         let messageData = message.data;
         if (message.event === 'doSet') {
-            let clientContext = new SP.ClientContext(this.options.endPoint.split('/').slice(0,-1).join('/'));
+            let splitEndpoint = this.options.endPoint.split('/');
+            let clientContext = new SP.ClientContext(splitEndpoint.slice(0, 2 + _.findIndex(splitEndpoint, (chunk) => ~chunk.indexOf("com"))).join('/'));
             let list = clientContext.get_web().get_lists().getByTitle(messageData.listName);
+
             let item;
             if (messageData.method === "New") {
                 item = list.addItem(new SP.ListItemCreationInformation());
