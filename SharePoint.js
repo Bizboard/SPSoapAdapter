@@ -222,7 +222,7 @@ export class SharePoint extends EventEmitter {
             clientContext.load(item);
             clientContext.executeQueryAsync(() => {
 
-                let model = {id: '' + item.get_id()};
+                let model = {id: messageData.method === "New" ? '' + item.get_id() : messageData.data.id};
                 let retrievedInfo = item.get_fieldValues();
                 for(let field in retrievedInfo){
                     let value = retrievedInfo[field];
