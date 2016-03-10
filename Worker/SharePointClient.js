@@ -207,7 +207,7 @@ export class SharePointClient extends EventEmitter {
             this.limitRows = false;
         }
 
-        this.retriever.params.rowLimit = rowLimit;
+        //this.retriever.params.rowLimit = rowLimit;
 
     }
 
