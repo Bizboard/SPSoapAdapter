@@ -181,7 +181,10 @@ export class SharePoint extends EventEmitter {
         let messageData = message.data;
         if (message.event === 'doSet') {
             let splitEndpoint = this.options.endPoint.split('/');
-            let clientContext = new SP.ClientContext(splitEndpoint.slice(0, 2 + _.findIndex(splitEndpoint, (chunk) => ~chunk.indexOf("com"))).join('/'));
+            if(messageData.listName !== splitEndpoint.slice(-1)[0]){
+                return;
+            }
+            let clientContext = new SP.ClientContext(splitEndpoint.slice(0, -1).join('/'));
             let list = clientContext.get_web().get_lists().getByTitle(messageData.listName);
 
             let item;
