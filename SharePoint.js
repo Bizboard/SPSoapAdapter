@@ -181,10 +181,9 @@ export class SharePoint extends EventEmitter {
         let messageData = message.data;
         if (message.event === 'doSet') {
             let splitEndpoint = this.options.endPoint.split('/');
-            if(messageData.listName !== splitEndpoint.slice(-1)[0]){
-                return;
-            }
-            let clientContext = new SP.ClientContext(splitEndpoint.slice(0, -1).join('/'));
+            let rootAddress = splitEndpoint.slice(0, splitEndpoint.indexOf(messageData.listName)).join('/');
+            /* Uses the global object SP, be sure to include it in the HTML! (for now) */
+            let clientContext = new SP.ClientContext(rootAddress);
             let list = clientContext.get_web().get_lists().getByTitle(messageData.listName);
 
             let item;
@@ -217,10 +216,6 @@ export class SharePoint extends EventEmitter {
                     continue;
                 }
                 item.set_item(prop, value);
-
-                /*Call UrlThingy.set(messageDataEvent.data, function(result){
-                 postMessage('didSet'+messageDataEvent.data.url+messageDataEvent.data.object.id, result);
-                 });*/
 
             }
             item.update();
