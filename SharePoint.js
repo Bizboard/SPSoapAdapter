@@ -246,7 +246,7 @@ export class SharePoint extends EventEmitter {
                 let retrievedInfo = item.get_fieldValues();
                 for(let field in retrievedInfo){
                     let value = retrievedInfo[field];
-                    if(value instanceof SP.FieldLookupValue){
+                    if(value && value.get_lookupId && value.get_lookupValue){
                         model[field] = {id:value.get_lookupId(), value: value.get_lookupValue()};
                     } else if(typeof value === 'string'){
                         model[field] = value;
