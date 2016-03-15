@@ -241,6 +241,7 @@ export class SharePoint extends EventEmitter {
                     model
                 });
             }, (sender, args) => {
+                console.log('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
                 let model = {id: '' + item.get_id()};
                 let retrievedInfo = item.get_fieldValues();
                 for(let field in retrievedInfo){
@@ -259,7 +260,6 @@ export class SharePoint extends EventEmitter {
                     operation: 'didSet' + messageData.secretKey,
                     model
                 });
-                console.log('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
             });
             return;
         }
