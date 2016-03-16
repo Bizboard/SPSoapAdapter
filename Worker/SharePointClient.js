@@ -219,12 +219,6 @@ export class SharePointClient extends EventEmitter {
      * @private
      */
     _refresh(calledManually = true) {
-        /* Prevent refresh from being called more than once at a time. */
-        if (this.refreshTimer && calledManually) {
-            return;
-        }
-        this.refreshTimer = 1;
-
         if (this.retriever) {
             soapClient.call(this.retriever, tempKeys)
                 .then((result) => {
@@ -258,13 +252,15 @@ export class SharePointClient extends EventEmitter {
                         }
                     }
                     this.hasNoServerResponse = false;
-                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
-                    this.refreshTimer = null;
+                    if(!calledManually){
+                        this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
+                    }
 
                 }).catch((err) => {
                 this.emit('error', err);
-                this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
-                this.refreshTimer = null;
+                if(!calledManually){
+                    this.refreshTimer = setTimeout(this._refresh.bind(this, false), this.interval);
+                }
             });
         }
     }

@@ -11,12 +11,14 @@ System.config({
       "optimisation.modules.system"
     ]
   },
-  paths: {
+  "paths": {
     "github:*": "jspm_packages/github/*",
     "npm:*": "jspm_packages/npm/*"
-  },
+  }
+});
 
-  map: {
+System.config({
+  "map": {
     "arva-utils": "github:bizboard/arva-utils@develop",
     "babel": "npm:babel-core@5.8.35",
     "babel-runtime": "npm:babel-runtime@5.8.35",
@@ -27,6 +29,7 @@ System.config({
     "xml2js": "npm:xml2js@0.4.16",
     "github:bizboard/arva-utils@develop": {
       "bowser": "npm:bowser@1.0.0",
+      "calmelcase": "npm:camelcase@2.1.1",
       "di": "github:bizboard/di.js@master",
       "fs": "github:jspm/nodelibs-fs@0.1.2",
       "lodash": "npm:lodash@4.6.1",
@@ -163,3 +166,4 @@ System.config({
     }
   }
 });
+
