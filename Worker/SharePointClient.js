@@ -354,7 +354,7 @@ export class SharePointClient extends EventEmitter {
         let secretKey = '' + Math.random() * 200000;
         this.emit('message', {
             event: 'doSet',
-            data: {url: configuration.url, data: newData, method, listName: this.settings.listName, secretKey}
+            data: {tempKeys: tempKeys.map((tempKey) => _.omit(tempKey, 'client')), url: configuration.url, data: newData, method, listName: this.settings.listName, secretKey}
         });
         this.once('didSet' + secretKey, (model) => {
 
