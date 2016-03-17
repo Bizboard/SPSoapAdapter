@@ -202,7 +202,10 @@ export class SharePoint extends EventEmitter {
                     if (fieldValue.id && fieldValue.value) {
                         /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
                         value = new SP.FieldLookupValue();
-                        value.set_lookupId('' + fieldValue.id);
+                        let id = '' + fieldValue.id;
+                        /* Replace local keys with remote keys */
+                        let tempKey = _.find(messageData.tempKeys, (tempKey) => tempKey.localId === id);
+                        value.set_lookupId(tempKey ? tempKey.remoteId : id);
                         //fieldValue = `${fieldValue.id};#`;
                     } else if (fieldValue.length !== undefined && fieldValue[0] && fieldValue[0].id && fieldValue[0].value) {
                         // TODO: FOR LATER
@@ -226,8 +229,10 @@ export class SharePoint extends EventEmitter {
                 let retrievedInfo = item.get_fieldValues();
                 for(let field in retrievedInfo){
                     let value = retrievedInfo[field];
-                    if(value instanceof SP.FieldLookupValue){
-                        model[field] = {id:value.get_lookupId(), value: value.get_lookupValue()};
+                    if(value && value.get_lookupId && value.get_lookupValue){
+                        let id = '' + value.get_lookupId();
+                        let tempKey = _.find(messageData.tempKeys, (tempKey) => tempKey.remoteId === id);
+                        model[field] = {id: tempKey ? tempKey.localId : id, value: value.get_lookupValue()};
                     } else if(typeof value === 'string'){
                         model[field] = value;
                     }
@@ -242,24 +247,6 @@ export class SharePoint extends EventEmitter {
                 });
             }, (sender, args) => {
                 console.log('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
-                let model = {id: '' + item.get_id()};
-                let retrievedInfo = item.get_fieldValues();
-                for(let field in retrievedInfo){
-                    let value = retrievedInfo[field];
-                    if(value && value.get_lookupId && value.get_lookupValue){
-                        model[field] = {id:'' + value.get_lookupId(), value: value.get_lookupValue()};
-                    } else if(typeof value === 'string'){
-                        model[field] = value;
-                    }
-                }
-
-                SPWorker.postMessage({
-                    subscriberID: this.subscriberID,
-                    endPoint: this.options.endPoint,
-                    listName: this.options.listName,
-                    operation: 'didSet' + messageData.secretKey,
-                    model
-                });
             });
             return;
         }
