@@ -60,6 +60,38 @@ export class SharePointClient extends EventEmitter {
         this.refreshTimer = null;
     }
 
+    /**
+     * Remove a record from SharePoint
+     * @param record
+     * @private
+     */
+    _handleRemove(record) {
+        var configuration = this._updateListItemsDefaultConfiguration();
+        /* Append the listName to the URL for easy debugging */
+        configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?remove=${this.settings.listName}`;
+        var fieldCollection = [];
+
+        record.remoteId = record.id;
+
+        let isLocal = _.findIndex(tempKeys, function (key) {
+            return key.localId == record.id;
+        });
+
+        if (isLocal > -1) {
+            record.id = tempKeys[isLocal].remoteId;
+        }
+
+        let secretKey = '' + Math.random() * 200000;
+        this.emit('message', {
+            event: 'doRemove',
+            data: {record, method, listName: this.settings.listName, secretKey}
+        });
+        this.once('didRemove', () => {
+            this.emit('message', {event: 'child_removed', result: record});
+        });
+
+    }
+
     getAuth() {
         return new Promise((resolve, reject) => {
             /* initialize with SharePoint configuration */
@@ -140,6 +172,7 @@ export class SharePointClient extends EventEmitter {
             return {settings: resultconfig, isChild: isChild};
         }
     }
+
 
     /**
      * Start reading the list from SharePoint and only retrieve changes from last polling timestamp.
@@ -265,7 +298,6 @@ export class SharePointClient extends EventEmitter {
         }
     }
 
-
     /**
      * Add or Update a data record.
      * @private
@@ -384,59 +416,6 @@ export class SharePointClient extends EventEmitter {
             }
 
         });
-    }
-
-    /**
-     * Remove a record from SharePoint
-     * @param record
-     * @private
-     */
-    _handleRemove(record) {
-        var configuration = this._updateListItemsDefaultConfiguration();
-        /* Append the listName to the URL for easy debugging */
-        configuration.url = this._parsePath(this.settings.endPoint, this._getListService()) + `?remove=${this.settings.listName}`;
-        var fieldCollection = [];
-
-        record.remoteId = record.id;
-
-        let isLocal = _.findIndex(tempKeys, function (key) {
-            return key.localId == record.id;
-        });
-
-        if (isLocal > -1) {
-            record.id = tempKeys[isLocal].remoteId;
-        }
-
-        fieldCollection.push({
-            "_Name": "ID",
-            "__text": record.id
-        });
-
-        configuration.params = {
-            "listName": this.settings.listName,
-            "updates": {
-                "Batch": {
-                    "Method": {
-                        "Field": fieldCollection,
-
-                        "_ID": '1',
-                        "_Cmd": 'Delete'
-                    },
-
-                    "_OnError": 'Continue',
-                    "_ListVersion": '1',
-                    "_ViewName": ''
-                }
-            }
-        };
-
-        // initial initialisation of the datasource
-        soapClient.call(configuration, tempKeys)
-            .then(()=> {
-                this.emit('message', {event: 'child_removed', result: record});
-            }, (error) => {
-                console.log(error);
-            });
     }
 
 
