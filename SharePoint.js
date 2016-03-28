@@ -171,6 +171,103 @@ export class SharePoint extends EventEmitter {
         }));
     }
 
+    _getListRoot() {
+        let splitEndpoint = this.options.endPoint.
+        split('/');
+        return splitEndpoint.slice(0, splitEndpoint.indexOf(messageData.listName)).join('/');
+    }
+
+    _getClientContext(messageData) {
+        return new SP.ClientContext(this._getListRoot(messageData));
+    }
+
+    _doSet(messageData) {
+        /* Uses the global object SP, be sure to include it in the HTML! (for now) */
+        let clientContext = this._getClientContext(messageData);
+        let list = clientContext.get_web().get_lists().getByTitle(messageData.listName);
+
+        let item;
+        if (messageData.method === "New") {
+            item = list.addItem(new SP.ListItemCreationInformation());
+        } else {
+            item = list.getItemById(Number.parseInt(messageData.data.id));
+        }
+        let newData = messageData.data;
+        for (var prop in newData) {
+            let fieldValue = newData[prop];
+            if (prop == "id" || typeof(fieldValue) == "undefined") continue;
+            if (prop == "priority" || prop == "_temporary-identifier" || prop == "remoteId") continue;
+            let value = fieldValue;
+            if (typeof fieldValue === 'object') {
+                if (fieldValue.id && fieldValue.value) {
+                    /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
+                    value = new SP.FieldLookupValue();
+                    let id = '' + fieldValue.id;
+                    /* Replace local keys with remote keys */
+                    let tempKey = _.find(messageData.tempKeys, (tempKey) => tempKey.localId === id);
+                    value.set_lookupId(tempKey ? tempKey.remoteId : id);
+                    //fieldValue = `${fieldValue.id};#`;
+                } else if (fieldValue.length !== undefined && fieldValue[0] && fieldValue[0].id && fieldValue[0].value) {
+                    // TODO: FOR LATER
+                    /* This is a SharePoint LookupMulti field. It is specially formatted like above. */
+                    /*let IDs = _.pluck(fieldValue, 'id');
+                     fieldValue = IDs.join(';#;#');*/
+                } else {
+                    continue;
+                }
+            } else if (value === ''){
+                continue;
+            }
+            item.set_item(prop, value);
+
+        }
+        item.update();
+        clientContext.load(item);
+        clientContext.executeQueryAsync(() => {
+
+            let model = {id: messageData.method === "New" ? '' + item.get_id() : messageData.data.id};
+            let retrievedInfo = item.get_fieldValues();
+            for(let field in retrievedInfo){
+                let value = retrievedInfo[field];
+                if(value && value.get_lookupId && value.get_lookupValue){
+                    let id = '' + value.get_lookupId();
+                    let tempKey = _.find(messageData.tempKeys, (tempKey) => tempKey.remoteId === id);
+                    model[field] = {id: tempKey ? tempKey.localId : id, value: value.get_lookupValue()};
+                } else if(typeof value === 'string'){
+                    model[field] = value;
+                }
+            }
+
+            SPWorker.postMessage({
+                subscriberID: this.subscriberID,
+                endPoint: this.options.endPoint,
+                listName: this.options.listName,
+                operation: 'didSet' + messageData.secretKey,
+                model
+            });
+        }, (sender, args) => {
+            console.log('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
+        });
+    }
+
+    _doRemove(messageData){
+        let clientContext = this._getClientContext(messageData);
+        let list = clientContext.get_web().get_lists().getByTitle(messageData.listName);
+        let item = list.getItemById(messageData.record.id);
+        item.deleteObject();
+        clientContext.executeQueryAsync(() => {
+            SPWorker.postMessage({
+                subscriberID: this.subscriberID,
+                endPoint: this.options.endPoint,
+                listName: this.options.listName,
+                operation: 'didRemove' + messageData.secretKey
+            }, (sender, args) => {
+                console.log('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
+            });
+        })
+
+    }
+
     _onMessage(messageEvent) {
         let message = messageEvent.data;
 
@@ -180,74 +277,10 @@ export class SharePoint extends EventEmitter {
         }
         let messageData = message.data;
         if (message.event === 'doSet') {
-            let splitEndpoint = this.options.endPoint.split('/');
-            let rootAddress = splitEndpoint.slice(0, splitEndpoint.indexOf(messageData.listName)).join('/');
-            /* Uses the global object SP, be sure to include it in the HTML! (for now) */
-            let clientContext = new SP.ClientContext(rootAddress);
-            let list = clientContext.get_web().get_lists().getByTitle(messageData.listName);
-
-            let item;
-            if (messageData.method === "New") {
-                item = list.addItem(new SP.ListItemCreationInformation());
-            } else {
-                item = list.getItemById(Number.parseInt(messageData.data.id));
-            }
-            let newData = messageData.data;
-            for (var prop in newData) {
-                let fieldValue = newData[prop];
-                if (prop == "id" || typeof(fieldValue) == "undefined") continue;
-                if (prop == "priority" || prop == "_temporary-identifier" || prop == "remoteId") continue;
-                let value = fieldValue;
-                if (typeof fieldValue === 'object') {
-                    if (fieldValue.id && fieldValue.value) {
-                        /* This is a SharePoint lookup type field. We must write it as a specially formatted value instead of an id/value object. */
-                        value = new SP.FieldLookupValue();
-                        let id = '' + fieldValue.id;
-                        /* Replace local keys with remote keys */
-                        let tempKey = _.find(messageData.tempKeys, (tempKey) => tempKey.localId === id);
-                        value.set_lookupId(tempKey ? tempKey.remoteId : id);
-                        //fieldValue = `${fieldValue.id};#`;
-                    } else if (fieldValue.length !== undefined && fieldValue[0] && fieldValue[0].id && fieldValue[0].value) {
-                        // TODO: FOR LATER
-                        /* This is a SharePoint LookupMulti field. It is specially formatted like above. */
-                        /*let IDs = _.pluck(fieldValue, 'id');
-                         fieldValue = IDs.join(';#;#');*/
-                    } else {
-                        continue;
-                    }
-                } else if (value === ''){
-                    continue;
-                }
-                item.set_item(prop, value);
-
-            }
-            item.update();
-            clientContext.load(item);
-            clientContext.executeQueryAsync(() => {
-
-                let model = {id: messageData.method === "New" ? '' + item.get_id() : messageData.data.id};
-                let retrievedInfo = item.get_fieldValues();
-                for(let field in retrievedInfo){
-                    let value = retrievedInfo[field];
-                    if(value && value.get_lookupId && value.get_lookupValue){
-                        let id = '' + value.get_lookupId();
-                        let tempKey = _.find(messageData.tempKeys, (tempKey) => tempKey.remoteId === id);
-                        model[field] = {id: tempKey ? tempKey.localId : id, value: value.get_lookupValue()};
-                    } else if(typeof value === 'string'){
-                        model[field] = value;
-                    }
-                }
-
-                SPWorker.postMessage({
-                    subscriberID: this.subscriberID,
-                    endPoint: this.options.endPoint,
-                    listName: this.options.listName,
-                    operation: 'didSet' + messageData.secretKey,
-                    model
-                });
-            }, (sender, args) => {
-                console.log('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
-            });
+            this._doSet(messageData);
+            return;
+        } else if (message.event === 'doRemove'){
+            this._doRemove(messageData);
             return;
         }
 
