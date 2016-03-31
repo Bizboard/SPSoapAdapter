@@ -208,11 +208,15 @@ export class SharePointClient extends EventEmitter {
         }
         if (args.pageSize) {
             rowLimit = args.pageSize;
+            this.pageSize = args.pageSize;
         }
         if (rowLimit) {
             this.retriever.params.rowLimit = rowLimit;
         }
+    }
 
+    _isLimitExceeded() {
+        return this.explicitRowLimit !== false && this.cache.length >= this.explicitRowLimit;
     }
 
 
@@ -223,11 +227,10 @@ export class SharePointClient extends EventEmitter {
      * @private
      */
     _refresh() {
-        if (this.explicitRowLimit !== false && this.cache.length >= this.explicitRowLimit) {
-            this.dispose();
-            return;
-        }
         if (this.retriever) {
+            if (this._isLimitExceeded()) {
+                this.retriever.params.rowLimit = this.explicitRowLimit;
+            }
             soapClient.call(this.retriever, tempKeys)
                 .then((result) => {
 
@@ -239,10 +242,10 @@ export class SharePointClient extends EventEmitter {
                         hasDeletions = this._handleDeleted(changes);
                     }
 
-                    this._handleNextToken(listItem);
-
                     let data = this._getResults(result.data);
                     let messages = this._updateCache(data);
+
+                    this._handleNextToken(listItem);
 
                     /* If any data is new or modified, emit a 'value' event. */
                     if (hasDeletions || data.length > 0) {
@@ -534,20 +537,25 @@ export class SharePointClient extends EventEmitter {
 
 
     _handleNextToken(listItem) {
-        let {ListItemCollectionPositionNext: nextPaginationToken} = listItem["rs:data"][0].$;
-
         let lastQueryHadPagination = this.retriever.params.queryOptions.QueryOptions.Paging;
 
         if (!lastQueryHadPagination && listItem.Changes) {
             this.lastChangeToken = listItem.Changes[0].$.LastChangeToken;
         }
 
-        if (nextPaginationToken !== undefined) {
-            this._setNextPage(nextPaginationToken);
-            this._deactivateChangeToken();
-        } else {
+        if (this._isLimitExceeded()) {
             this._clearNextPage();
             this._activateChangeToken(this.lastChangeToken);
+        } else {
+            let {ListItemCollectionPositionNext: nextPaginationToken} = listItem["rs:data"][0].$;
+
+            if (nextPaginationToken !== undefined) {
+                this._setNextPage(nextPaginationToken);
+                this._deactivateChangeToken();
+            } else {
+                this._clearNextPage();
+                this._activateChangeToken(this.lastChangeToken);
+            }
         }
     }
 
