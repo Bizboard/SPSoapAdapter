@@ -5,8 +5,8 @@ import _                from 'lodash';
 import EventEmitter     from 'eventemitter3';
 import {SoapClient}     from './SoapClient.js';
 import {Settings}       from '../Settings.js';
-import {ExistsRequest}  from 'arva-utils/request/RequestClient.js';
-import {UrlParser}      from 'arva-utils/request/UrlParser.js';
+import {ExistsRequest}  from 'arva-js/utils/request/RequestClient.js';
+import {UrlParser}      from 'arva-js/utils/request/UrlParser.js';
 
 // setup the soapClient.
 var soapClient = new SoapClient();

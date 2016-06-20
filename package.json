@@ -5,7 +5,7 @@
   },
   "jspm": {
     "dependencies": {
-      "arva-utils": "github:bizboard/arva-utils@develop",
+      "arva-js": "github:bizboard/arva-js@~1.0.0",
       "eventemitter3": "npm:eventemitter3@^1.1.0",
       "json-query": "npm:json-query@^1.5.0",
       "lodash": "npm:lodash@^4.2.0",

@@ -1,9 +1,9 @@
 /**
  * Created by tom on 28/08/15.
  */
-import 'arva-utils/hotfixes/polyfills/FunctionName.js';
-import 'arva-utils/hotfixes/polyfills/ObjectKeys.js';
-import 'arva-utils/hotfixes/polyfills/StartsWith.js';
+import 'arva-js/utils/hotfixes/polyfills/FunctionName.js';
+import 'arva-js/utils/hotfixes/polyfills/ObjectKeys.js';
+import 'arva-js/utils/hotfixes/polyfills/StartsWith.js';
 import {SharePointClient}               from './SharePointClient.js';
 
 let clients = {};

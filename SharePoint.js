@@ -5,9 +5,9 @@
 import _                from 'lodash';
 import EventEmitter     from 'eventemitter3';
 import {Settings}       from './Settings.js';
-import {UrlParser}      from 'arva-utils/request/UrlParser.js';
-import {ObjectHelper}   from 'arva-utils/ObjectHelper.js';
-import {BlobHelper}     from 'arva-utils/BlobHelper.js';
+import {UrlParser}      from 'arva-js/utils/request/UrlParser.js';
+import {ObjectHelper}   from 'arva-js/utils/ObjectHelper.js';
+import {BlobHelper}     from 'arva-js/utils/BlobHelper.js';
 
 let DEBUG_WORKER = true;
 let SPWorker = new Worker('worker.js');
